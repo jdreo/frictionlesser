@@ -1,18 +1,23 @@
 #include <string>
+#include <iostream>
 
 #include <eo>
 
+#include <frictionless/frictionless.hpp>
 
 int main(int argc, char* argv[])
 {
     eoParser parser(argc, argv);
-    eoState state;
+    // eoState state;
 
-    const std::string ranks = parser.createParam<std::string>("unknown", "ranks",
-        "Filename of the ranks table", 'r', "Data").value();
+    const std::string ranks = parser.createParam<std::string>("", "ranks",
+        "Filename of the ranks table", 'r', "Data", true).value();
 
-    const std::string signatures = parser.createParam<std::string>("unknown", "signatures",
-        "Filename of the signatures", 'i', "Data").value();
+    const std::string signatures = parser.createParam<std::string>("", "signatures",
+        "Name of a file containing candidate/starting signatures", 'i', "Data").value();
+
+    const bool permute = parser.createParam<bool>(false, "permute",
+        "Randomly permute the data to get rid of the signal", 'R', "Data").value();
 
     const size_t genes = parser.createParam<size_t>(50, "genes",
         "Number of genes in the signatures", 'g', "Parameters").value();
@@ -29,8 +34,17 @@ int main(int argc, char* argv[])
     const long seed = parser.createParam<long>(0, "seed",
         "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
 
-    const bool permute = parser.createParam<bool>(false, "permute",
-        "Randomly permute the data to get rid of the signal", 'R', "Data").value();
 
+    make_verbose(parser);
+    make_help(parser);
 
+    assert(ranks != "");
+
+    std::ifstream ifs;
+    ifs.open(ranks);
+    assert(ifs.is_open());
+    frictionless::RankedTranscriptome rt(ifs);
+    ifs.close();
+
+    std::cout << rt.ranks_table(true) << std::endl;
 }

@@ -28,7 +28,7 @@ class RankedTranscriptome {
          * Example with a file:
          * @code
          * std::ifstream ifs;
-         * ifs.open("filename", std::fstream::in);
+         * ifs.open("filename");
          * assert(ifs.is_open());
          * frictionless::RankedTranscriptome rt(ifs);
          * ifs.close();
@@ -45,16 +45,13 @@ class RankedTranscriptome {
          *
          * Expects tabular, space-separated data of the shape:
          *
-         * |  Aff_0  | … |  Aff_i | … |  Aff_m |
-         * |---------|---|--------|---|--------|
-         * | gene_0  |||||
-         * |  r_00   | … |  r_i0  | … |  r_n0  |
-         * |   …     | … |   …    | … |   …    |
-         * | gene_j  |||||
-         * |  r_0j   | … |  r_ij  | … |  r_mj  |
-         * |   …     | … |   …    | … |   …    |
-         * | gene_n  |||||
-         * |  r_0n   | … |  r_in  | … |  r_mn  |
+         * ||           Aff_0  | … |  Aff_i | … |  Aff_m |
+         * |---------|---------|---|--------|---|--------|
+         * | gene_0  |  r_00   | … |  r_i0  | … |  r_n0  |
+         * |    …    |    …    | … |   …    | … |   …    |
+         * | gene_j  |  r_0j   | … |  r_ij  | … |  r_mj  |
+         * |    …    |    …    | … |   …    | … |   …    |
+         * | gene_n  |  r_0n   | … |  r_in  | … |  r_mn  |
          *
          * @note This clears data before loading new ones.
          */

@@ -35,7 +35,6 @@ void RankedTranscriptome::load( std::istream& input )
     // Rows: Gene, then ranked expressions….
 #ifndef NDEBUG
     size_t column = 0;
-    bool has_gene = false;
 #endif
     while(true) {
         std::string line;
@@ -50,7 +49,7 @@ void RankedTranscriptome::load( std::istream& input )
             // Catch empty lines or commented lines.
             continue;
 
-        } else if(!isdigit(line[0])) {
+        } else if(not isdigit(line[0])) {
             // First column is gene name.
             ss >> charbuf;
             _genes.push_back(charbuf);
@@ -58,12 +57,7 @@ void RankedTranscriptome::load( std::istream& input )
             // This should be the first column.
             assert(column == 0);
             column = 0;
-            has_gene = true;
 #endif
-
-        } else {
-            assert(has_gene);
-
             std::vector<double> ranks_row;
             ranks_row.reserve(_affiliations.size());
 
@@ -93,8 +87,9 @@ void RankedTranscriptome::load( std::istream& input )
 #ifndef NDEBUG
             // End of row => new column.
             column = 0;
-            has_gene = false;
 #endif
+        } else {
+            throw std::runtime_error("Line is neither EOF, starting with #, empty, or not starting with a digit.");
         }
     }
     if(_genes.size() != _ranks.size()) {
