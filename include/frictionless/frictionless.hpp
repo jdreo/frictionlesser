@@ -14,7 +14,7 @@ class RankedTranscriptome {
         std::vector<std::string> _genes;
 
         /** Cell affiliations. */
-        std::vector<std::string> _cells;
+        std::vector<std::string> _affiliations;
 
         /** Table of ranks, covering each gene/cell pair.
          *
@@ -39,11 +39,13 @@ class RankedTranscriptome {
         /** Return true if this instance has already loaded consistent data. */
         bool has_data();
 
+        const std::vector<std::vector<double>>& ranks();
+
         /** Load a ranked transcriptome from the given input stream.
          *
          * Expects tabular, space-separated data of the shape:
          *
-         * | Cell_0  | … | Cell_i | … | Cell_m |
+         * |  Aff_0  | … |  Aff_i | … |  Aff_m |
          * |---------|---|--------|---|--------|
          * | gene_0  |||||
          * |  r_00   | … |  r_i0  | … |  r_n0  |
@@ -57,6 +59,9 @@ class RankedTranscriptome {
          * @note This clears data before loading new ones.
          */
         void load(std::istream& input);
+
+        std::string colormap(bool values = true);
 }; // RankedTranscriptome
+
 
 } // frictionless
