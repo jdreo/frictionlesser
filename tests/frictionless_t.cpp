@@ -5,13 +5,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace frictionless;
-
 SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
-
     GIVEN( "A ranked transcriptome instance" ) {
-        frictionless::RankedTranscriptome table;
-
         WHEN( "loading consistent data") {
             const std::string fake =
                 "Sample_0 Sample_1 Sample_0\n"
@@ -26,12 +21,13 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 "Gene_3\n"
                 "1   3   1\n";
             std::istringstream iss(fake);
+            frictionless::RankedTranscriptome* t;
 
-            THEN( "the table loads correctly" ) {
-                CHECK( not table.has_data() );
-                CHECK_NOTHROW( table.load(iss) );
-                CHECK( table.has_data() );
-                INFO( table.colormap(true) );
+            THEN( "the data loads correctly" ) {
+                CHECK_NOTHROW( t = new frictionless::RankedTranscriptome(iss) );
+                // Print the ranks table as a color map,
+                // if test fails.
+                INFO( t->ranks_table(true) );
             }
         }
         WHEN( "loading data with inconsistent number of levels" ) {
@@ -40,9 +36,10 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 "Gene_0\n"
                 "0 1 2";
             std::istringstream iss(fake);
+            frictionless::RankedTranscriptome* t;
 
             THEN( "an error is raised" ) {
-                CHECK_THROWS( table.load(iss) );
+                CHECK_THROWS( t = new frictionless::RankedTranscriptome(iss) );
             }
         }
         WHEN( "loading data with inconsistent number of genes" ) {
@@ -52,9 +49,10 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 "0 1 2\n"
                 "Gene_1";
             std::istringstream iss(fake);
+            frictionless::RankedTranscriptome* t;
 
             THEN( "an error is raised" ) {
-                CHECK_THROWS( table.load(iss) );
+                CHECK_THROWS( t = new frictionless::RankedTranscriptome(iss) );
             }
         }
     }

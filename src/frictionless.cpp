@@ -7,25 +7,9 @@
 
 namespace frictionless {
 
-RankedTranscriptome::RankedTranscriptome(const std::string filename)
-    : _has_data(false)
+RankedTranscriptome::RankedTranscriptome( std::istream& input )
 {
-    std::ifstream ifs;
-    ifs.open(filename, std::fstream::in);
-    assert(ifs.is_open());
-    load(ifs);
-    ifs.close();
-}
-
-RankedTranscriptome::RankedTranscriptome()
-    : _has_data(false)
-{
-    // Do nothing.
-}
-
-bool RankedTranscriptome::has_data()
-{
-    return this->_has_data;
+    load(input);
 }
 
 const std::vector<std::vector<double>>& RankedTranscriptome::ranks()
@@ -39,7 +23,6 @@ void RankedTranscriptome::load( std::istream& input )
     _ranks.clear();
     _genes.clear();
     _affiliations.clear();
-    _has_data = false;
 
     std::string line;
     std::string charbuf;
@@ -122,8 +105,6 @@ void RankedTranscriptome::load( std::istream& input )
             << ")";
         throw std::runtime_error(msg.str());
     }
-
-    _has_data = true;
 }
 
 /** Print a 2D colormap as a 256-color ASCII-art.
@@ -137,7 +118,7 @@ void RankedTranscriptome::load( std::istream& input )
  *
  * @param values If true, will display one 3-digits value within the colored pixels. Numbers with more than 3 digits are rendered as "+++".
   */
-std::string RankedTranscriptome::colormap(bool values)
+std::string RankedTranscriptome::ranks_table(bool values)
 {
     size_t fg_shift = 128;
 

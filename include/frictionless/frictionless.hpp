@@ -7,13 +7,10 @@ namespace frictionless {
 
 class RankedTranscriptome {
     protected:
-        /** Protection flag. */
-        bool _has_data;
-
         /** Gene names. */
         std::vector<std::string> _genes;
 
-        /** Cell affiliations. */
+        /** Cell affiliations = sample from which this cell was taken. */
         std::vector<std::string> _affiliations;
 
         /** Table of ranks, covering each gene/cell pair.
@@ -23,22 +20,25 @@ class RankedTranscriptome {
         std::vector<std::vector<double>> _ranks;
 
     public:
-        /** Load from a filename.
+        /** Load from a stream of data.
+         *
+         * Can easily read from either a (ifstream) file
+         * or a (istringstream) string.
+         *
+         * Example with a file:
+         * @code
+         * std::ifstream ifs;
+         * ifs.open("filename", std::fstream::in);
+         * assert(ifs.is_open());
+         * frictionless::RankedTranscriptome rt(ifs);
+         * ifs.close();
+         * @encode
          *
          * @see load
          */
-        RankedTranscriptome(const std::string filename);
+        RankedTranscriptome(std::istream& input);
 
-        /** Instantiate an empty object.
-         *
-         * Use this if you want to load data later from a string.
-         * @see load
-         */
-        RankedTranscriptome();
-
-        /** Return true if this instance has already loaded consistent data. */
-        bool has_data();
-
+        /** Returns the current rank table. */
         const std::vector<std::vector<double>>& ranks();
 
         /** Load a ranked transcriptome from the given input stream.
@@ -60,7 +60,8 @@ class RankedTranscriptome {
          */
         void load(std::istream& input);
 
-        std::string colormap(bool values = true);
+        /** Returns an ASCII-art string representing the ranks table. */
+        std::string ranks_table(bool values = true);
 }; // RankedTranscriptome
 
 
