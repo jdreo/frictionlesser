@@ -48,14 +48,28 @@ int main(int argc, char* argv[])
     frictionless::RankedTranscriptome rt(ifs);
     ifs.close();
 
+    std::clog << "Loaded a ranked transcriptome of "
+              << rt.genes().size() << " genes, and "
+              << rt.affiliations().size() << " cells."
+              << std::endl;
     //std::cout << rt.ranks_table(true) << std::endl;
 
     frictionless::Signature null(rt.genes().size(), 0);
 
     rng.reseed(seed);
-    eoUniformGenerator<char> unigen;
+    eoUniformGenerator<frictionless::Signature::AtomType> unigen;
     eoInitFixedLength<frictionless::Signature> rinit(rt.genes().size(), unigen);
 
-    frictionless::Signature alea;
+    frictionless::Signature alea(rt.genes().size(),0);
     rinit(alea);
+
+    alea.printOn(std::cout);
+    std::cout << std::endl;
+
+    for(size_t i=0; i < alea.size(); ++i) {
+        if(alea[i]) {
+            std::cout << rt.gene(i) << " ";
+        }
+    }
+    std::cout << std::endl;
 }

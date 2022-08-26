@@ -46,8 +46,20 @@ class RankedTranscriptome {
         /** Returns the current rank table. */
         const std::vector<std::vector<double>>& ranks();
 
+        /** Returns the rank row for the i-th gene. */
+        const std::vector<double>& ranks(const size_t i);
+
         /** Returns the genes list. */
         const std::vector<std::string>& genes();
+
+        /** Returns the name of the i-th gene. */
+        const std::string& gene(const size_t i);
+
+        /** Returns the affiliations list. */
+        const std::vector<std::string>& affiliations();
+
+        /** Returns the name of the i-th affiliation. */
+        const std::string& affiliation(const size_t i);
 
         /** Load a ranked transcriptome from the given input stream.
          *
@@ -66,7 +78,7 @@ class RankedTranscriptome {
         void load(std::istream& input);
 
         /** Returns an ASCII-art string representing the ranks table. */
-        std::string ranks_table(bool values = true) const;
+        std::string ranks_table(const bool values = true) const;
 }; // RankedTranscriptome
 
 /** The score used to define the quality of a signature is a floating point number.
@@ -80,11 +92,9 @@ using Score = double;
  * Each bit=1 means "this gene is part of the signature,
  * each bit=0, "this gene is NOT part of the signature".
  */
-using Signature = eoBit<Score,char>;
+using Signature = eoBit<Score,bool>;
  // We use Paradiseo/eo/eoBit with a Score as fitness,
- // and vector<char> as data structure.
- // NOTE: we use `char` to represent a `bool`, so as to avoid
- //       the infamous STL's memory-optimized implementation.
+ // and vector<bool> as data structure.
 
 
 } // frictionless

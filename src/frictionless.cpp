@@ -17,9 +17,29 @@ const std::vector<std::vector<double>>& RankedTranscriptome::ranks()
     return this->_ranks;
 }
 
+const std::vector<double>& RankedTranscriptome::ranks(const size_t i)
+{
+    return this->_ranks.at(i);
+}
+
 const std::vector<std::string>& RankedTranscriptome::genes()
 {
     return this->_genes;
+}
+
+const std::string& RankedTranscriptome::gene(const size_t i)
+{
+    return this->_genes.at(i);
+}
+
+const std::vector<std::string>& RankedTranscriptome::affiliations()
+{
+    return this->_affiliations;
+}
+
+const std::string& RankedTranscriptome::affiliation(const size_t i)
+{
+    return this->_affiliations.at(i);
 }
 
 void RankedTranscriptome::load( std::istream& input )
