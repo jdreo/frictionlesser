@@ -8,7 +8,8 @@
 
 #include <clutchlog/clutchlog.h>
 // Make asserts (de)clutchable.
-#define ASSERT(LEVEL, ...) { CLUTCHFUNC(LEVEL, assert, __VA_ARGS__) }
+// #define ASSERT(LEVEL, ...) { CLUTCHFUNC(LEVEL, assert, __VA_ARGS__) }
+#define ASSERT(EXPR, LEVEL) { CLUTCHFUNC(LEVEL, assert, EXPR) }
 
 namespace frictionless {
 
@@ -16,17 +17,23 @@ namespace frictionless {
  */
 class RankedTranscriptome {
     protected:
-        /** Gene names. */
-        std::vector<std::string> _genes;
-
-        /** Cell affiliations = sample from which this cell was taken. */
-        std::vector<std::string> _affiliations;
-
         /** Table of ranks, covering each gene/cell pair.
          *
          * Ranks may be half-ranks, so we use floating-point numbers.
          */
         std::vector<std::vector<double>> _ranks;
+
+        /** Gene names. */
+        std::vector<std::string> _genes;
+
+        /** Cell affiliations = index of sample from which this cell was taken. */
+        std::vector<size_t> _affiliations;
+
+        /** A map linking index of sample to indices of cells. */
+        std::map<size_t,std::vector<size_t>> _cells_in;
+
+        /** A map linking sample name to its index. */
+        std::map<std::string,size_t> _samples;
 
     public:
         /** Load from a stream of data.
@@ -60,10 +67,19 @@ class RankedTranscriptome {
         const std::string& gene(const size_t i);
 
         /** Returns the affiliations list. */
-        const std::vector<std::string>& affiliations();
+        const std::vector<size_t>& affiliations();
 
         /** Returns the name of the i-th affiliation. */
-        const std::string& affiliation(const size_t i);
+        const size_t& affiliation(const size_t i);
+
+        /** Returns the index of the given sample name. */
+        const size_t& index_of(const std::string sample_name);
+
+        /** Returns the number of cells in the given sample index. */
+        size_t cells_nb(const size_t sample_id) const;
+
+        /** Returns the number of samples. */
+        size_t samples_nb() const;
 
         /** Load a ranked transcriptome from the given input stream.
          *
@@ -100,5 +116,26 @@ using Signature = eoBit<Score,bool>;
  // We use Paradiseo/eo/eoBit with a Score as fitness,
  // and vector<bool> as data structure.
 
+
+struct Friedman {
+    const double alpha;
+    // Updated when gene swap.
+    std::vector<double> A;
+    std::vector<double> D;
+
+    // Constants for a given transcriptome.
+    const std::vector<double> B;
+    const std::vector<double> C;
+    const std::vector<double> E;
+    const std::vector<double> F;
+
+    const std::vector<double> GG;
+    const std::vector<std::vector<double> > T_ij;
+    const std::vector<std::vector<double> > SSR;
+
+    const std::vector<double> Rc;
+    const std::vector<double> logpvals;
+    const std::vector<double> S_hats;
+};
 
 } // frictionless

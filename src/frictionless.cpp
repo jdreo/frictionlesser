@@ -14,56 +14,104 @@ RankedTranscriptome::RankedTranscriptome( std::istream& input )
 
 const std::vector<std::vector<double>>& RankedTranscriptome::ranks()
 {
-    return this->_ranks;
+    return _ranks;
 }
 
 const std::vector<double>& RankedTranscriptome::ranks(const size_t i)
 {
-    return this->_ranks.at(i);
+#ifndef NDEBUG
+    return _ranks.at(i);
+#else
+    return _ranks[i];
+#endif
 }
 
 const std::vector<std::string>& RankedTranscriptome::genes()
 {
-    return this->_genes;
+    return _genes;
 }
 
 const std::string& RankedTranscriptome::gene(const size_t i)
 {
-    return this->_genes.at(i);
+#ifndef NDEBUG
+    return _genes.at(i);
+#else
+    return _genes[i];
+#endif
 }
 
-const std::vector<std::string>& RankedTranscriptome::affiliations()
+const std::vector<size_t>& RankedTranscriptome::affiliations()
 {
-    return this->_affiliations;
+    return _affiliations;
 }
 
-const std::string& RankedTranscriptome::affiliation(const size_t i)
+const size_t& RankedTranscriptome::affiliation(const size_t i)
 {
-    return this->_affiliations.at(i);
+#ifndef NDEBUG
+    return _affiliations.at(i);
+#else
+    return _affiliations[i];
+#endif
+}
+
+const size_t& RankedTranscriptome::index_of(const std::string sample_name)
+{
+#ifndef NDEBUG
+    return _samples.at(sample_name);
+#else
+    return _samples[sample_name];
+#endif
+}
+
+size_t RankedTranscriptome::cells_nb(const size_t sample_id) const
+{
+#ifndef NDEBUG
+    return _cells_in.at(sample_id).size();
+#else
+    return _cells_in[sample_id].size();
+#endif
+}
+
+size_t RankedTranscriptome::samples_nb() const
+{
+    return _samples.size();
 }
 
 void RankedTranscriptome::load( std::istream& input )
 {
     // Clear everything, in case it has been filled before.
-    _ranks.clear();
-    _genes.clear();
-    _affiliations.clear();
+    // _ranks.clear();
+    // _genes.clear();
+    // _affiliations.clear();
+    // _cells_in.clear();
+    // _samples.clear();
 
     std::string line;
-    std::string charbuf;
+    std::string sample_name;
     getline(input, line);
     std::stringstream ss(line, std::ios_base::out|std::ios_base::in|std::ios_base::binary);
 
     // Cell affiliations header.
-    while(ss >> charbuf) { _affiliations.push_back(charbuf); }
+    size_t icell = 0;
+    size_t isample = 0;
+    while(ss >> sample_name) {
+        if(not _samples.contains(sample_name)) {
+            _samples[sample_name] = isample;
+            isample++;
+        }
+        _affiliations.push_back(_samples[sample_name]);
+        _cells_in[_samples[sample_name]].push_back(icell);
+        icell++;
+    }
 
     // Rows: Gene, then ranked expressions….
 #ifndef NDEBUG
     size_t column = 0;
 #endif
+    std::string gene_name;
     while(true) {
         std::string line;
-        double rank; 
+        double rank;
         getline(input, line);
         std::stringstream ss(line, std::ios_base::out|std::ios_base::in|std::ios_base::binary);
         if(!input) {
@@ -76,11 +124,11 @@ void RankedTranscriptome::load( std::istream& input )
 
         } else if(not isdigit(line[0])) {
             // First column is gene name.
-            ss >> charbuf;
-            _genes.push_back(charbuf);
+            ss >> gene_name;
+            _genes.push_back(gene_name);
 #ifndef NDEBUG
             // This should be the first column.
-            ASSERT(error, column == 0);
+            ASSERT(column == 0, error);
             column = 0;
 #endif
             std::vector<double> ranks_row;
@@ -99,10 +147,17 @@ void RankedTranscriptome::load( std::istream& input )
                or column != _affiliations.size()
 #endif
             ) {
+                CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
+                CLUTCHLOG(debug,"       _genes #= " << _genes.size());
+                CLUTCHLOG(debug,"        icell  = " << icell);
+                CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
+                CLUTCHLOG(debug,"      isample  = " << isample);
+                CLUTCHLOG(debug,"     _samples #= " << _samples.size());
+                CLUTCHLOG(debug,"    _cells_in #= " << _cells_in.size());
                 std::ostringstream msg;
                 msg << "Inconsistent data"
-                    << " (ranks_row.size=" << ranks_row.size()
-                    << " , _affiliations.size=" << _affiliations.size()
+                    << " (ranks_row #=" << ranks_row.size()
+                    << " , affiliations #=" << _affiliations.size()
 #ifndef NDEBUG
                     << " , column=" << column
 #endif
@@ -117,11 +172,25 @@ void RankedTranscriptome::load( std::istream& input )
             throw std::runtime_error("Line is neither EOF, starting with #, empty, or not starting with a digit.");
         }
     }
-    if(_genes.size() != _ranks.size()) {
+
+    CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
+    CLUTCHLOG(debug,"       _genes #= " << _genes.size());
+    CLUTCHLOG(debug,"        icell  = " << icell);
+    CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
+    CLUTCHLOG(debug,"      isample  = " << isample);
+    CLUTCHLOG(debug,"     _samples #= " << _samples.size());
+    CLUTCHLOG(debug,"    _cells_in #= " << _cells_in.size());
+    if(_genes.size() != _ranks.size()
+       or      icell != _affiliations.size()
+       or    isample != _cells_in.size()
+       or    isample != _samples.size()
+    ) {
         std::ostringstream msg;
-        msg << "Inconsistent data"
-            << " (_genes.size=" << _genes.size()
-            << " , _ranks.size=" << _ranks.size()
+        msg << "Inconsistent data "
+            << "(ranks shape: " << _ranks.size() << "×"  << _ranks.at(0).size()
+            << ", "  << _genes.size() << " genes"
+            << ", " << icell << " cells"
+            << ", " << _samples.size() << " samples"
             << ")";
         throw std::runtime_error(msg.str());
     }
@@ -143,9 +212,13 @@ std::string RankedTranscriptome::ranks_table(bool values) const
     size_t fg_shift = 128;
 
     size_t height = _ranks.size();
-    ASSERT(error, height>0);
+    ASSERT(height>0, error);
+#ifndef NDEBUG
     size_t width = _ranks.at(0).size();
-    ASSERT(error, width>0);
+#else
+    size_t width = _ranks[0].size();
+#endif
+    ASSERT(width>0, error);
 
     // Min/max of values.
     auto vmin = static_cast<double>(std::numeric_limits<double>::max());

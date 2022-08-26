@@ -3,6 +3,7 @@
 
 #include <eo>
 #include <mo>
+
 #include <clutchlog/clutchlog.h>
 
 #include <frictionless/frictionless.hpp>
@@ -37,22 +38,28 @@ int main(int argc, char* argv[])
     const long seed = parser.createParam<long>(0, "seed",
         "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
 
-
     make_verbose(parser);
     make_help(parser);
 
+    auto& log = clutchlog::logger();
+    log.out(std::clog);
+    log.depth_mark(">");
+    log.threshold(clutchlog::level::xdebug);
+    // log.format("[{name}] {level}: {depth_marks} {msg}\n");
+    // log.style(clutchlog::level::progress,clutchlog::fmt::fg::blue);
 
-    ASSERT(error, ranks != "");
+    ASSERT(ranks != "", error);
 
     std::ifstream ifs;
     ifs.open(ranks);
-    ASSERT(error, ifs.is_open());
+    ASSERT(ifs.is_open(), error);
     frictionless::RankedTranscriptome rt(ifs);
     ifs.close();
 
     std::clog << "Loaded a ranked transcriptome of "
-              << rt.genes().size() << " genes, and "
-              << rt.affiliations().size() << " cells."
+              << rt.genes().size() << " genes, "
+              << rt.affiliations().size() << " cells, and "
+              << rt.samples_nb() << " samples."
               << std::endl;
     //std::cout << rt.ranks_table(true) << std::endl;
 
