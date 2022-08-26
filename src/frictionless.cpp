@@ -17,6 +17,11 @@ const std::vector<std::vector<double>>& RankedTranscriptome::ranks()
     return this->_ranks;
 }
 
+const std::vector<std::string>& RankedTranscriptome::genes()
+{
+    return this->_genes;
+}
+
 void RankedTranscriptome::load( std::istream& input )
 {
     // Clear everything, in case it has been filled before.
@@ -113,7 +118,7 @@ void RankedTranscriptome::load( std::istream& input )
  *
  * @param values If true, will display one 3-digits value within the colored pixels. Numbers with more than 3 digits are rendered as "+++".
   */
-std::string RankedTranscriptome::ranks_table(bool values)
+std::string RankedTranscriptome::ranks_table(bool values) const
 {
     size_t fg_shift = 128;
 

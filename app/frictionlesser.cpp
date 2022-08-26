@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <eo>
+#include <mo>
 
 #include <frictionless/frictionless.hpp>
 
@@ -38,6 +39,7 @@ int main(int argc, char* argv[])
     make_verbose(parser);
     make_help(parser);
 
+
     assert(ranks != "");
 
     std::ifstream ifs;
@@ -46,5 +48,14 @@ int main(int argc, char* argv[])
     frictionless::RankedTranscriptome rt(ifs);
     ifs.close();
 
-    std::cout << rt.ranks_table(true) << std::endl;
+    //std::cout << rt.ranks_table(true) << std::endl;
+
+    frictionless::Signature null(rt.genes().size(), 0);
+
+    rng.reseed(seed);
+    eoUniformGenerator<char> unigen;
+    eoInitFixedLength<frictionless::Signature> rinit(rt.genes().size(), unigen);
+
+    frictionless::Signature alea;
+    rinit(alea);
 }

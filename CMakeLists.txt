@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.9)
 
 # Set a name and a version number for your project:
-project(frictionless VERSION 0.0.1 LANGUAGES CXX)
+project(Frictionless VERSION 0.0.1 LANGUAGES CXX)
 
 # Initialize some default paths
 include(GNUInstallDirs)
@@ -36,6 +36,7 @@ set(PARADISEO_BUILD "${PARADISEO_ROOT}/build" CACHE PATH "Build dir of ParadisEO
 
 include_directories(${PARADISEO_ROOT})
 include_directories(${PARADISEO_ROOT}/eo/src)
+include_directories(${PARADISEO_ROOT}/mo/src)
 link_directories(${PARADISEO_BUILD}/lib)
 set(PARADISEO_LIBRARIES ga eoutils eo)
 

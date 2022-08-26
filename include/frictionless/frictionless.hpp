@@ -3,8 +3,13 @@
 #include <string>
 #include <vector>
 
+#include <eo>
+#include <ga/eoBit.h>
+
 namespace frictionless {
 
+/** The data strutcure holding the table of ranked expressions.
+ */
 class RankedTranscriptome {
     protected:
         /** Gene names. */
@@ -32,7 +37,7 @@ class RankedTranscriptome {
          * assert(ifs.is_open());
          * frictionless::RankedTranscriptome rt(ifs);
          * ifs.close();
-         * @encode
+         * @endcode
          *
          * @see load
          */
@@ -40,6 +45,9 @@ class RankedTranscriptome {
 
         /** Returns the current rank table. */
         const std::vector<std::vector<double>>& ranks();
+
+        /** Returns the genes list. */
+        const std::vector<std::string>& genes();
 
         /** Load a ranked transcriptome from the given input stream.
          *
@@ -53,13 +61,30 @@ class RankedTranscriptome {
          * |    …    |    …    | … |   …    | … |   …    |
          * | gene_n  |  r_0n   | … |  r_in  | … |  r_mn  |
          *
-         * @note This clears data before loading new ones.
+         * @note The first cell of the first row should not exists.
          */
         void load(std::istream& input);
 
         /** Returns an ASCII-art string representing the ranks table. */
-        std::string ranks_table(bool values = true);
+        std::string ranks_table(bool values = true) const;
 }; // RankedTranscriptome
+
+/** The score used to define the quality of a signature is a floating point number.
+ *
+ * @see Signature
+ */
+using Score = double;
+
+/** A signature is a vector of boolean.
+ *
+ * Each bit=1 means "this gene is part of the signature,
+ * each bit=0, "this gene is NOT part of the signature".
+ */
+using Signature = eoBit<Score,char>;
+ // We use Paradiseo/eo/eoBit with a Score as fitness,
+ // and vector<char> as data structure.
+ // NOTE: we use `char` to represent a `bool`, so as to avoid
+ //       the infamous STL's memory-optimized implementation.
 
 
 } // frictionless
