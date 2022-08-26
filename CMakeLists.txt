@@ -40,6 +40,8 @@ include_directories(${PARADISEO_ROOT}/mo/src)
 link_directories(${PARADISEO_BUILD}/lib)
 set(PARADISEO_LIBRARIES ga eoutils eo)
 
+# Clutchlog
+include_directories(ext/clutchlog)
 
 ######################################################################################
 # Start building

@@ -6,6 +6,10 @@
 #include <eo>
 #include <ga/eoBit.h>
 
+#include <clutchlog/clutchlog.h>
+// Make asserts (de)clutchable.
+#define ASSERT(LEVEL, ...) { CLUTCHFUNC(LEVEL, assert, __VA_ARGS__) }
+
 namespace frictionless {
 
 /** The data strutcure holding the table of ranked expressions.

@@ -1,4 +1,4 @@
-#include <cassert>
+#include <cassert> 
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -80,7 +80,7 @@ void RankedTranscriptome::load( std::istream& input )
             _genes.push_back(charbuf);
 #ifndef NDEBUG
             // This should be the first column.
-            assert(column == 0);
+            ASSERT(error, column == 0);
             column = 0;
 #endif
             std::vector<double> ranks_row;
@@ -143,9 +143,9 @@ std::string RankedTranscriptome::ranks_table(bool values) const
     size_t fg_shift = 128;
 
     size_t height = _ranks.size();
-    assert(height>0);
+    ASSERT(error, height>0);
     size_t width = _ranks.at(0).size();
-    assert(width>0);
+    ASSERT(error, width>0);
 
     // Min/max of values.
     auto vmin = static_cast<double>(std::numeric_limits<double>::max());

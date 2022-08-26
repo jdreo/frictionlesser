@@ -3,8 +3,10 @@
 
 #include <eo>
 #include <mo>
+#include <clutchlog/clutchlog.h>
 
 #include <frictionless/frictionless.hpp>
+
 
 int main(int argc, char* argv[])
 {
@@ -40,11 +42,11 @@ int main(int argc, char* argv[])
     make_help(parser);
 
 
-    assert(ranks != "");
+    ASSERT(error, ranks != "");
 
     std::ifstream ifs;
     ifs.open(ranks);
-    assert(ifs.is_open());
+    ASSERT(error, ifs.is_open());
     frictionless::RankedTranscriptome rt(ifs);
     ifs.close();
 
