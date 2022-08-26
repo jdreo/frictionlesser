@@ -12,49 +12,66 @@ RankedTranscriptome::RankedTranscriptome( std::istream& input )
     load(input);
 }
 
-const std::vector<std::vector<double>>& RankedTranscriptome::ranks()
+const std::vector<std::vector<double>>& RankedTranscriptome::ranks() const
 {
     return _ranks;
 }
 
-const std::vector<double>& RankedTranscriptome::ranks(const size_t i)
+const std::vector<double>& RankedTranscriptome::ranks(const size_t j) const
 {
 #ifndef NDEBUG
-    return _ranks.at(i);
+    return _ranks.at(j);
 #else
-    return _ranks[i];
+    return _ranks[j];
 #endif
 }
 
-const std::vector<std::string>& RankedTranscriptome::genes()
+const double& RankedTranscriptome::rank(const size_t c, const size_t j) const
+{
+// NOTE the inversion of i and j,
+//      to follow the technical report convention.
+#ifndef NDEBUG
+    return _ranks.at(j).at(c);
+#else
+    return _ranks[j][c];
+#endif
+
+}
+
+const std::vector<std::string>& RankedTranscriptome::genes() const
 {
     return _genes;
 }
 
-const std::string& RankedTranscriptome::gene(const size_t i)
+size_t RankedTranscriptome::genes_nb() const
+{
+    return _genes.size();
+}
+
+const std::string& RankedTranscriptome::gene(const size_t j) const
 {
 #ifndef NDEBUG
-    return _genes.at(i);
+    return _genes.at(j);
 #else
-    return _genes[i];
+    return _genes[j];
 #endif
 }
 
-const std::vector<size_t>& RankedTranscriptome::affiliations()
+const std::vector<size_t>& RankedTranscriptome::affiliations() const
 {
     return _affiliations;
 }
 
-const size_t& RankedTranscriptome::affiliation(const size_t i)
+const size_t& RankedTranscriptome::affiliation(const size_t c) const
 {
 #ifndef NDEBUG
-    return _affiliations.at(i);
+    return _affiliations.at(c);
 #else
-    return _affiliations[i];
+    return _affiliations[c];
 #endif
 }
 
-const size_t& RankedTranscriptome::index_of(const std::string sample_name)
+const size_t& RankedTranscriptome::index_of(const std::string sample_name) const
 {
 #ifndef NDEBUG
     return _samples.at(sample_name);
@@ -63,13 +80,27 @@ const size_t& RankedTranscriptome::index_of(const std::string sample_name)
 #endif
 }
 
-size_t RankedTranscriptome::cells_nb(const size_t sample_id) const
+const std::vector<size_t>& RankedTranscriptome::cells(const size_t i) const
 {
 #ifndef NDEBUG
-    return _cells_in.at(sample_id).size();
+    return _cells_in.at(i);
 #else
-    return _cells_in[sample_id].size();
+    return _cells_in[i];
 #endif
+}
+
+size_t RankedTranscriptome::cells_nb(const size_t i) const
+{
+#ifndef NDEBUG
+    return _cells_in.at(i).size();
+#else
+    return _cells_in[i].size();
+#endif
+}
+
+const std::map<std::string,size_t>& RankedTranscriptome::samples() const
+{
+    return _samples;
 }
 
 size_t RankedTranscriptome::samples_nb() const
@@ -285,4 +316,45 @@ std::string RankedTranscriptome::ranks_table(bool values) const
 
     return out.str();
 }
+
+
+FriedmanScore::FriedmanScore( const RankedTranscriptome& rt, const double a)
+    : _transcriptome(rt), alpha(a)
+{
+    const size_t samples_nb = rt.samples_nb();
+    A     .reserve(samples_nb);
+    D     .reserve(samples_nb);
+    B     .reserve(samples_nb);
+    C     .reserve(samples_nb);
+    E     .reserve(samples_nb);
+    F     .reserve(samples_nb);
+    GG    .reserve(samples_nb);
+    T_ij  .reserve(samples_nb);
+    SSR_ij.reserve(samples_nb);
+
+    // Precompute constants.
+    for([[maybe_unused]] const auto& [s, i] : rt.samples() ) {
+        // Constants depending only on the number of cells
+        // in each sample.
+        const double m_i = rt.cells_nb(i);
+        E .push_back( 3 * m_i * std::pow(m_i+1,2) );
+        F .push_back( m_i * (m_i+1) );
+        GG.push_back( m_i / (m_i - 1) );
+
+        // Constants for each cells of each sample.
+        // HERE T_ij ?
+        // FIXME TODO tests
+        std::vector<double> SSR_j;
+        for(size_t j=0; j < rt.genes_nb(); ++j) {
+            double sumr = 0;
+            for(size_t c : rt.cells(i) ) {
+                sumr += rt.rank(c,j);
+            }
+            SSR_j.push_back( std::pow(sumr,2) );
+        }
+        SSR_ij.push_back(SSR_j);
+    } // samples
 }
+
+
+} // frictionless
