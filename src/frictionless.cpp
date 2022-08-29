@@ -3,6 +3,8 @@
 #include <sstream>
 #include <cmath>
 
+#include <exceptions/exceptions.h>
+
 #include "frictionless/frictionless.hpp"
 
 namespace frictionless {
@@ -38,7 +40,12 @@ const double& RankedTranscriptome::rank(const size_t c, const size_t j) const
 
 }
 
-const std::vector<std::string>& RankedTranscriptome::genes() const
+const std::vector<std::string>& RankedTranscriptome::gene_names() const
+{
+    return _gene_names;
+}
+
+const std::vector<size_t>& RankedTranscriptome::genes() const
 {
     return _genes;
 }
@@ -51,9 +58,9 @@ size_t RankedTranscriptome::genes_nb() const
 const std::string& RankedTranscriptome::gene(const size_t j) const
 {
 #ifndef NDEBUG
-    return _genes.at(j);
+    return _gene_names.at(j);
 #else
-    return _genes[j];
+    return _gene_names[j];
 #endif
 }
 
@@ -110,13 +117,6 @@ size_t RankedTranscriptome::samples_nb() const
 
 void RankedTranscriptome::load( std::istream& input )
 {
-    // Clear everything, in case it has been filled before.
-    // _ranks.clear();
-    // _genes.clear();
-    // _affiliations.clear();
-    // _cells_in.clear();
-    // _samples.clear();
-
     std::string line;
     std::string sample_name;
     getline(input, line);
@@ -140,6 +140,7 @@ void RankedTranscriptome::load( std::istream& input )
     size_t column = 0;
 #endif
     std::string gene_name;
+    size_t igene = 0;
     while(true) {
         std::string line;
         double rank;
@@ -156,10 +157,12 @@ void RankedTranscriptome::load( std::istream& input )
         } else if(not isdigit(line[0])) {
             // First column is gene name.
             ss >> gene_name;
-            _genes.push_back(gene_name);
+            _gene_names.push_back(gene_name);
+            _genes.push_back(igene);
+            igene++;
 #ifndef NDEBUG
             // This should be the first column.
-            ASSERT(column == 0, error);
+            ASSERT(column == 0);
             column = 0;
 #endif
             std::vector<double> ranks_row;
@@ -179,6 +182,7 @@ void RankedTranscriptome::load( std::istream& input )
 #endif
             ) {
                 CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
+                CLUTCHLOG(debug,"        igene  = " << igene);
                 CLUTCHLOG(debug,"       _genes #= " << _genes.size());
                 CLUTCHLOG(debug,"        icell  = " << icell);
                 CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
@@ -193,18 +197,20 @@ void RankedTranscriptome::load( std::istream& input )
                     << " , column=" << column
 #endif
                     << ")";
-                throw std::runtime_error(msg.str());
+                RAISE(DataInconsistent, msg.str());
             }
 #ifndef NDEBUG
             // End of row => new column.
             column = 0;
 #endif
         } else {
-            throw std::runtime_error("Line is neither EOF, starting with #, empty, or not starting with a digit.");
+            RAISE(DataRowFormat, "Line is neither EOF, starting with #, empty, or not starting with a digit.");
         }
     }
 
+    CLUTCHLOG(progress, "Check ranks table consistency...");
     CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
+    CLUTCHLOG(debug,"        igene  = " << igene);
     CLUTCHLOG(debug,"       _genes #= " << _genes.size());
     CLUTCHLOG(debug,"        icell  = " << icell);
     CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
@@ -215,16 +221,50 @@ void RankedTranscriptome::load( std::istream& input )
        or      icell != _affiliations.size()
        or    isample != _cells_in.size()
        or    isample != _samples.size()
+       or        _ranks.size() == 0
+       or _affiliations.size() == 0
+       or      _samples.size() == 0
     ) {
         std::ostringstream msg;
         msg << "Inconsistent data "
-            << "(ranks shape: " << _ranks.size() << "×"  << _ranks.at(0).size()
-            << ", "  << _genes.size() << " genes"
+            << "(ranks shape: " << _ranks.size()
+            << " gene rows, " << _genes.size() << " genes"
             << ", " << icell << " cells"
             << ", " << _samples.size() << " samples"
             << ")";
-        throw std::runtime_error(msg.str());
+        RAISE(DataInconsistent, msg.str());
     }
+    std::ostringstream msg_genes;
+    for(size_t j=0; j < _genes.size(); ++j) {
+        if(_ranks.at(j).size() == 0 or _ranks.at(j).size() != _genes.size()) {
+            msg_genes << "\tGene `" << _gene_names.at(j) << "` has " << _ranks.at(j).size() << " ranks, should be " << _genes.size() << std::endl;
+        }
+    }
+    if(msg_genes.str() != "") {
+        RAISE(DataInconsistent, "\n"+msg_genes.str());
+    }
+
+    CLUTCHLOG(debug, "Check sum of ranks across cells...");
+    std::ostringstream msg_rank_sum;
+    for([[maybe_unused]] const auto& [s,i] : this->samples()) {
+        for(size_t j : this->genes()) {
+            double sum_ranks = 0;
+            for(size_t c : this->cells(i)) {
+                sum_ranks += this->rank(c,j);
+            }
+            const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)-1) / 2;
+            if(sum_ranks != true_sum_ranks) {
+                msg_rank_sum << "\t - Gene `" << this->gene(j)
+                    << "` has ranks sum of " << sum_ranks
+                    << " but it should be " << true_sum_ranks
+                    << std::endl;
+            }
+        } // for j in genes
+    } // for i in samples
+    if(msg_rank_sum.str() != "") {
+        RAISE(DataSumRanks, "\n"+msg_rank_sum.str());
+    }
+    CLUTCHLOG(note, "OK");
 }
 
 /** Print a 2D colormap as a 256-color ASCII-art.
@@ -243,13 +283,13 @@ std::string RankedTranscriptome::ranks_table(bool values) const
     size_t fg_shift = 128;
 
     size_t height = _ranks.size();
-    ASSERT(height>0, error);
+    ASSERT(height>0);
 #ifndef NDEBUG
     size_t width = _ranks.at(0).size();
 #else
     size_t width = _ranks[0].size();
 #endif
-    ASSERT(width>0, error);
+    ASSERT(width>0);
 
     // Min/max of values.
     auto vmin = static_cast<double>(std::numeric_limits<double>::max());
@@ -311,7 +351,7 @@ std::string RankedTranscriptome::ranks_table(bool values) const
                 }
             } // if nan or inf
         } // j
-        out << " " << _genes[i] << std::endl;
+        out << " " << _gene_names[i] << std::endl;
     } // i
 
     return out.str();
@@ -321,6 +361,13 @@ std::string RankedTranscriptome::ranks_table(bool values) const
 FriedmanScore::FriedmanScore( const RankedTranscriptome& rt, const double a)
     : _transcriptome(rt), alpha(a)
 {
+    ASSERT(rt.ranks( ).size() > 0);
+    ASSERT(rt.ranks(0).size() > 0);
+    ASSERT(rt.genes_nb() > 0);
+    ASSERT(rt.samples_nb() > 0);
+    ASSERT(rt.cells_nb(0) > 0);
+    ASSERT(alpha > 0);
+
     const size_t samples_nb = rt.samples_nb();
     A     .reserve(samples_nb);
     D     .reserve(samples_nb);
@@ -333,7 +380,7 @@ FriedmanScore::FriedmanScore( const RankedTranscriptome& rt, const double a)
     SSR_ij.reserve(samples_nb);
 
     // Precompute constants.
-    for([[maybe_unused]] const auto& [s, i] : rt.samples() ) {
+    for([[maybe_unused]] const auto& [s, i] : rt.samples() ) { // All samples.
         // Constants depending only on the number of cells
         // in each sample.
         const double m_i = rt.cells_nb(i);
@@ -342,19 +389,59 @@ FriedmanScore::FriedmanScore( const RankedTranscriptome& rt, const double a)
         GG.push_back( m_i / (m_i - 1) );
 
         // Constants for each cells of each sample.
-        // HERE T_ij ?
         // FIXME TODO tests
         std::vector<double> SSR_j;
-        for(size_t j=0; j < rt.genes_nb(); ++j) {
-            double sumr = 0;
-            for(size_t c : rt.cells(i) ) {
-                sumr += rt.rank(c,j);
-            }
-            SSR_j.push_back( std::pow(sumr,2) );
-        }
-        SSR_ij.push_back(SSR_j);
-    } // samples
-}
+        std::vector<double> T_j;
+        for(size_t j : rt.genes()) { // All genes.
 
+            double sum_ranks_sq = 0; // for SSR_ij.
+            // Rank => ties count^3, for T_ij.
+            // This should work even if ranks are unordered.
+            std::map<double,std::vector<double>> ties_cube;
+
+            for(size_t c : rt.cells(i) ) { // All cells of this sample.
+                sum_ranks_sq += std::pow(rt.rank(c,j),2);
+#ifndef NDEBUG
+                auto& t = ties_cube[ rt.rank(c,j) ];
+#else
+                auto& t = ties_cube.at( rt.rank(c,j) );
+#endif
+                t.push_back( std::pow(
+                    1 + t.size(), 3
+                ));
+
+            } // for c in cells
+            SSR_j.push_back( sum_ranks_sq );
+
+            // Sum cubic number of ties.
+            double sum_ties_cube = 0;
+            for([[maybe_unused]] const auto& [r,t] : ties_cube) {
+                if(t.size() > 1) { // There were ties for this rank.
+                    sum_ties_cube += sum(t);
+            }}
+#ifndef NDEBUG
+            T_j.push_back( sum_ties_cube );
+#else
+            T_j.push_back( sum_ties_cube );
+#endif
+        } // for j in genes
+        SSR_ij.push_back(SSR_j);
+        T_ij.push_back(T_j);
+    } // for i in samples
+
+#ifndef NDEBUG
+    // Basic size checks.
+    ASSERT(E .size() == samples_nb);
+    ASSERT(F .size() == samples_nb);
+    ASSERT(GG.size() == samples_nb);
+    ASSERT(SSR_ij.size() == samples_nb);
+    ASSERT(  T_ij.size() == samples_nb);
+    for(auto row : SSR_ij) {
+        ASSERT(row.size() == rt.genes_nb()); }
+    for(auto row : T_ij) {
+        ASSERT(row.size() == rt.genes_nb()); }
+
+#endif
+}
 
 } // frictionless

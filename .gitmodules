@@ -4,3 +4,6 @@
 [submodule "ext/clutchlog"]
 	path = ext/clutchlog
 	url = https://github.com/nojhan/clutchlog.git
+[submodule "ext/exceptions"]
+	path = ext/exceptions
+	url = https://github.com/nojhan/exceptions.git

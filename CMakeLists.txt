@@ -40,8 +40,9 @@ include_directories(${PARADISEO_ROOT}/mo/src)
 link_directories(${PARADISEO_BUILD}/lib)
 set(PARADISEO_LIBRARIES ga eoutils eo)
 
-# Clutchlog
+# Single-header dependencies.
 include_directories(ext/clutchlog)
+include_directories(ext/exceptions)
 
 ######################################################################################
 # Start building

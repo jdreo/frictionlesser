@@ -6,12 +6,25 @@
 #include <eo>
 #include <ga/eoBit.h>
 
+#include <exceptions/exceptions.h>
 #include <clutchlog/clutchlog.h>
 // Make asserts (de)clutchable.
 // #define ASSERT(LEVEL, ...) { CLUTCHFUNC(LEVEL, assert, __VA_ARGS__) }
-#define ASSERT(EXPR, LEVEL) { CLUTCHFUNC(LEVEL, assert, EXPR) }
+#define ASSERT(EXPR) { CLUTCHFUNC(critical, assert, EXPR); }
 
 namespace frictionless {
+
+EXCEPTION(Exception, DataError);
+    EXCEPTION(DataError, DataInconsistent);
+    EXCEPTION(DataError, DataRowFormat);
+    EXCEPTION(DataError, DataSumRanks);
+
+template<class T>
+double sum( const T& t)
+{
+    return std::accumulate(std::begin(t), std::end(t), 0);
+}
+
 
 /** The data strutcure holding the table of ranked expressions.
  */
@@ -24,7 +37,10 @@ class RankedTranscriptome {
         std::vector<std::vector<double>> _ranks;
 
         /** Gene names. */
-        std::vector<std::string> _genes;
+        std::vector<std::string> _gene_names;
+
+        /** Genes indices */
+        std::vector<size_t> _genes;
 
         /** Cell affiliations = index of sample from which this cell was taken. */
         std::vector<size_t> _affiliations;
@@ -33,7 +49,7 @@ class RankedTranscriptome {
         std::map<size_t,std::vector<size_t>> _cells_in;
 
         /** A map linking sample name to its index. */
-        std::map<std::string,size_t> _samples;
+        std::map<std::string,size_t> _samples; // FIXME make it vectors, like for genes.
 
     public:
         /** Load from a stream of data.
@@ -60,11 +76,14 @@ class RankedTranscriptome {
         /** Returns the ranks row (containing all cells) for the j-th gene. */
         const std::vector<double>& ranks(const size_t j) const;
 
-        /** Returns the rank for the j-th gene and the c-th cell. */
+        /** Returns the rank for the c-th cell and the j-th gene. */
         const double& rank(const size_t c, const size_t j) const;
 
-        /** Returns the genes list. */
-        const std::vector<std::string>& genes() const;
+        /** Returns the gene names list. */
+        const std::vector<std::string>& gene_names() const;
+
+        /** Returns the genes indices. */
+        const std::vector<size_t>& genes() const;
 
         /** Returns the number of genes. */
         size_t genes_nb() const;

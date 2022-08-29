@@ -1,5 +1,6 @@
 #include <string>
 #include <iostream>
+#include <fstream>
 
 #include <eo>
 #include <mo>
@@ -9,12 +10,49 @@
 #include <frictionless/frictionless.hpp>
 
 
+//! Error codes returned on exit.
+enum class Error : unsigned char {
+    No_Error = 0,
+    No_File = 2, // ENOENT
+    Invalid_Argument = 22, // EINVAL
+    Unreadable = 77, // EBADFD
+    Missing_Argument = 132,
+    DataInconsistent,
+    DataRowFormat,
+    DataSumRanks,
+    Unknown = 255
+};
+
+//! Macro to hide the necessary verbose casting.
+#ifdef WITH_CLUTCHLOG
+    #define EXIT_ON_ERROR(err_code, msg) { \
+        if(static_cast<unsigned char>(Error::err_code) > 0) { \
+            auto& log = clutchlog::logger(); \
+            CLUTCHLOG(critical, "CRITICAL ERROR"); \
+            CLUTCHCODE(critical, \
+                std::cerr << msg << std::endl; \
+            ); \
+        } \
+        exit(static_cast<unsigned char>(Error::err_code)); \
+    }
+#else
+    #define EXIT_ON_ERROR(err_code, msg) { \
+        if(static_cast<unsigned char>(Error::err_code) > 0) { \
+            std::cerr << "CRITICAL ERROR: " << msg << std::endl; \
+        } \
+        exit(static_cast<unsigned char>(Error::err_code)); \
+    }
+#endif
+
+#define EXIT(err_code) exit(static_cast<unsigned char>(Error::err_code))
+
+
 int main(int argc, char* argv[])
 {
     eoParser parser(argc, argv);
     // eoState state;
 
-    const std::string ranks = parser.createParam<std::string>("", "ranks",
+    const std::string ranksfile = parser.createParam<std::string>("", "ranks",
         "Filename of the ranks table", 'r', "Data", true).value();
 
     const std::string signatures = parser.createParam<std::string>("", "signatures",
@@ -38,47 +76,80 @@ int main(int argc, char* argv[])
     const long seed = parser.createParam<long>(0, "seed",
         "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
 
+    const std::string log_level = parser.createParam<std::string>("Progress", "log-level",
+        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
+
     make_verbose(parser);
     make_help(parser);
 
     auto& log = clutchlog::logger();
-    log.out(std::clog);
+    ASSERT(log.levels().contains(log_level));
+    log.threshold(log_level);
+    log.out(std::cerr);
     log.depth_mark(">");
-    log.threshold(clutchlog::level::xdebug);
-    // log.format("[{name}] {level}: {depth_marks} {msg}\n");
-    // log.style(clutchlog::level::progress,clutchlog::fmt::fg::blue);
+    log.style(clutchlog::level::critical,clutchlog::fmt::fg::black,clutchlog::fmt::bg::red);
 
-    ASSERT(ranks != "", error);
+    if(not std::filesystem::exists(ranksfile)) {
+        EXIT_ON_ERROR(No_File, "Input ranks data file does not exists."); }
 
-    std::ifstream ifs;
-    ifs.open(ranks);
-    ASSERT(ifs.is_open(), error);
-    frictionless::RankedTranscriptome rt(ifs);
-    ifs.close();
+    CLUTCHLOG(progress, "Open `" << ranksfile << "`...");
 
-    std::clog << "Loaded a ranked transcriptome of "
-              << rt.genes().size() << " genes, "
-              << rt.affiliations().size() << " cells, and "
-              << rt.samples_nb() << " samples."
-              << std::endl;
-    //std::cout << rt.ranks_table(true) << std::endl;
+    std::ifstream ifs(ranksfile);
+    if(ifs.fail()) {
+        EXIT_ON_ERROR(Unreadable, "Input ranks data file cannot be read."); }
+    ASSERT(ifs.is_open());
+    frictionless::RankedTranscriptome* rt;
+    try {
+        rt = new frictionless::RankedTranscriptome(ifs);
+        ifs.close();
+    } catch(const frictionless::DataInconsistent& e) {
+        EXIT_ON_ERROR(DataInconsistent, e.what());
+    } catch(const frictionless::DataRowFormat& e) {
+        EXIT_ON_ERROR(DataRowFormat, e.what());
+    } catch(const frictionless::DataSumRanks& e) {
+        EXIT_ON_ERROR(DataSumRanks, e.what());
+    }
+    CLUTCHLOG(progress, "Loaded "
+        << rt->genes().size() << " genes, "
+        << rt->affiliations().size() << " cells, and "
+        << rt->samples_nb() << " samples.");
 
-    frictionless::Signature null(rt.genes().size(), 0);
+    CLUTCHCODE(xdebug,
+        if( rt->ranks().size() < 90 and rt->genes_nb() < 125) {
+            CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << rt->ranks_table(true) );
+        }
+    );
+
+    CLUTCHLOG(debug, "Test signatures data structures...");
+    frictionless::Signature null(rt->genes().size(), 0);
 
     rng.reseed(seed);
     eoUniformGenerator<frictionless::Signature::AtomType> unigen;
-    eoInitFixedLength<frictionless::Signature> rinit(rt.genes().size(), unigen);
+    eoInitFixedLength<frictionless::Signature> rinit(rt->genes().size(), unigen);
 
-    frictionless::Signature alea(rt.genes().size(),0);
+    frictionless::Signature alea(rt->genes().size(),0);
     rinit(alea);
 
-    alea.printOn(std::cout);
-    std::cout << std::endl;
+    alea.printOn(std::clog);
+    std::clog << std::endl;
 
     for(size_t i=0; i < alea.size(); ++i) {
         if(alea[i]) {
-            std::cout << rt.gene(i) << " ";
+            std::clog << rt->gene(i) << " ";
         }
     }
-    std::cout << std::endl;
+    std::clog << std::endl;
+    CLUTCHLOG(debug, "OK");
+
+    CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
+    try {
+        frictionless::FriedmanScore fs(*rt,2);
+    } catch(const frictionless::DataInconsistent& e) {
+        EXIT_ON_ERROR(DataInconsistent, e.what());
+    } catch(const frictionless::DataRowFormat& e) {
+        EXIT_ON_ERROR(DataRowFormat, e.what());
+    } catch(const frictionless::DataSumRanks& e) {
+        EXIT_ON_ERROR(DataSumRanks, e.what());
+    }
+    CLUTCHLOG(note, "OK");
 }
