@@ -10,6 +10,7 @@
 namespace frictionless {
 
 RankedTranscriptome::RankedTranscriptome( std::istream& input )
+    : _cells_nb(0)
 {
     load(input);
 }
@@ -105,6 +106,11 @@ size_t RankedTranscriptome::cells_nb(const size_t i) const
 #endif
 }
 
+size_t RankedTranscriptome::cells_nb() const
+{
+    return _cells_nb;
+}
+
 const std::map<std::string,size_t>& RankedTranscriptome::samples() const
 {
     return _samples;
@@ -123,7 +129,6 @@ void RankedTranscriptome::load( std::istream& input )
     std::stringstream ss(line, std::ios_base::out|std::ios_base::in|std::ios_base::binary);
 
     // Cell affiliations header.
-    size_t icell = 0;
     size_t isample = 0;
     while(ss >> sample_name) {
         if(not _samples.contains(sample_name)) {
@@ -131,8 +136,8 @@ void RankedTranscriptome::load( std::istream& input )
             isample++;
         }
         _affiliations.push_back(_samples[sample_name]);
-        _cells_in[_samples[sample_name]].push_back(icell);
-        icell++;
+        _cells_in[_samples[sample_name]].push_back(_cells_nb);
+        _cells_nb++;
     }
 
     // Rows: Gene, then ranked expressions….
@@ -184,7 +189,7 @@ void RankedTranscriptome::load( std::istream& input )
                 CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
                 CLUTCHLOG(debug,"        igene  = " << igene);
                 CLUTCHLOG(debug,"       _genes #= " << _genes.size());
-                CLUTCHLOG(debug,"        icell  = " << icell);
+                CLUTCHLOG(debug,"    _cells_nb  = " << _cells_nb);
                 CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
                 CLUTCHLOG(debug,"      isample  = " << isample);
                 CLUTCHLOG(debug,"     _samples #= " << _samples.size());
@@ -212,13 +217,13 @@ void RankedTranscriptome::load( std::istream& input )
     CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
     CLUTCHLOG(debug,"        igene  = " << igene);
     CLUTCHLOG(debug,"       _genes #= " << _genes.size());
-    CLUTCHLOG(debug,"        icell  = " << icell);
+    CLUTCHLOG(debug,"    _cells_nb  = " << _cells_nb);
     CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
     CLUTCHLOG(debug,"      isample  = " << isample);
     CLUTCHLOG(debug,"     _samples #= " << _samples.size());
     CLUTCHLOG(debug,"    _cells_in #= " << _cells_in.size());
     if(_genes.size() != _ranks.size()
-       or      icell != _affiliations.size()
+       or      _cells_nb != _affiliations.size()
        or    isample != _cells_in.size()
        or    isample != _samples.size()
        or        _ranks.size() == 0
@@ -229,15 +234,15 @@ void RankedTranscriptome::load( std::istream& input )
         msg << "Inconsistent data "
             << "(ranks shape: " << _ranks.size()
             << " gene rows, " << _genes.size() << " genes"
-            << ", " << icell << " cells"
+            << ", " << _cells_nb << " cells"
             << ", " << _samples.size() << " samples"
             << ")";
         RAISE(DataInconsistent, msg.str());
     }
     std::ostringstream msg_genes;
     for(size_t j=0; j < _genes.size(); ++j) {
-        if(_ranks.at(j).size() == 0 or _ranks.at(j).size() != _genes.size()) {
-            msg_genes << "\tGene `" << _gene_names.at(j) << "` has " << _ranks.at(j).size() << " ranks, should be " << _genes.size() << std::endl;
+        if(_ranks.at(j).size() == 0 or _ranks.at(j).size() != _cells_nb) {
+            msg_genes << "\tGene `" << _gene_names.at(j) << "` has " << _ranks.at(j).size() << " ranks, should be " << _cells_nb << std::endl;
         }
     }
     if(msg_genes.str() != "") {

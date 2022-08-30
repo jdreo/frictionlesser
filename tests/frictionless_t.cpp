@@ -9,13 +9,13 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
     GIVEN( "A ranked transcriptome instance" ) {
         WHEN( "loading consistent data") {
             const std::string fake =
-                "Sample_0 Sample_1 Sample_0\n"
-                "Gene_0 0   0   0\n"
+                "Sample_0 Sample_1 Sample_0 Sample_1\n"
+                "Gene_0 0   1   1 0\n"
                 "# Comment\n"
-                "Gene_1 0.5 1   3\n"
+                "Gene_1 0.5 0.5   0.5 0.5\n"
                 "" // Empty line.
-                "Gene_2 0.5 2   2\n"
-                "Gene_3 1   3   1\n";
+                "Gene_2 0 0 1 1\n"
+                "Gene_3 0.5 1 0.5 0   \n";
             std::istringstream iss(fake);
             frictionless::RankedTranscriptome* t;
 

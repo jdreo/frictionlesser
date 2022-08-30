@@ -48,6 +48,9 @@ class RankedTranscriptome {
         /** A map linking index of sample to indices of cells. */
         std::map<size_t,std::vector<size_t>> _cells_in;
 
+        /** total number of cells, across all samples. */
+        size_t _cells_nb;
+
         /** A map linking sample name to its index. */
         std::map<std::string,size_t> _samples; // FIXME make it vectors, like for genes.
 
@@ -99,6 +102,9 @@ class RankedTranscriptome {
 
         /** Returns the index of the given sample name. */
         const size_t& index_of(const std::string sample_name) const;
+
+        /** Returns the total number of cells. */
+        size_t cells_nb() const;
 
         /** Returns the number of cells in the i-th sample. */
         size_t cells_nb(const size_t i) const;
