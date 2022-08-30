@@ -9,6 +9,8 @@
 
 namespace frictionless {
 
+const size_t errors_max_print = 20;
+
 RankedTranscriptome::RankedTranscriptome( std::istream& input )
     : _cells_nb(0)
 {
@@ -209,7 +211,7 @@ void RankedTranscriptome::load( std::istream& input )
             column = 0;
 #endif
         } else {
-            RAISE(DataRowFormat, "Line is neither EOF, starting with #, empty, or not starting with a digit.");
+            RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
         }
     }
 
@@ -239,18 +241,27 @@ void RankedTranscriptome::load( std::istream& input )
             << ")";
         RAISE(DataInconsistent, msg.str());
     }
-    std::ostringstream msg_genes;
+    std::vector<std::string> msg_genes;
     for(size_t j=0; j < _genes.size(); ++j) {
         if(_ranks.at(j).size() == 0 or _ranks.at(j).size() != _cells_nb) {
-            msg_genes << "\tGene `" << _gene_names.at(j) << "` has " << _ranks.at(j).size() << " ranks, should be " << _cells_nb << std::endl;
+            std::ostringstream msg_gene;
+            msg_gene << "\tGene `" << _gene_names.at(j)
+                     << "`\thas " << _ranks.at(j).size()
+                     << " ranks,\tshould be " << _cells_nb;
+            msg_genes.push_back(msg_gene.str());
         }
     }
-    if(msg_genes.str() != "") {
-        RAISE(DataInconsistent, "\n"+msg_genes.str());
+    if(msg_genes.size() > 0) {
+        std::ostringstream msg;
+        const size_t max_size = std::min(msg_genes.size(), errors_max_print);
+        std::copy(std::begin(msg_genes), std::begin(msg_genes)+max_size, std::ostream_iterator<std::string>(msg, "\n"));
+        if(max_size == errors_max_print) {
+            msg << "[ " << msg_genes.size()-errors_max_print << " more errors removed ]";}
+        RAISE(DataInconsistent, "\n"+msg.str());
     }
 
     CLUTCHLOG(debug, "Check sum of ranks across cells...");
-    std::ostringstream msg_rank_sum;
+    std::vector<std::string> msg_rank_sum;
     for([[maybe_unused]] const auto& [s,i] : this->samples()) {
         for(size_t j : this->genes()) {
             double sum_ranks = 0;
@@ -259,15 +270,22 @@ void RankedTranscriptome::load( std::istream& input )
             }
             const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)-1) / 2;
             if(sum_ranks != true_sum_ranks) {
-                msg_rank_sum << "\t - Gene `" << this->gene(j)
-                    << "` has ranks sum of " << sum_ranks
-                    << " but it should be " << true_sum_ranks
-                    << std::endl;
+                std::ostringstream msg;
+                msg << "\t - Gene `" << this->gene(j)
+                    << "`\thas ranks sum of " << sum_ranks
+                    << "\tbut it should be " << true_sum_ranks;
+               msg_rank_sum.push_back(msg.str());
             }
         } // for j in genes
     } // for i in samples
-    if(msg_rank_sum.str() != "") {
-        RAISE(DataSumRanks, "\n"+msg_rank_sum.str());
+    if(msg_rank_sum.size() > 0) {
+        std::ostringstream msg;
+        const size_t max_size = std::min(msg_rank_sum.size(), errors_max_print);
+        std::copy(std::begin(msg_rank_sum), std::begin(msg_rank_sum)+max_size, std::ostream_iterator<std::string>(msg, "\n"));
+        if(max_size == errors_max_print) {
+            msg << "\t[ " << msg_rank_sum.size()-errors_max_print << " more errors removed ]";}
+
+        RAISE(DataSumRanks, "\n"+msg.str());
     }
     CLUTCHLOG(note, "OK");
 }
