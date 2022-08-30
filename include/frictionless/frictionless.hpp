@@ -136,6 +136,13 @@ class RankedTranscriptome {
 
         /** Returns an ASCII-art string representing the ranks table. */
         std::string ranks_table(const bool values = true) const;
+
+    private:
+        size_t load_header(const std::string& line);
+        size_t load_gene(std::istringstream& ss, size_t& igene);
+        long load_row(const std::string& line, size_t& igene);
+        void check_ranks();
+
 }; // RankedTranscriptome
 
 /** The score used to define the quality of a signature is a floating point number.

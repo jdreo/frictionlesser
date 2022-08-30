@@ -123,15 +123,12 @@ size_t RankedTranscriptome::samples_nb() const
     return _samples.size();
 }
 
-void RankedTranscriptome::load( std::istream& input )
+size_t RankedTranscriptome::load_header(const std::string& line)
 {
-    std::string line;
-    std::string sample_name;
-    getline(input, line);
-    std::stringstream ss(line, std::ios_base::out|std::ios_base::in|std::ios_base::binary);
-
-    // Cell affiliations header.
     size_t isample = 0;
+    // Cell affiliations header.
+    std::istringstream ss(line);
+    std::string sample_name;
     while(ss >> sample_name) {
         if(not _samples.contains(sample_name)) {
             _samples[sample_name] = isample;
@@ -141,77 +138,71 @@ void RankedTranscriptome::load( std::istream& input )
         _cells_in[_samples[sample_name]].push_back(_cells_nb);
         _cells_nb++;
     }
+    return isample;
+}
+
+size_t RankedTranscriptome::load_gene(std::istringstream& ss, size_t& igene)
+{
+    std::vector<double> ranks_row;
+    ranks_row.reserve(_affiliations.size());
+
+    // First ncolumn is gene name.
+    std::string gene_name;
+    ss >> gene_name;
+    _gene_names.push_back(gene_name);
+    _genes.push_back(igene);
+    igene++;
+
+    double rank;
+    size_t ncolumn = 0;
+    while(ss >> rank) {
+        ranks_row.push_back(rank);
+        ncolumn++;
+    }
+    _ranks.push_back(ranks_row);
+
+    return ncolumn;
+}
+
+long RankedTranscriptome::load_row(const std::string& line, size_t& igene)
+{
+    long ncolumn = 0;
+    std::istringstream ss(line);
+
+    if(line[0] == '#' or line.empty()) {
+        // Catch empty lines or commented lines.
+        return ncolumn;
+
+    } else if(not isdigit(line[0])) {
+        return load_gene(ss, igene);
+
+    } else {
+        RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
+    }
+}
+
+void RankedTranscriptome::check_ranks()
+{
+
+}
+
+void RankedTranscriptome::load( std::istream& input )
+{
+    std::string line;
+    std::getline(input, line);
+
+    size_t nsample = load_header(line);
 
     // Rows: Gene, then ranked expressions….
-#ifndef NDEBUG
-    size_t column = 0;
-#endif
-    std::string gene_name;
     size_t igene = 0;
+    long ncolumn = 0;
     while(true) {
-        std::string line;
-        double rank;
-        getline(input, line);
-        std::stringstream ss(line, std::ios_base::out|std::ios_base::in|std::ios_base::binary);
-        if(!input) {
-            // Mainly catch EOF.
+        if(not input) { // Mainly catch EOF.
             break;
-
-        } else if(line[0] == '#' or line.empty()) {
-            // Catch empty lines or commented lines.
-            continue;
-
-        } else if(not isdigit(line[0])) {
-            // First column is gene name.
-            ss >> gene_name;
-            _gene_names.push_back(gene_name);
-            _genes.push_back(igene);
-            igene++;
-#ifndef NDEBUG
-            // This should be the first column.
-            ASSERT(column == 0);
-            column = 0;
-#endif
-            std::vector<double> ranks_row;
-            ranks_row.reserve(_affiliations.size());
-
-            while(ss >> rank) {
-                ranks_row.push_back(rank);
-#ifndef NDEBUG
-                column++;
-#endif
-            }
-            _ranks.push_back(ranks_row);
-
-            if(ranks_row.size() != _affiliations.size()
-#ifndef NDEBUG
-               or column != _affiliations.size()
-#endif
-            ) {
-                CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
-                CLUTCHLOG(debug,"        igene  = " << igene);
-                CLUTCHLOG(debug,"       _genes #= " << _genes.size());
-                CLUTCHLOG(debug,"    _cells_nb  = " << _cells_nb);
-                CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
-                CLUTCHLOG(debug,"      isample  = " << isample);
-                CLUTCHLOG(debug,"     _samples #= " << _samples.size());
-                CLUTCHLOG(debug,"    _cells_in #= " << _cells_in.size());
-                std::ostringstream msg;
-                msg << "Inconsistent data"
-                    << " (ranks_row #=" << ranks_row.size()
-                    << " , affiliations #=" << _affiliations.size()
-#ifndef NDEBUG
-                    << " , column=" << column
-#endif
-                    << ")";
-                RAISE(DataInconsistent, msg.str());
-            }
-#ifndef NDEBUG
-            // End of row => new column.
-            column = 0;
-#endif
         } else {
-            RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
+            std::string line;
+            getline(input, line);
+            ncolumn = load_row(line, igene);
         }
     }
 
@@ -221,13 +212,13 @@ void RankedTranscriptome::load( std::istream& input )
     CLUTCHLOG(debug,"       _genes #= " << _genes.size());
     CLUTCHLOG(debug,"    _cells_nb  = " << _cells_nb);
     CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
-    CLUTCHLOG(debug,"      isample  = " << isample);
+    CLUTCHLOG(debug,"      nsample  = " << nsample);
     CLUTCHLOG(debug,"     _samples #= " << _samples.size());
     CLUTCHLOG(debug,"    _cells_in #= " << _cells_in.size());
     if(_genes.size() != _ranks.size()
        or      _cells_nb != _affiliations.size()
-       or    isample != _cells_in.size()
-       or    isample != _samples.size()
+       or    nsample != _cells_in.size()
+       or    nsample != _samples.size()
        or        _ranks.size() == 0
        or _affiliations.size() == 0
        or      _samples.size() == 0
@@ -241,13 +232,19 @@ void RankedTranscriptome::load( std::istream& input )
             << ")";
         RAISE(DataInconsistent, msg.str());
     }
+
+    CLUTCHLOG(progress, "Check all genes consistency...");
     std::vector<std::string> msg_genes;
     for(size_t j=0; j < _genes.size(); ++j) {
-        if(_ranks.at(j).size() == 0 or _ranks.at(j).size() != _cells_nb) {
+        if(   _ranks.at(j).size() == 0
+           or _ranks.at(j).size() != _cells_nb
+           or _cells_nb != _affiliations.size()
+        ) {
             std::ostringstream msg_gene;
             msg_gene << "\tGene `" << _gene_names.at(j)
                      << "`\thas " << _ranks.at(j).size()
-                     << " ranks,\tshould be " << _cells_nb;
+                     << " ranks,\tshould be " << _cells_nb
+                     << " with " << _affiliations.size() << " affiliations";
             msg_genes.push_back(msg_gene.str());
         }
     }
@@ -287,7 +284,7 @@ void RankedTranscriptome::load( std::istream& input )
 
         RAISE(DataSumRanks, "\n"+msg.str());
     }
-    CLUTCHLOG(note, "OK");
+    CLUTCHLOG(note, "OK -- all checks passed.");
 }
 
 /** Print a 2D colormap as a 256-color ASCII-art.
