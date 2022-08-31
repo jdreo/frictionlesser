@@ -79,6 +79,9 @@ int main(int argc, char* argv[])
     const std::string log_level = parser.createParam<std::string>("Progress", "log-level",
         "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
 
+    const size_t max_errors = parser.createParam<size_t>(30, "max-errors",
+        "Maximum number of errors reported for each check", 'e', "Misc").value();
+
     make_verbose(parser);
     make_help(parser);
 
@@ -87,7 +90,7 @@ int main(int argc, char* argv[])
     log.threshold(log_level);
     log.out(std::cerr);
     log.depth_mark(">");
-    log.style(clutchlog::level::critical,clutchlog::fmt::fg::black,clutchlog::fmt::bg::red);
+    log.style(clutchlog::level::critical,clutchlog::fmt::fg::black,clutchlog::fmt::bg::red,clutchlog::fmt::typo::bold);
 
     if(not std::filesystem::exists(ranksfile)) {
         EXIT_ON_ERROR(No_File, "Input ranks data file does not exists."); }
@@ -100,7 +103,7 @@ int main(int argc, char* argv[])
     ASSERT(ifs.is_open());
     frictionless::RankedTranscriptome* rt;
     try {
-        rt = new frictionless::RankedTranscriptome(ifs);
+        rt = new frictionless::RankedTranscriptome(ifs, max_errors);
         ifs.close();
     } catch(const frictionless::DataInconsistent& e) {
         EXIT_ON_ERROR(DataInconsistent, e.what());

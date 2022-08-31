@@ -54,6 +54,9 @@ class RankedTranscriptome {
         /** A map linking sample name to its index. */
         std::map<std::string,size_t> _samples; // FIXME make it vectors, like for genes.
 
+    protected:
+        const size_t _errors_max_print;
+
     public:
         /** Load from a stream of data.
          *
@@ -71,7 +74,7 @@ class RankedTranscriptome {
          *
          * @see load
          */
-        RankedTranscriptome(std::istream& input);
+        RankedTranscriptome(std::istream& input, const size_t errors_max_print = 20);
 
         /** Returns the current rank table. */
         const std::vector<std::vector<double>>& ranks() const;
@@ -141,6 +144,8 @@ class RankedTranscriptome {
         size_t load_header(const std::string& line);
         size_t load_gene(std::istringstream& ss, size_t& igene);
         long load_row(const std::string& line, size_t& igene);
+        void check_tables();
+        void check_genes();
         void check_ranks();
 
 }; // RankedTranscriptome

@@ -2,6 +2,8 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
+#include <random>
 
 #include <exceptions/exceptions.h>
 
@@ -9,10 +11,9 @@
 
 namespace frictionless {
 
-const size_t errors_max_print = 20;
-
-RankedTranscriptome::RankedTranscriptome( std::istream& input )
-    : _cells_nb(0)
+RankedTranscriptome::RankedTranscriptome( std::istream& input,
+                                         const size_t errors_max_print )
+    : _cells_nb(0), _errors_max_print(errors_max_print)
 {
     load(input);
 }
@@ -181,44 +182,20 @@ long RankedTranscriptome::load_row(const std::string& line, size_t& igene)
     }
 }
 
-void RankedTranscriptome::check_ranks()
+void RankedTranscriptome::check_tables()
 {
-
-}
-
-void RankedTranscriptome::load( std::istream& input )
-{
-    std::string line;
-    std::getline(input, line);
-
-    size_t nsample = load_header(line);
-
-    // Rows: Gene, then ranked expressions….
-    size_t igene = 0;
-    long ncolumn = 0;
-    while(true) {
-        if(not input) { // Mainly catch EOF.
-            break;
-        } else {
-            std::string line;
-            getline(input, line);
-            ncolumn = load_row(line, igene);
-        }
-    }
-
     CLUTCHLOG(progress, "Check ranks table consistency...");
     CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
-    CLUTCHLOG(debug,"        igene  = " << igene);
+    // CLUTCHLOG(debug,"        igene  = " << igene);
     CLUTCHLOG(debug,"       _genes #= " << _genes.size());
     CLUTCHLOG(debug,"    _cells_nb  = " << _cells_nb);
     CLUTCHLOG(debug,"_affiliations #= " << _affiliations.size());
-    CLUTCHLOG(debug,"      nsample  = " << nsample);
+    // CLUTCHLOG(debug,"      nsample  = " << nsample);
     CLUTCHLOG(debug,"     _samples #= " << _samples.size());
     CLUTCHLOG(debug,"    _cells_in #= " << _cells_in.size());
-    if(_genes.size() != _ranks.size()
-       or      _cells_nb != _affiliations.size()
-       or    nsample != _cells_in.size()
-       or    nsample != _samples.size()
+    if(     _genes.size() != _ranks.size()
+       or       _cells_nb != _affiliations.size()
+       or _samples.size() != _cells_in.size()
        or        _ranks.size() == 0
        or _affiliations.size() == 0
        or      _samples.size() == 0
@@ -232,7 +209,10 @@ void RankedTranscriptome::load( std::istream& input )
             << ")";
         RAISE(DataInconsistent, msg.str());
     }
+}
 
+void RankedTranscriptome::check_genes()
+{
     CLUTCHLOG(progress, "Check all genes consistency...");
     std::vector<std::string> msg_genes;
     for(size_t j=0; j < _genes.size(); ++j) {
@@ -250,17 +230,20 @@ void RankedTranscriptome::load( std::istream& input )
     }
     if(msg_genes.size() > 0) {
         std::ostringstream msg;
-        const size_t max_size = std::min(msg_genes.size(), errors_max_print);
+        const size_t max_size = std::min(msg_genes.size(), _errors_max_print);
         std::copy(std::begin(msg_genes), std::begin(msg_genes)+max_size, std::ostream_iterator<std::string>(msg, "\n"));
-        if(max_size == errors_max_print) {
-            msg << "[ " << msg_genes.size()-errors_max_print << " more errors removed ]";}
+        if(max_size == _errors_max_print) {
+            msg << "[ " << msg_genes.size()-_errors_max_print << " more errors removed ]";}
         RAISE(DataInconsistent, "\n"+msg.str());
     }
+}
 
+void RankedTranscriptome::check_ranks()
+{
     CLUTCHLOG(debug, "Check sum of ranks across cells...");
     std::vector<std::string> msg_rank_sum;
-    for([[maybe_unused]] const auto& [s,i] : this->samples()) {
-        for(size_t j : this->genes()) {
+    for(size_t j : this->genes()) {
+        for([[maybe_unused]] const auto& [s,i] : this->samples()) {
             double sum_ranks = 0;
             for(size_t c : this->cells(i)) {
                 sum_ranks += this->rank(c,j);
@@ -268,8 +251,9 @@ void RankedTranscriptome::load( std::istream& input )
             const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)-1) / 2;
             if(sum_ranks != true_sum_ranks) {
                 std::ostringstream msg;
-                msg << "\t - Gene `" << this->gene(j)
+                msg << "\t - Gene " << j << " `" << this->gene(j)
                     << "`\thas ranks sum of " << sum_ranks
+                    << "\tfor sample " << i
                     << "\tbut it should be " << true_sum_ranks;
                msg_rank_sum.push_back(msg.str());
             }
@@ -277,13 +261,50 @@ void RankedTranscriptome::load( std::istream& input )
     } // for i in samples
     if(msg_rank_sum.size() > 0) {
         std::ostringstream msg;
-        const size_t max_size = std::min(msg_rank_sum.size(), errors_max_print);
-        std::copy(std::begin(msg_rank_sum), std::begin(msg_rank_sum)+max_size, std::ostream_iterator<std::string>(msg, "\n"));
-        if(max_size == errors_max_print) {
-            msg << "\t[ " << msg_rank_sum.size()-errors_max_print << " more errors removed ]";}
+        const size_t max_size = std::min(msg_rank_sum.size(), _errors_max_print);
 
-        RAISE(DataSumRanks, "\n"+msg.str());
+        // Select some random errors.
+        std::vector<std::string> some_msg;
+        std::sample(std::begin(msg_rank_sum), std::end(msg_rank_sum),
+            std::back_inserter(some_msg),
+            max_size, std::mt19937{std::random_device{}()} );
+
+        // Print some messages.
+        std::copy(std::begin(some_msg), std::begin(some_msg)+max_size,
+            std::ostream_iterator<std::string>(msg, "\n"));
+        // Indicate how many were left out.
+        if(max_size == _errors_max_print) {
+            msg << "\t[ " << msg_rank_sum.size()-_errors_max_print << " more errors not reported ]";}
+
+        RAISE(DataSumRanks, "Sample of " << _errors_max_print << " errors:\n"+msg.str());
     }
+}
+
+void RankedTranscriptome::load( std::istream& input )
+{
+    std::string line;
+    std::getline(input, line);
+
+    size_t nsample = load_header(line);
+
+    CLUTCHLOG(progress, "Parse ranks table data...");
+    // Rows: Gene, then ranked expressions….
+    size_t igene = 0;
+    long ncolumn = 0;
+    while(true) {
+        if(not input) { // Mainly catch EOF.
+            break;
+        } else {
+            std::string line;
+            getline(input, line);
+            ncolumn = load_row(line, igene);
+        }
+    }
+
+    CLUTCHLOG(progress, "Check data consistency...");
+    check_tables();
+    check_genes();
+    check_ranks();
     CLUTCHLOG(note, "OK -- all checks passed.");
 }
 
