@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <random>
+#include <set>
 
 #include <exceptions/exceptions.h>
 
@@ -59,7 +60,8 @@ size_t RankedTranscriptome::genes_nb() const
     return _genes.size();
 }
 
-const std::string& RankedTranscriptome::gene(const size_t j) const
+const std::string& RankedTranscriptome::gene_name(
+    const size_t j) const
 {
 #ifndef NDEBUG
     return _gene_names.at(j);
@@ -79,15 +81,6 @@ const size_t& RankedTranscriptome::affiliation(const size_t c) const
     return _affiliations.at(c);
 #else
     return _affiliations[c];
-#endif
-}
-
-const size_t& RankedTranscriptome::index_of(const std::string sample_name) const
-{
-#ifndef NDEBUG
-    return _samples.at(sample_name);
-#else
-    return _samples[sample_name];
 #endif
 }
 
@@ -114,7 +107,21 @@ size_t RankedTranscriptome::cells_nb() const
     return _cells_nb;
 }
 
-const std::map<std::string,size_t>& RankedTranscriptome::samples() const
+const std::vector<std::string>& RankedTranscriptome::sample_names() const
+{
+    return _sample_names;
+}
+
+const std::string& RankedTranscriptome::sample_name(const size_t i) const
+{
+#ifndef NDEBUG
+    return _sample_names.at(i);
+#else
+    return _sample_names[i];
+#endif
+}
+
+const std::vector<size_t>& RankedTranscriptome::samples() const
 {
     return _samples;
 }
@@ -124,22 +131,75 @@ size_t RankedTranscriptome::samples_nb() const
     return _samples.size();
 }
 
+void RankedTranscriptome::load( std::istream& input )
+{
+    std::string line;
+    std::getline(input, line);
+
+    size_t nsample = load_header(line);
+
+    CLUTCHLOG(progress, "Parse ranks table data...");
+    // Rows: Gene, then ranked expressions….
+    size_t igene = 0;
+    long ncolumn = 0;
+    while(true) {
+        if(not input) { // Mainly catch EOF.
+            break;
+        } else {
+            std::string line;
+            getline(input, line);
+            ncolumn = load_row(line, igene);
+        }
+    }
+
+    CLUTCHLOG(progress, "Check data consistency...");
+    check_tables();
+    check_genes();
+    check_ranks();
+    CLUTCHLOG(note, "OK -- all checks passed.");
+}
+
 size_t RankedTranscriptome::load_header(const std::string& line)
 {
-    size_t isample = 0;
+    size_t i = -1;
     // Cell affiliations header.
-    std::istringstream ss(line);
+    std::istringstream iss(line);
     std::string sample_name;
-    while(ss >> sample_name) {
-        if(not _samples.contains(sample_name)) {
-            _samples[sample_name] = isample;
-            isample++;
+    std::map<std::string,size_t> loaded;
+    while(iss >> sample_name) {
+        size_t current;
+        if(not loaded.contains(sample_name)) {
+            current = ++i;
+            loaded[sample_name] = current;
+            _samples.push_back(current);
+            _sample_names.push_back(sample_name);
+        } else {
+            current = loaded[sample_name];
         }
-        _affiliations.push_back(_samples[sample_name]);
-        _cells_in[_samples[sample_name]].push_back(_cells_nb);
+        _affiliations.push_back(current);
+        _cells_in[current].push_back(_cells_nb);
         _cells_nb++;
     }
-    return isample;
+    ASSERT(loaded.size() == i+1);
+    ASSERT(_samples.size() == i+1);
+    return loaded.size();
+}
+
+long RankedTranscriptome::load_row(const std::string& line, size_t& igene)
+{
+    long ncolumn = 0;
+    std::istringstream ss(line);
+
+    if(line[0] == '#' or line.empty()) {
+        // Catch empty lines or commented lines.
+        return ncolumn;
+
+    } else if(not isdigit(line[0])) {
+        return load_gene(ss, igene);
+
+    } else {
+        RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
+    }
 }
 
 size_t RankedTranscriptome::load_gene(std::istringstream& ss, size_t& igene)
@@ -163,23 +223,6 @@ size_t RankedTranscriptome::load_gene(std::istringstream& ss, size_t& igene)
     _ranks.push_back(ranks_row);
 
     return ncolumn;
-}
-
-long RankedTranscriptome::load_row(const std::string& line, size_t& igene)
-{
-    long ncolumn = 0;
-    std::istringstream ss(line);
-
-    if(line[0] == '#' or line.empty()) {
-        // Catch empty lines or commented lines.
-        return ncolumn;
-
-    } else if(not isdigit(line[0])) {
-        return load_gene(ss, igene);
-
-    } else {
-        RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
-    }
 }
 
 void RankedTranscriptome::check_tables()
@@ -242,8 +285,8 @@ void RankedTranscriptome::check_ranks()
 {
     CLUTCHLOG(debug, "Check sum of ranks across cells...");
     std::vector<std::string> msg_rank_sum;
-    for(size_t j : this->genes()) {
-        for([[maybe_unused]] const auto& [s,i] : this->samples()) {
+    for(size_t j : _genes) {
+        for(size_t i : _samples) {
             double sum_ranks = 0;
             for(size_t c : this->cells(i)) {
                 sum_ranks += this->rank(c,j);
@@ -251,7 +294,7 @@ void RankedTranscriptome::check_ranks()
             const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)-1) / 2;
             if(sum_ranks != true_sum_ranks) {
                 std::ostringstream msg;
-                msg << "\t - Gene " << j << " `" << this->gene(j)
+                msg << "\t - Gene " << j << " `" << this->gene_name(j)
                     << "`\thas ranks sum of " << sum_ranks
                     << "\tfor sample " << i
                     << "\tbut it should be " << true_sum_ranks;
@@ -280,34 +323,6 @@ void RankedTranscriptome::check_ranks()
     }
 }
 
-void RankedTranscriptome::load( std::istream& input )
-{
-    std::string line;
-    std::getline(input, line);
-
-    size_t nsample = load_header(line);
-
-    CLUTCHLOG(progress, "Parse ranks table data...");
-    // Rows: Gene, then ranked expressions….
-    size_t igene = 0;
-    long ncolumn = 0;
-    while(true) {
-        if(not input) { // Mainly catch EOF.
-            break;
-        } else {
-            std::string line;
-            getline(input, line);
-            ncolumn = load_row(line, igene);
-        }
-    }
-
-    CLUTCHLOG(progress, "Check data consistency...");
-    check_tables();
-    check_genes();
-    check_ranks();
-    CLUTCHLOG(note, "OK -- all checks passed.");
-}
-
 /** Print a 2D colormap as a 256-color ASCII-art.
  *
  * Convenience function to print the 2D table of transcriptome.
@@ -319,7 +334,7 @@ void RankedTranscriptome::load( std::istream& input )
  *
  * @param values If true, will display one 3-digits value within the colored pixels. Numbers with more than 3 digits are rendered as "+++".
   */
-std::string RankedTranscriptome::ranks_table(bool values) const
+std::string RankedTranscriptome::format_ranks(bool values) const
 {
     size_t fg_shift = 128;
 
@@ -421,7 +436,7 @@ FriedmanScore::FriedmanScore( const RankedTranscriptome& rt, const double a)
     SSR_ij.reserve(samples_nb);
 
     // Precompute constants.
-    for([[maybe_unused]] const auto& [s, i] : rt.samples() ) { // All samples.
+    for(size_t i : rt.samples() ) { // All samples.
         // Constants depending only on the number of cells
         // in each sample.
         const double m_i = rt.cells_nb(i);

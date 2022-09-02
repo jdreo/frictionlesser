@@ -119,7 +119,13 @@ int main(int argc, char* argv[])
 
     CLUTCHCODE(xdebug,
         if( rt->ranks().size() < 90 and rt->genes_nb() < 125) {
-            CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << rt->ranks_table(true) );
+            CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << rt->format_ranks(true) );
+        }
+    );
+    CLUTCHCODE(debug,
+        CLUTCHLOG(debug, "Samples:");
+        for(const auto& i : rt->samples()) {
+            CLUTCHLOG(debug, "\t- " << rt->sample_name(i) << ": " << rt->cells(i).size() << " cells" );
         }
     );
 
@@ -138,7 +144,7 @@ int main(int argc, char* argv[])
 
     for(size_t i=0; i < alea.size(); ++i) {
         if(alea[i]) {
-            std::clog << rt->gene(i) << " ";
+            std::clog << rt->gene_name(i) << " ";
         }
     }
     std::clog << std::endl;
