@@ -48,73 +48,24 @@ enum class Error : unsigned char {
 
 #define EXIT(err_code) exit(static_cast<unsigned char>(Error::err_code))
 
-
-int main(int argc, char* argv[])
+frictionless::Transcriptome load(const std::string filename, const size_t max_errors)
 {
-    eoParser parser(argc, argv);
-    // eoState state;
 
-    const std::string ranksfile = parser.createParam<std::string>("", "ranks",
-        "Filename of the ranks table", 'r', "Data", true).value();
+    if(not std::filesystem::exists(filename)) {
+        EXIT_ON_ERROR(No_File, "Input data file does not exists."); }
 
-    const std::string signatures = parser.createParam<std::string>("", "signatures",
-        "Name of a file containing candidate/starting signatures", 'i', "Data").value();
+    CLUTCHLOG(progress, "Open `" << filename << "`...");
 
-    const bool permute = parser.createParam<bool>(false, "permute",
-        "Randomly permute the data to get rid of the signal", 'R', "Data").value();
-
-    const size_t genes = parser.createParam<size_t>(50, "genes",
-        "Number of genes in the signatures", 'g', "Parameters").value();
-
-    const double alpha = parser.createParam<double>(1, "alpha",
-        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
-
-    const double beta = parser.createParam<double>(2, "beta",
-        "Exponent on the log of p-values", 'b', "Parameters").value();
-
-    const bool optimum = parser.createParam<bool>(true, "optimum",
-        "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
-
-    const long seed = parser.createParam<long>(0, "seed",
-        "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
-
-    const std::string log_level = parser.createParam<std::string>("Progress", "log-level",
-        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
-
-    const size_t max_errors = parser.createParam<size_t>(30, "max-errors",
-        "Maximum number of errors reported for each check", 'e', "Misc").value();
-
-    make_verbose(parser);
-    make_help(parser);
-
-    auto& log = clutchlog::logger();
-    ASSERT(log.levels().contains(log_level));
-    log.threshold(log_level);
-    log.out(std::cerr);
-    log.depth_mark(">");
-    log.style(clutchlog::level::critical,clutchlog::fmt::fg::black,clutchlog::fmt::bg::red,clutchlog::fmt::typo::bold);
-
-    if(not std::filesystem::exists(ranksfile)) {
-        EXIT_ON_ERROR(No_File, "Input ranks data file does not exists."); }
-
-    CLUTCHLOG(progress, "Open `" << ranksfile << "`...");
-
-    std::ifstream ifs(ranksfile);
+    std::ifstream ifs(filename);
     if(ifs.fail()) {
-        EXIT_ON_ERROR(Unreadable, "Input ranks data file cannot be read."); }
+        EXIT_ON_ERROR(Unreadable, "Input data file cannot be read."); }
     ASSERT(ifs.is_open());
+
     frictionless::Transcriptome rt(max_errors);
-    frictionless::ZakievParser ranksparser(max_errors);
-    try {
-        rt = ranksparser(ifs);
-        ifs.close();
-    } catch(const frictionless::DataInconsistent& e) {
-        EXIT_ON_ERROR(DataInconsistent, e.what());
-    } catch(const frictionless::DataRowFormat& e) {
-        EXIT_ON_ERROR(DataRowFormat, e.what());
-    } catch(const frictionless::DataSumRanks& e) {
-        EXIT_ON_ERROR(DataSumRanks, e.what());
-    }
+    frictionless::NeftelParser tableparser(max_errors);
+    rt = tableparser(ifs);
+    ifs.close();
+
     CLUTCHLOG(progress, "Loaded "
         << rt.genes().size() << " genes, "
         << rt.affiliations().size() << " cells, and "
@@ -133,41 +84,126 @@ int main(int argc, char* argv[])
     );
 
     CLUTCHLOG(progress, "Check data consistency...");
-    rt.check_tables();
-    rt.check_genes();
-    rt.check_ranks();
-    CLUTCHLOG(note, "OK -- all checks passed.");
-
-    CLUTCHLOG(debug, "Test signatures data structures...");
-    frictionless::Signature null(rt.genes().size(), 0);
-
-    rng.reseed(seed);
-    eoUniformGenerator<frictionless::Signature::AtomType> unigen;
-    eoInitFixedLength<frictionless::Signature> rinit(rt.genes().size(), unigen);
-
-    frictionless::Signature alea(rt.genes().size(),0);
-    rinit(alea);
-
-    alea.printOn(std::clog);
-    std::clog << std::endl;
-
-    for(size_t i=0; i < alea.size(); ++i) {
-        if(alea[i]) {
-            std::clog << rt.gene_name(i) << " ";
-        }
-    }
-    std::clog << std::endl;
-    CLUTCHLOG(debug, "OK");
-
-    CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
     try {
-        frictionless::FriedmanScore fs(rt,2);
+        rt.check_tables();
+        rt.check_genes();
     } catch(const frictionless::DataInconsistent& e) {
         EXIT_ON_ERROR(DataInconsistent, e.what());
     } catch(const frictionless::DataRowFormat& e) {
         EXIT_ON_ERROR(DataRowFormat, e.what());
-    } catch(const frictionless::DataSumRanks& e) {
-        EXIT_ON_ERROR(DataSumRanks, e.what());
     }
-    CLUTCHLOG(note, "OK");
+    CLUTCHLOG(note, "OK -- checks passed.");
+
+    return rt;
+}
+
+int main(int argc, char* argv[])
+{
+    eoParser argparser(argc, argv);
+    // eoState state;
+
+    const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
+        "Filename of the expressions table to be ranked", 'r', "Data").value();
+
+    const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
+        "Filename of the input ranks table", 'r', "Data").value();
+
+    const std::string signatures = argparser.createParam<std::string>("", "signatures",
+        "Name of a file containing candidate/starting signatures", 'i', "Data").value();
+
+    const bool permute = argparser.createParam<bool>(false, "permute",
+        "Randomly permute the data to get rid of the signal", 'R', "Data").value();
+
+    const size_t genes = argparser.createParam<size_t>(50, "genes",
+        "Number of genes in the signatures", 'g', "Parameters").value();
+
+    const double alpha = argparser.createParam<double>(1, "alpha",
+        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
+
+    const double beta = argparser.createParam<double>(2, "beta",
+        "Exponent on the log of p-values", 'b', "Parameters").value();
+
+    const bool optimum = argparser.createParam<bool>(true, "optimum",
+        "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
+
+    const long seed = argparser.createParam<long>(0, "seed",
+        "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
+
+    const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
+        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
+
+    const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
+        "Maximum number of errors reported for each check", 'e', "Misc").value();
+
+    make_verbose(argparser);
+    make_help(argparser);
+
+    auto& log = clutchlog::logger();
+    ASSERT(log.levels().contains(log_level));
+    log.threshold(log_level);
+    log.out(std::cerr);
+    log.depth_mark(">");
+    log.style(clutchlog::level::critical,
+              clutchlog::fmt::fg::black,
+              clutchlog::fmt::bg::red,
+              clutchlog::fmt::typo::bold);
+
+    std::string filename;
+    bool have_exprs;
+    if(exprsfile != "" and ranksfile == "") {
+        have_exprs = true;
+        filename = exprsfile;
+
+    } else if(ranksfile != "" and exprsfile == "") {
+        have_exprs = false;
+        filename = ranksfile;
+
+    } else {
+        EXIT_ON_ERROR(Invalid_Argument, "You have to load either a rank file or an expression file.");
+    }
+
+    frictionless::Transcriptome rt = load(filename, max_errors);
+
+    if(have_exprs) {
+        // Convert the expressions to ranked expressions.
+
+
+    } else {
+        CLUTCHLOG(progress, "Check ranks consistency...");
+        try {
+            rt.check_ranks();
+        } catch(const frictionless::DataSumRanks& e) {
+            EXIT_ON_ERROR(DataSumRanks, e.what());
+        }
+        CLUTCHLOG(note, "OK -- checks passed.");
+
+        CLUTCHLOG(debug, "Test signatures data structures...");
+        frictionless::Signature null(rt.genes().size(), 0);
+
+        rng.reseed(seed);
+        eoUniformGenerator<frictionless::Signature::AtomType> unigen;
+        eoInitFixedLength<frictionless::Signature> rinit(rt.genes().size(), unigen);
+
+        frictionless::Signature alea(rt.genes().size(),0);
+        rinit(alea);
+
+        alea.printOn(std::clog);
+        std::clog << std::endl;
+
+        for(size_t i=0; i < alea.size(); ++i) {
+            if(alea[i]) {
+                std::clog << rt.gene_name(i) << " ";
+            }
+        }
+        std::clog << std::endl;
+        CLUTCHLOG(debug, "OK");
+
+        CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
+        // try {
+            frictionless::FriedmanScore fs(rt,2);
+        // } catch(...) {
+            // EXIT_ON_ERROR(DataInconsistent, e.what());
+        // }
+        CLUTCHLOG(note, "OK");
+    }
 }
