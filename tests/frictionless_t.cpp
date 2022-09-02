@@ -1,12 +1,17 @@
 #include <sstream>
 #include <iostream>
 
-#include "frictionless/frictionless.hpp"
+#include "frictionless/frictionless.h"
+#include "frictionless/transcriptome.h"
+#include "frictionless/zakievranks.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
-    GIVEN( "A ranked transcriptome instance" ) {
+    GIVEN( "The Zakiev transcriptome parser" ) {
+        frictionless::Transcriptome rt(5);
+        frictionless::ZakievRanksParser parser(5);
+
         WHEN( "loading consistent data") {
             const std::string fake =
                 "Sample_0 Sample_1 Sample_0 Sample_1\n"
@@ -17,12 +22,11 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 "Gene_2 0 0 1 1\n"
                 "Gene_3 0.5 1 0.5 0   \n";
             std::istringstream iss(fake);
-            frictionless::RankedTranscriptome* t;
 
             THEN( "the data loads correctly" ) {
-                CHECK_NOTHROW( t = new frictionless::RankedTranscriptome(iss) );
+                CHECK_NOTHROW( rt = parser(iss) );
                 // Print the ranks table as a color map.
-                std::cout << t->ranks_table(true) << std::endl;
+                std::cout << rt.format_ranks(true) << std::endl;
             }
         }
         WHEN( "loading data with inconsistent number of levels" ) {
@@ -32,10 +36,9 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 "Gene_0\n"
                 "0 1 2";
             std::istringstream iss(fake);
-            frictionless::RankedTranscriptome* t;
 
             THEN( "an error is raised" ) {
-                CHECK_THROWS( t = new frictionless::RankedTranscriptome(iss) );
+                CHECK_THROWS( rt = parser(iss) );
             }
         }
         WHEN( "loading data with inconsistent number of genes" ) {
@@ -45,10 +48,9 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 "0 1 2\n"
                 "Gene_1";
             std::istringstream iss(fake);
-            frictionless::RankedTranscriptome* t;
 
             THEN( "an error is raised" ) {
-                CHECK_THROWS( t = new frictionless::RankedTranscriptome(iss) );
+                CHECK_THROWS( rt = parser(iss) );
             }
         }
     }
