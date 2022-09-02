@@ -132,6 +132,12 @@ int main(int argc, char* argv[])
         }
     );
 
+    CLUTCHLOG(progress, "Check data consistency...");
+    rt.check_tables();
+    rt.check_genes();
+    rt.check_ranks();
+    CLUTCHLOG(note, "OK -- all checks passed.");
+
     CLUTCHLOG(debug, "Test signatures data structures...");
     frictionless::Signature null(rt.genes().size(), 0);
 

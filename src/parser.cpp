@@ -41,12 +41,6 @@ Transcriptome TranscriptomeParser::operator()( std::istream& input )
         }
     }
 
-    CLUTCHLOG(progress, "Check data consistency...");
-    _rt.check_tables();
-    _rt.check_genes();
-    _rt.check_ranks();
-    CLUTCHLOG(note, "OK -- all checks passed.");
-
     return _rt;
 }
 
@@ -67,6 +61,7 @@ size_t TranscriptomeParser::load_header(const std::string& line)
     }
     while(iss >> name) {
         size_t current;
+        // Extract the sample name from the cell name.
         std::string sample_name;
         if(_cell_to_sample.size() > 0) {
             std::regex cell_id(_cell_to_sample);
