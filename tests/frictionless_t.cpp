@@ -55,3 +55,91 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
         }
     }
 }
+
+SCENARIO( "Ranking a vector" ) {
+
+    GIVEN( "the most simple vector of sorted values" ) {
+        std::vector<double> values = {10, 11, 12, 13, 14};
+        WHEN( "ranking it" ) {
+            std::vector<double> ranks = frictionless::ranks_of(values);
+            THEN( "ranks are correct" ) {
+                std::vector<double> expected = {0, 1, 2, 3, 4};
+                REQUIRE( ranks == expected );
+            }
+        }
+    }
+
+    GIVEN( "the most simple vector of unsorted values" ) {
+        std::vector<double> values = {11, 10, 12, 14, 13};
+        WHEN( "ranking it" ) {
+            std::vector<double> ranks = frictionless::ranks_of(values);
+            THEN( "ranks are correct" ) {
+                std::vector<double> expected = {1, 0, 2, 4, 3};
+                REQUIRE( ranks == expected );
+            }
+        }
+    }
+
+    GIVEN( "the most simple vector of unsorted values with equalities" ) {
+        std::vector<double> values = {10, 10, 12, 14, 14};
+        WHEN( "ranking it" ) {
+            std::vector<double> ranks = frictionless::ranks_of(values);
+            THEN( "ranks are correct" ) {
+                std::vector<double> expected = {0.5, 0.5, 2, 3.5, 3.5};
+                REQUIRE( ranks == expected );
+            }
+        }
+    }
+
+    GIVEN( "a vector of all equals values" ) {
+        std::vector<double> values = {0, 0, 0, 0, 0};
+        WHEN( "ranking it" ) {
+            std::vector<double> ranks = frictionless::ranks_of(values);
+            THEN( "ranks are correct" ) {
+                std::vector<double> expected = {2, 2, 2, 2, 2};
+                REQUIRE( ranks == expected );
+            }
+        }
+    }
+
+    GIVEN( "a realistic vector" ) {
+        std::vector<double> values = {0, 0, 0, 0.3, 0.2, 0.1, 0};
+        WHEN( "ranking it" ) {
+            std::vector<double> ranks = frictionless::ranks_of(values);
+            THEN( "ranks are correct" ) {
+                std::vector<double> expected = {1.5, 1.5, 1.5, 6, 5, 4, 1.5};
+                REQUIRE( ranks == expected );
+            }
+        }
+    }
+
+    GIVEN( "an empty vector" ) {
+        std::vector<double> values = {};
+        WHEN( "ranking it" ) {
+            std::vector<double> ranks = frictionless::ranks_of(values);
+            THEN( "we get an empty vector" ) {
+                REQUIRE( ranks.size() == 0 );
+            }
+        }
+    }
+}
+
+// SCENARIO( "Ranking an expressions table" ) {
+//     GIVEN( "A simple expression table" ) {
+//         const std::vector<std::vector<double>> fake =
+//             "GENE S01-A01 S01-B02 S03-A01 S01-B03 S02-A01 S02-A02\n"
+//             "A    0       0       0       0       0       0\n"
+//             "B    0.1     0.2     0       0.3     0.1     0.2\n"
+//             "C    1.1     1.2     0       1.3     1.1     1.2\n"
+//             "D    0.3     0.2     1       0.1     0       0\n";
+//         std::istringstream iss(fake);
+
+//         WHEN( "Ranking the table" ) {
+//             std::
+            
+//             THEN( "Ranks are consistents" ) {
+                
+//             }
+//         }
+//     }
+// }

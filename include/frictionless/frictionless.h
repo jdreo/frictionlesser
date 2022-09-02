@@ -19,12 +19,10 @@ EXCEPTION(Exception, DataError);
     EXCEPTION(DataError, DataRowFormat);
     EXCEPTION(DataError, DataSumRanks);
 
-template<class T>
-double sum( const T& t)
-{
-    return std::accumulate(std::begin(t), std::end(t), 0);
-}
+double sum( const std::vector<double>& t);
+double sum( const std::vector<size_t>& t);
 
+std::vector<double> ranks_of( const std::vector<double>& exprs );
 
 
 /** The score used to define the quality of a signature is a floating point number.

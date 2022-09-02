@@ -61,32 +61,32 @@ frictionless::Transcriptome load(const std::string filename, const size_t max_er
         EXIT_ON_ERROR(Unreadable, "Input data file cannot be read."); }
     ASSERT(ifs.is_open());
 
-    frictionless::Transcriptome rt(max_errors);
+    frictionless::Transcriptome tr(max_errors);
     frictionless::NeftelParser tableparser(max_errors);
-    rt = tableparser(ifs);
+    tr = tableparser(ifs);
     ifs.close();
 
     CLUTCHLOG(progress, "Loaded "
-        << rt.genes().size() << " genes, "
-        << rt.affiliations().size() << " cells, and "
-        << rt.samples_nb() << " samples.");
+        << tr.genes().size() << " genes, "
+        << tr.affiliations().size() << " cells, and "
+        << tr.samples_nb() << " samples.");
 
     CLUTCHCODE(xdebug,
-        if( rt.ranks().size() < 90 and rt.genes_nb() < 125) {
-            CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << rt.format_ranks(true) );
+        if( tr.ranks().size() < 90 and tr.genes_nb() < 125) {
+            CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << tr.format_ranks(true) );
         }
     );
     CLUTCHCODE(debug,
         CLUTCHLOG(debug, "Samples:");
-        for(const auto& i : rt.samples()) {
-            CLUTCHLOG(debug, "    - " << rt.sample_name(i) << ": " << rt.cells(i).size() << " cells" );
+        for(const auto& i : tr.samples()) {
+            CLUTCHLOG(debug, "    - " << tr.sample_name(i) << ": " << tr.cells(i).size() << " cells" );
         }
     );
 
     CLUTCHLOG(progress, "Check data consistency...");
     try {
-        rt.check_tables();
-        rt.check_genes();
+        tr.check_tables();
+        tr.check_genes();
     } catch(const frictionless::DataInconsistent& e) {
         EXIT_ON_ERROR(DataInconsistent, e.what());
     } catch(const frictionless::DataRowFormat& e) {
@@ -94,8 +94,9 @@ frictionless::Transcriptome load(const std::string filename, const size_t max_er
     }
     CLUTCHLOG(note, "OK -- checks passed.");
 
-    return rt;
+    return tr;
 }
+
 
 int main(int argc, char* argv[])
 {
@@ -162,29 +163,40 @@ int main(int argc, char* argv[])
         EXIT_ON_ERROR(Invalid_Argument, "You have to load either a rank file or an expression file.");
     }
 
-    frictionless::Transcriptome rt = load(filename, max_errors);
+    frictionless::Transcriptome tr = load(filename, max_errors);
 
     if(have_exprs) {
-        // Convert the expressions to ranked expressions.
+        // Convert the expressions to ranks.
+
+        for(size_t i : tr.samples()) {
+            for(size_t j : tr.genes()) {
+                std::vector<size_t> cells = tr.cells(i);
+                std::vector<double> exprs;
+                for(size_t c : cells) {
+                    exprs.push_back( tr.rank(c,j) );
+                }
+                std::vector<double> r = frictionless::ranks_of(exprs);
+            } // for j in genes
+        } // for i in samples
 
 
     } else {
         CLUTCHLOG(progress, "Check ranks consistency...");
         try {
-            rt.check_ranks();
+            tr.check_ranks();
         } catch(const frictionless::DataSumRanks& e) {
             EXIT_ON_ERROR(DataSumRanks, e.what());
         }
         CLUTCHLOG(note, "OK -- checks passed.");
 
         CLUTCHLOG(debug, "Test signatures data structures...");
-        frictionless::Signature null(rt.genes().size(), 0);
+        frictionless::Signature null(tr.genes().size(), 0);
 
         rng.reseed(seed);
         eoUniformGenerator<frictionless::Signature::AtomType> unigen;
-        eoInitFixedLength<frictionless::Signature> rinit(rt.genes().size(), unigen);
+        eoInitFixedLength<frictionless::Signature> rinit(tr.genes().size(), unigen);
 
-        frictionless::Signature alea(rt.genes().size(),0);
+        frictionless::Signature alea(tr.genes().size(),0);
         rinit(alea);
 
         alea.printOn(std::clog);
@@ -192,7 +204,7 @@ int main(int argc, char* argv[])
 
         for(size_t i=0; i < alea.size(); ++i) {
             if(alea[i]) {
-                std::clog << rt.gene_name(i) << " ";
+                std::clog << tr.gene_name(i) << " ";
             }
         }
         std::clog << std::endl;
@@ -200,7 +212,7 @@ int main(int argc, char* argv[])
 
         CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
         // try {
-            frictionless::FriedmanScore fs(rt,2);
+            frictionless::FriedmanScore fs(tr,2);
         // } catch(...) {
             // EXIT_ON_ERROR(DataInconsistent, e.what());
         // }
