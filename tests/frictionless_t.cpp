@@ -3,14 +3,14 @@
 
 #include "frictionless/frictionless.h"
 #include "frictionless/transcriptome.h"
-#include "frictionless/zakievranks.h"
+#include "frictionless/parser.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
     GIVEN( "The Zakiev transcriptome parser" ) {
         frictionless::Transcriptome rt(5);
-        frictionless::ZakievRanksParser parser(5);
+        frictionless::ZakievParser parser(5);
 
         WHEN( "loading consistent data") {
             const std::string fake =

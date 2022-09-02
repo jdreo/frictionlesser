@@ -9,7 +9,7 @@
 
 #include <frictionless/frictionless.h>
 #include <frictionless/transcriptome.h>
-#include <frictionless/zakievranks.h>
+#include <frictionless/parser.h>
 #include <frictionless/score.h>
 
 //! Error codes returned on exit.
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
         EXIT_ON_ERROR(Unreadable, "Input ranks data file cannot be read."); }
     ASSERT(ifs.is_open());
     frictionless::Transcriptome rt(max_errors);
-    frictionless::ZakievRanksParser ranksparser(max_errors);
+    frictionless::ZakievParser ranksparser(max_errors);
     try {
         rt = ranksparser(ifs);
         ifs.close();
