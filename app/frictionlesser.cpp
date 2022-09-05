@@ -5,6 +5,7 @@
 #include <eo>
 #include <mo>
 
+#define CLUTCHLOG_DEFAULT_DEPTH_BUILT_NODEBUG clutchlog::level::progress
 #include <clutchlog/clutchlog.h>
 
 #include <frictionless/frictionless.h>
@@ -45,7 +46,6 @@ enum class Error : unsigned char {
     }
 #endif
 
-#define CLUTCHLOG_DEFAULT_DEPTH_BUILT_NODEBUG clutchlog::level::progress
 
 static frictionless::Transcriptome load(const std::string filename, const size_t max_errors)
 {
@@ -75,6 +75,12 @@ static frictionless::Transcriptome load(const std::string filename, const size_t
             CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << tr.format_ranks(true) );
         }
     );
+
+    return tr;
+}
+
+static void check(const frictionless::Transcriptome& tr)
+{
     CLUTCHCODE(debug,
         CLUTCHLOG(debug, "Samples:");
         for(const auto& i : tr.samples()) {
@@ -93,9 +99,7 @@ static frictionless::Transcriptome load(const std::string filename, const size_t
     }
     CLUTCHLOG(note, "OK -- checks passed.");
 
-    return tr;
 }
-
 
 int main(int argc, char* argv[])
 {
@@ -157,6 +161,7 @@ int main(int argc, char* argv[])
               clutchlog::fmt::fg::black,
               clutchlog::fmt::bg::red,
               clutchlog::fmt::typo::bold);
+    log.hfill_style(clutchlog::fmt::fg::black);
 
     std::string filename;
     bool have_exprs;
@@ -173,43 +178,12 @@ int main(int argc, char* argv[])
     }
 
     frictionless::Transcriptome tr = load(filename, max_errors);
+    check(tr);
 
     if(have_exprs) {
         // Convert the expressions to ranks.
 
-        CLUTCHLOG(progress, "Compute ranks...");
-        frictionless::Transcriptome ranked = tr;
-        double progress = 0;
-        for(size_t j : ranked.genes()) {
-            CLUTCHLOG(xdebug, "Gene "  << j);
-            for(size_t i : ranked.samples()) {
-                #ifndef NDEBUG
-                    std::clog << "\r" << static_cast<size_t>(progress / (ranked.genes_nb() * ranked.samples_nb()) * 100) << "%     ";
-                    std::clog.flush();
-                #endif
-                const std::vector<size_t>& cells = ranked.cells(i);
-                std::vector<double> exprs;
-                exprs.reserve( cells.size() );
-                for(size_t c : cells) {
-                    exprs.push_back( tr.rank(c,j) );
-                }
-                ASSERT(exprs.size() == cells.size());
-                std::vector<double> cell_ranks = frictionless::ranks_of(exprs);
-                ASSERT(cell_ranks.size() == exprs.size());
-                for(size_t c=0; c < cells.size(); ++c) {
-                    #ifndef NDEBUG
-                        ranked.rank(cells.at(c),j) = cell_ranks.at(c);
-                    #else
-                        ranked.rank(cells[c],j) = cell_ranks[c];
-                    #endif
-                }
-                progress++;
-            } // for i in samples
-        } // for j in genes
-        #ifndef NDEBUG
-            std::clog << std::endl;
-        #endif
-        CLUTCHLOG(note, "OK");
+        frictionless::Transcriptome ranked = frictionless::rank(tr, /* print_progress */true);
 
         CLUTCHLOG(progress, "Check ranks consistency...");
         try {

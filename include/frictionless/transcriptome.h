@@ -111,10 +111,12 @@ class Transcriptome {
         std::string format_ranks(const bool values = true) const;
 
         size_t _errors_max_print;
-        void check_tables();
-        void check_genes();
-        void check_ranks(const double epsilon = 1e-6);
+        void check_tables() const;
+        void check_genes() const;
+        void check_ranks(const double epsilon = 1e-6) const;
 
 }; // Transcriptome
+
+Transcriptome rank(const Transcriptome& tr, const bool print_progress);
 
 } // frictionless

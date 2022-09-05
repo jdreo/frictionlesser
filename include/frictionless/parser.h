@@ -59,7 +59,7 @@ class TranscriptomeParser
         size_t load_header(const std::string& line);
 
         /** Parse a row. Avoid comments and empty lines. */
-        long load_row(const std::string& line, size_t& igene);
+        size_t load_row(const std::string& line, size_t& igene);
 
         /** Parse a gene. Extract the gene name and values. */
         size_t load_gene(std::istringstream& ss, size_t& igene);

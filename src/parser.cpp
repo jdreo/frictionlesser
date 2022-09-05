@@ -37,12 +37,7 @@ Transcriptome TranscriptomeParser::operator()( std::istream& input )
             break;
         } else {
             getline(input, line);
-            #ifndef NDEBUG
-                size_t ncolumn =
-            #else
-                    load_row(line, igene);
-            #endif
-            ASSERT(ncolumn > 0);
+            load_row(line, igene);
         }
     }
 
@@ -93,14 +88,13 @@ size_t TranscriptomeParser::load_header(const std::string& line)
     return loaded.size();
 }
 
-long TranscriptomeParser::load_row(const std::string& line, size_t& igene)
+size_t TranscriptomeParser::load_row(const std::string& line, size_t& igene)
 {
-    long ncolumn = 0;
     std::istringstream ss(line);
 
     if(line[0] == '#' or line.empty()) {
         // Catch empty lines or commented lines.
-        return ncolumn;
+        return 0;
 
     } else if(not isdigit(line[0])) {
         return load_gene(ss, igene);

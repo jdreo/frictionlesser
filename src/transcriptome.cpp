@@ -113,7 +113,7 @@ size_t Transcriptome::samples_nb() const
 }
 
 
-void Transcriptome::check_tables()
+void Transcriptome::check_tables() const
 {
     CLUTCHLOG(progress, "Check ranks table consistency...");
     CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
@@ -142,7 +142,7 @@ void Transcriptome::check_tables()
     }
 }
 
-void Transcriptome::check_genes()
+void Transcriptome::check_genes() const
 {
     CLUTCHLOG(progress, "Check all genes consistency...");
     std::vector<std::string> msg_genes;
@@ -170,7 +170,7 @@ void Transcriptome::check_genes()
     }
 }
 
-void Transcriptome::check_ranks(const double epsilon)
+void Transcriptome::check_ranks(const double epsilon) const
 {
     CLUTCHLOG(debug, "Check sum of ranks across cells...");
     std::vector<std::string> msg_rank_sum;
@@ -303,6 +303,45 @@ std::string Transcriptome::format_ranks(bool values) const
     } // i
 
     return out.str();
+}
+
+
+Transcriptome rank(const Transcriptome& tr, const bool print_progress)
+{
+    CLUTCHLOG(progress, "Compute ranks...");
+    frictionless::Transcriptome ranked = tr;
+    double progress = 0;
+    for(size_t j : ranked.genes()) {
+        CLUTCHLOG(xdebug, "Gene "  << j);
+        for(size_t i : ranked.samples()) {
+            if(print_progress) {
+                std::clog << "\r" << static_cast<size_t>(progress / (ranked.genes_nb() * ranked.samples_nb()) * 100) << "%     ";
+                std::clog.flush();
+            }
+            const std::vector<size_t>& cells = ranked.cells(i);
+            std::vector<double> exprs;
+            exprs.reserve( cells.size() );
+            for(size_t c : cells) {
+                exprs.push_back( tr.rank(c,j) );
+            }
+            ASSERT(exprs.size() == cells.size());
+            std::vector<double> cell_ranks = frictionless::ranks_of(exprs);
+            ASSERT(cell_ranks.size() == exprs.size());
+            for(size_t c=0; c < cells.size(); ++c) {
+                #ifndef NDEBUG
+                    ranked.rank(cells.at(c),j) = cell_ranks.at(c);
+                #else
+                    ranked.rank(cells[c],j) = cell_ranks[c];
+                #endif
+            }
+            progress++;
+        } // for i in samples
+    } // for j in genes
+    if(print_progress) {
+        std::clog << std::endl;
+    }
+    CLUTCHLOG(note, "OK");
+    return ranked;
 }
 
 } // frictionless
