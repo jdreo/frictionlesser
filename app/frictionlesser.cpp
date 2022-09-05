@@ -29,7 +29,6 @@ enum class Error : unsigned char {
 #ifdef WITH_CLUTCHLOG
     #define EXIT_ON_ERROR(err_code, msg) { \
         if(static_cast<unsigned char>(Error::err_code) > 0) { \
-            auto& log = clutchlog::logger(); \
             CLUTCHLOG(critical, "CRITICAL ERROR"); \
             CLUTCHCODE(critical, \
                 std::cerr << msg << std::endl; \
@@ -46,9 +45,9 @@ enum class Error : unsigned char {
     }
 #endif
 
-#define EXIT(err_code) exit(static_cast<unsigned char>(Error::err_code))
+#define CLUTCHLOG_DEFAULT_DEPTH_BUILT_NODEBUG clutchlog::level::progress
 
-frictionless::Transcriptome load(const std::string filename, const size_t max_errors)
+static frictionless::Transcriptome load(const std::string filename, const size_t max_errors)
 {
 
     if(not std::filesystem::exists(filename)) {
@@ -100,6 +99,7 @@ frictionless::Transcriptome load(const std::string filename, const size_t max_er
 
 int main(int argc, char* argv[])
 {
+    // /*
     eoParser argparser(argc, argv);
     // eoState state;
 
@@ -112,20 +112,20 @@ int main(int argc, char* argv[])
     const std::string signatures = argparser.createParam<std::string>("", "signatures",
         "Name of a file containing candidate/starting signatures", 'i', "Data").value();
 
-    const bool permute = argparser.createParam<bool>(false, "permute",
-        "Randomly permute the data to get rid of the signal", 'R', "Data").value();
+    // const bool permute = argparser.createParam<bool>(false, "permute",
+    //     "Randomly permute the data to get rid of the signal", 'R', "Data").value();
 
-    const size_t genes = argparser.createParam<size_t>(50, "genes",
-        "Number of genes in the signatures", 'g', "Parameters").value();
+    // const size_t genes = argparser.createParam<size_t>(50, "genes",
+    //     "Number of genes in the signatures", 'g', "Parameters").value();
 
-    const double alpha = argparser.createParam<double>(1, "alpha",
-        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
+    // const double alpha = argparser.createParam<double>(1, "alpha",
+    //     "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
 
-    const double beta = argparser.createParam<double>(2, "beta",
-        "Exponent on the log of p-values", 'b', "Parameters").value();
+    // const double beta = argparser.createParam<double>(2, "beta",
+    //     "Exponent on the log of p-values", 'b', "Parameters").value();
 
-    const bool optimum = argparser.createParam<bool>(true, "optimum",
-        "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
+    // const bool optimum = argparser.createParam<bool>(true, "optimum",
+    //     "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
 
     const long seed = argparser.createParam<long>(0, "seed",
         "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
@@ -138,6 +138,15 @@ int main(int argc, char* argv[])
 
     make_verbose(argparser);
     make_help(argparser);
+// */
+    /*
+    std::string exprsfile="../tests/neftel_small_OK.csv";
+    std::string ranksfile="";
+    std::string signatures="";
+    // size_t seed=0;
+    std::string log_level="Debug";
+    size_t max_errors=30;
+    */
 
     auto& log = clutchlog::logger();
     ASSERT(log.levels().contains(log_level));
@@ -168,17 +177,49 @@ int main(int argc, char* argv[])
     if(have_exprs) {
         // Convert the expressions to ranks.
 
-        for(size_t i : tr.samples()) {
-            for(size_t j : tr.genes()) {
-                std::vector<size_t> cells = tr.cells(i);
+        CLUTCHLOG(progress, "Compute ranks...");
+        frictionless::Transcriptome ranked = tr;
+        double progress = 0;
+        for(size_t j : ranked.genes()) {
+            CLUTCHLOG(xdebug, "Gene "  << j);
+            for(size_t i : ranked.samples()) {
+                #ifndef NDEBUG
+                    std::clog << "\r" << static_cast<size_t>(progress / (ranked.genes_nb() * ranked.samples_nb()) * 100) << "%     ";
+                    std::clog.flush();
+                #endif
+                const std::vector<size_t>& cells = ranked.cells(i);
                 std::vector<double> exprs;
+                exprs.reserve( cells.size() );
                 for(size_t c : cells) {
                     exprs.push_back( tr.rank(c,j) );
                 }
-                std::vector<double> r = frictionless::ranks_of(exprs);
-            } // for j in genes
-        } // for i in samples
+                ASSERT(exprs.size() == cells.size());
+                std::vector<double> cell_ranks = frictionless::ranks_of(exprs);
+                ASSERT(cell_ranks.size() == exprs.size());
+                for(size_t c=0; c < cells.size(); ++c) {
+                    #ifndef NDEBUG
+                        ranked.rank(cells.at(c),j) = cell_ranks.at(c);
+                    #else
+                        ranked.rank(cells[c],j) = cell_ranks[c];
+                    #endif
+                }
+                progress++;
+            } // for i in samples
+        } // for j in genes
+        #ifndef NDEBUG
+            std::clog << std::endl;
+        #endif
+        CLUTCHLOG(note, "OK");
 
+        CLUTCHLOG(progress, "Check ranks consistency...");
+        try {
+            ranked.check_ranks();
+        } catch(const frictionless::DataSumRanks& e) {
+            EXIT_ON_ERROR(DataSumRanks, e.what());
+        }
+        CLUTCHLOG(note, "OK -- checks passed.");
+
+        std::clog << "OK" << std::endl;
 
     } else {
         CLUTCHLOG(progress, "Check ranks consistency...");
@@ -189,6 +230,7 @@ int main(int argc, char* argv[])
         }
         CLUTCHLOG(note, "OK -- checks passed.");
 
+        // /*
         CLUTCHLOG(debug, "Test signatures data structures...");
         frictionless::Signature null(tr.genes().size(), 0);
 
@@ -209,7 +251,7 @@ int main(int argc, char* argv[])
         }
         std::clog << std::endl;
         CLUTCHLOG(debug, "OK");
-
+        // */
         CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
         // try {
             frictionless::FriedmanScore fs(tr,2);
@@ -217,5 +259,7 @@ int main(int argc, char* argv[])
             // EXIT_ON_ERROR(DataInconsistent, e.what());
         // }
         CLUTCHLOG(note, "OK");
+
+        std::cout << "no output defined yet" << std::endl;
     }
 }

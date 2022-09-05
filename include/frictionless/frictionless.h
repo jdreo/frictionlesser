@@ -22,7 +22,7 @@ EXCEPTION(Exception, DataError);
 double sum( const std::vector<double>& t);
 double sum( const std::vector<size_t>& t);
 
-std::vector<double> ranks_of( const std::vector<double>& exprs );
+std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon=1e-6 );
 
 
 /** The score used to define the quality of a signature is a floating point number.

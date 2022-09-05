@@ -23,14 +23,15 @@ const std::vector<std::vector<double>>& Transcriptome::ranks() const
 
 const std::vector<double>& Transcriptome::ranks(const size_t j) const
 {
-#ifndef NDEBUG
     return _ranks.at(j);
-#else
-    return _ranks[j];
-#endif
 }
 
 const double& Transcriptome::rank(const size_t c, const size_t j) const
+{
+    return _ranks.at(j).at(c);
+}
+
+double& Transcriptome::rank(const size_t c, const size_t j)
 {
 // NOTE the inversion of i and j,
 //      to follow the technical report convention.
@@ -39,7 +40,6 @@ const double& Transcriptome::rank(const size_t c, const size_t j) const
 #else
     return _ranks[j][c];
 #endif
-
 }
 
 const std::vector<std::string>& Transcriptome::gene_names() const
@@ -74,29 +74,17 @@ const std::vector<size_t>& Transcriptome::affiliations() const
 
 const size_t& Transcriptome::affiliation(const size_t c) const
 {
-#ifndef NDEBUG
     return _affiliations.at(c);
-#else
-    return _affiliations[c];
-#endif
 }
 
 const std::vector<size_t>& Transcriptome::cells(const size_t i) const
 {
-#ifndef NDEBUG
     return _cells_in.at(i);
-#else
-    return _cells_in[i];
-#endif
 }
 
 size_t Transcriptome::cells_nb(const size_t i) const
 {
-#ifndef NDEBUG
     return _cells_in.at(i).size();
-#else
-    return _cells_in[i].size();
-#endif
 }
 
 size_t Transcriptome::cells_nb() const
@@ -111,11 +99,7 @@ const std::vector<std::string>& Transcriptome::sample_names() const
 
 const std::string& Transcriptome::sample_name(const size_t i) const
 {
-#ifndef NDEBUG
     return _sample_names.at(i);
-#else
-    return _sample_names[i];
-#endif
 }
 
 const std::vector<size_t>& Transcriptome::samples() const
@@ -178,14 +162,15 @@ void Transcriptome::check_genes()
     if(msg_genes.size() > 0) {
         std::ostringstream msg;
         const size_t max_size = std::min(msg_genes.size(), _errors_max_print);
-        std::copy(std::begin(msg_genes), std::begin(msg_genes)+max_size, std::ostream_iterator<std::string>(msg, "\n"));
+        std::copy(std::begin(msg_genes), std::begin(msg_genes)+max_size,
+                  std::ostream_iterator<std::string>(msg, "\n"));
         if(max_size == _errors_max_print) {
             msg << "[ " << msg_genes.size()-_errors_max_print << " more errors removed ]";}
         RAISE(DataInconsistent, "\n"+msg.str());
     }
 }
 
-void Transcriptome::check_ranks()
+void Transcriptome::check_ranks(const double epsilon)
 {
     CLUTCHLOG(debug, "Check sum of ranks across cells...");
     std::vector<std::string> msg_rank_sum;
@@ -196,11 +181,11 @@ void Transcriptome::check_ranks()
                 sum_ranks += this->rank(c,j);
             }
             const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)-1) / 2;
-            if(sum_ranks != true_sum_ranks) {
+            if( std::abs(sum_ranks - true_sum_ranks) > epsilon) {
                 std::ostringstream msg;
-                msg << "\t - Gene " << j << " `" << this->gene_name(j)
-                    << "`\thas ranks sum of " << sum_ranks
-                    << "\tfor sample " << i
+                msg << "\t - Gene " << j << " `" << this->gene_name(j) << "`"
+                    << "\tin sample " << i
+                    << "\thas ranks sum of " << sum_ranks
                     << "\tbut it should be " << true_sum_ranks;
                msg_rank_sum.push_back(msg.str());
             }
@@ -221,9 +206,12 @@ void Transcriptome::check_ranks()
             std::ostream_iterator<std::string>(msg, "\n"));
         // Indicate how many were left out.
         if(max_size == _errors_max_print) {
-            msg << "\t[ " << msg_rank_sum.size()-_errors_max_print << " more errors not reported ]";}
+            msg << "\t[ " << msg_rank_sum.size()-_errors_max_print << " more errors not reported ]";
+            RAISE(DataSumRanks, "Sample of " << _errors_max_print << " errors:\n"+msg.str());
+        } else {
+            RAISE(DataSumRanks, msg_rank_sum.size() << " errors:\n"+msg.str());
+        }
 
-        RAISE(DataSumRanks, "Sample of " << _errors_max_print << " errors:\n"+msg.str());
     }
 }
 

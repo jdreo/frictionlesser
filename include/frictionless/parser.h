@@ -39,6 +39,8 @@ class TranscriptomeParser
             const size_t errors_max_print = 20
         );
 
+        virtual ~TranscriptomeParser() {}
+
     protected:
         /** Whether or not to ignore the first element of the header. */
         const bool _ignore_header_first;
@@ -83,6 +85,7 @@ class NeftelParser : public TranscriptomeParser
 {
     public:
         NeftelParser(const size_t errors_max_print = 20);
+        virtual ~NeftelParser(){}
 };
 
 
@@ -104,6 +107,7 @@ class ZakievParser : public TranscriptomeParser
 {
     public:
         ZakievParser(const size_t errors_max_print = 20);
+        virtual ~ZakievParser(){}
 };
 
 } // frictionless

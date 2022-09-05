@@ -10,11 +10,12 @@ namespace frictionless {
  */
 class Transcriptome {
     public:
+        using Type = std::vector<std::vector<double>>;
         /** Table of ranks, covering each gene/cell pair.
          *
          * Ranks may be half-ranks, so we use floating-point numbers.
          */
-        std::vector<std::vector<double>> _ranks;
+        Type _ranks;
 
         /** Gene names. */
         std::vector<std::string> _gene_names;
@@ -44,13 +45,14 @@ class Transcriptome {
          * @{ */
 
         /** Returns the current rank table. */
-        const std::vector<std::vector<double>>& ranks() const;
+        const Type& ranks() const;
 
         /** Returns the ranks row (containing all cells) for the j-th gene. */
         const std::vector<double>& ranks(const size_t j) const;
 
         /** Returns the rank for the c-th cell and the j-th gene. */
         const double& rank(const size_t c, const size_t j) const;
+        double& rank(const size_t c, const size_t j);
 
         /** @} */
         /** @name Accessors on genes
@@ -111,7 +113,7 @@ class Transcriptome {
         size_t _errors_max_print;
         void check_tables();
         void check_genes();
-        void check_ranks();
+        void check_ranks(const double epsilon = 1e-6);
 
 }; // Transcriptome
 

@@ -25,6 +25,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Compilation options
 option(BUILD_DOCS   "Enable building of documentation"   ON)
 
+# Common
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Weverything -Wno-c++98-compat")
+# Clang
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-old-style-cast -Wno-padded -Wno-extra-semi-stmt -Wno-weak-vtables")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_CLUTCHLOG")
 
 ######################################################################################
 # Dependencies

@@ -16,8 +16,14 @@ double sum( const std::vector<size_t>& t)
 }
 
 
-std::vector<double> ranks_of( const std::vector<double>& exprs )
+std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon )
 {
+    // CLUTCHCODE(xdebug,
+    //     auto& log = clutchlog::logger();
+    //     auto& out = log.out();
+    //     out << "Ranking: ";
+    //     for(auto e : exprs){ out << e << ", ";}
+    // );
     // Find the permutation of exprs for being sorted.
     std::vector<size_t> at( exprs.size() );
     std::iota( std::begin(at), std::end(at), 0 );
@@ -27,15 +33,16 @@ std::vector<double> ranks_of( const std::vector<double>& exprs )
 
     std::vector<double> ranks(exprs.size());
     size_t i = 0;
-    while(i < exprs.size()) {
+    while( i < at.size() ) {
 
         size_t j = i+1;
         std::vector<size_t> streak;
         streak.reserve(exprs.size());
         streak.push_back(i);
-        for(; j < at.size(); ++j) {
-            if( exprs[at[j]] == exprs[at[i]] ) {
+        while( j < at.size() ) {
+            if( std::abs(exprs[at[i]] - exprs[at[j]]) <= epsilon ) {
                 streak.push_back(j);
+                j++;
             } else {
                 break;
             }
@@ -45,12 +52,19 @@ std::vector<double> ranks_of( const std::vector<double>& exprs )
             ranks[at[i+k]] = mean;
         } // k
 
-        if(j >= exprs.size()) {
+        if( j >= exprs.size() ) {
             break;
         } else {
             i = j;
         }
     } // i
+    // CLUTCHCODE(xdebug,
+    //     auto& log = clutchlog::logger();
+    //     auto& out = log.out();
+    //     out << " = ";
+    //     for(auto e : ranks){ out << e << ", ";}
+    //     out << std::endl;
+    // );
     return ranks;
 }
 

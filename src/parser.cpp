@@ -16,7 +16,9 @@ TranscriptomeParser::TranscriptomeParser(
     const std::string cell_to_sample,
     const size_t errors_max_print
 ) :
-    _ignore_header_first(ignore_header_first)
+    _ignore_header_first(ignore_header_first),
+    _cell_to_sample(cell_to_sample),
+    _rt(errors_max_print)
 {}
 
 
@@ -25,19 +27,22 @@ Transcriptome TranscriptomeParser::operator()( std::istream& input )
     std::string line;
     std::getline(input, line);
 
-    size_t nsample = load_header(line);
+    /*size_t nsample =*/ load_header(line);
 
-    CLUTCHLOG(progress, "Parse ranks table data...");
+    CLUTCHLOG(progress, "Parse table data...");
     // Rows: Gene, then ranked expressions….
     size_t igene = 0;
-    long ncolumn = 0;
     while(true) {
         if(not input) { // Mainly catch EOF.
             break;
         } else {
-            std::string line;
             getline(input, line);
-            ncolumn = load_row(line, igene);
+            #ifndef NDEBUG
+                size_t ncolumn =
+            #else
+                    load_row(line, igene);
+            #endif
+            ASSERT(ncolumn > 0);
         }
     }
 
@@ -46,7 +51,8 @@ Transcriptome TranscriptomeParser::operator()( std::istream& input )
 
 size_t TranscriptomeParser::load_header(const std::string& line)
 {
-    size_t i = -1;
+    CLUTCHLOG(debug, "Parse header...");
+    size_t i = 0;
     // Cell affiliations header.
     std::istringstream iss(line);
     std::string name;
@@ -66,11 +72,12 @@ size_t TranscriptomeParser::load_header(const std::string& line)
         if(_cell_to_sample.size() > 0) {
             std::regex cell_id(_cell_to_sample);
             sample_name = std::regex_replace(name, cell_id, "");
+            CLUTCHLOG(xdebug, "Cell `" << name << "` -> sample `" << sample_name << "`");
         } else {
             sample_name = name;
         }
         if(not loaded.contains(sample_name)) {
-            current = ++i;
+            current = i++;
             loaded[sample_name] = current;
             _rt._samples.push_back(current);
             _rt._sample_names.push_back(sample_name);
@@ -81,8 +88,8 @@ size_t TranscriptomeParser::load_header(const std::string& line)
         _rt._cells_in[current].push_back(_rt._cells_nb);
         _rt._cells_nb++;
     }
-    ASSERT(loaded.size() == i+1);
-    ASSERT(_rt._samples.size() == i+1);
+    ASSERT(loaded.size() == i);
+    ASSERT(_rt._samples.size() == i);
     return loaded.size();
 }
 
@@ -127,7 +134,7 @@ size_t TranscriptomeParser::load_gene(std::istringstream& ss, size_t& igene)
 }
 
 NeftelParser::NeftelParser(const size_t errors_max_print)
-    : TranscriptomeParser(true, "\\w*(-[A-Z][0-9]{2})$", errors_max_print)
+    : TranscriptomeParser(true, "-[A-Z][0-9]{2}$", errors_max_print)
 {}
 
 ZakievParser::ZakievParser(const size_t errors_max_print)

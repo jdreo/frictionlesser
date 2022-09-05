@@ -124,6 +124,51 @@ SCENARIO( "Ranking a vector" ) {
     }
 }
 
+SCENARIO( "Header cell-to-sample regex replacement" ) {
+    GIVEN( "a realistic header" ) {
+        std::vector<std::string> header = {
+            "BT1160-P1-A01",
+            "BT749-P10-B02",
+            "MGH100-P5-C03",
+            "MGH104negP2-D04",
+            "MGH105A-E05",
+            "MGH105A-P1-F06",
+            "MGH106CD3posP1-G07",
+            "MGH110-CD45-P1-H08",
+            "MGH122-CD45pos-P1-I09",
+            "MGH124-CD45negP1-J10",
+            "MGH128CD45neg-P3-K11",
+            "MGH66-P03-M99"
+        };
+        WHEN( "substituting cells for samples" ) {
+
+            std::regex c2s("-[A-Z][0-9]{2}$");
+
+            std::vector<std::string> expected = {
+                "BT1160-P1",
+                "BT749-P10",
+                "MGH100-P5",
+                "MGH104negP2",
+                "MGH105A",
+                "MGH105A-P1",
+                "MGH106CD3posP1",
+                "MGH110-CD45-P1",
+                "MGH122-CD45pos-P1",
+                "MGH124-CD45negP1",
+                "MGH128CD45neg-P3",
+                "MGH66-P03"
+            };
+            std::vector<std::string> results;
+            for(std::string name : header) {
+                results.push_back( std::regex_replace(name, c2s, "") );
+            }
+            THEN( "sample names are correct" ) {
+                REQUIRE( results == expected );
+            }
+        }
+    }
+}
+
 // SCENARIO( "Ranking an expressions table" ) {
 //     GIVEN( "A simple expression table" ) {
 //         const std::vector<std::vector<double>> fake =
