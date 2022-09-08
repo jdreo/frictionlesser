@@ -10,7 +10,7 @@
 SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
     GIVEN( "The Zakiev transcriptome parser" ) {
         frictionless::Transcriptome rt(5);
-        frictionless::ZakievParser parser(5);
+        frictionless::ZakievRankParser parser(5);
 
         WHEN( "loading consistent data") {
             const std::string fake =
@@ -169,22 +169,24 @@ SCENARIO( "Header cell-to-sample regex replacement" ) {
     }
 }
 
-// SCENARIO( "Ranking an expressions table" ) {
-//     GIVEN( "A simple expression table" ) {
-//         const std::vector<std::vector<double>> fake =
-//             "GENE S01-A01 S01-B02 S03-A01 S01-B03 S02-A01 S02-A02\n"
-//             "A    0       0       0       0       0       0\n"
-//             "B    0.1     0.2     0       0.3     0.1     0.2\n"
-//             "C    1.1     1.2     0       1.3     1.1     1.2\n"
-//             "D    0.3     0.2     1       0.1     0       0\n";
-//         std::istringstream iss(fake);
+SCENARIO( "Ranking an expressions table" ) {
+    GIVEN( "A simple expression table" ) {
+        const std::string ssv =
+            "GENE S01-A01 S01-B02 S03-A01 S01-B03 S02-A01 S02-A02\n"
+            "A    0       0       0       0       0       0\n"
+            "B    0.1     0.2     0       0.3     0.1     0.2\n"
+            "C    1.1     1.2     0       1.3     1.1     1.2\n"
+            "D    0.3     0.2     1       0.1     0       0\n";
+        std::istringstream iss(ssv);
+        frictionless::NeftelExprParser parser(0);
+        frictionless::Transcriptome exprs = parser(iss);
 
-//         WHEN( "Ranking the table" ) {
-//             std::
-            
-//             THEN( "Ranks are consistents" ) {
-                
-//             }
-//         }
-//     }
-// }
+        WHEN( "Ranking the table" ) {
+            frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+
+            THEN( "Ranks are consistents" ) {
+                REQUIRE(rk.check_ranks());
+            }
+        }
+    }
+}
