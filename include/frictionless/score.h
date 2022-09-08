@@ -11,7 +11,11 @@ class FriedmanScore {
     public:
         FriedmanScore( const Transcriptome& rt, const double alpha=2);
 
-    protected:
+    #ifndef NDEBUG
+        public: // Needs to be public for testing.
+    #else
+        protected:
+    #endif
         /** @name Parameters:
          * Chosen at instantiation by the user.
          * @{ */
@@ -120,18 +124,25 @@ class FriedmanScore {
         // std::vector<double> logpvals;
         // std::vector<double> S_hats;
 
-    protected:
+    #ifndef NDEBUG
+        public:
+     #else
+        protected:
+     #endif
+
+        void clear_cache();
+
         /** Pre-compute constants for a given transcriptome: E, F, GG, T_ij, SSR_ij.
          *
          * To be called again if the transcriptome has been updated.
          */
-        void cache_transcriptome();
+        void new_transcriptome();
 
         /** Pre-compute constants for a given signature size: B, C.
          *
          * To be called again if the signature size changed.
          */
-        void cache_signature_size(const size_t signature_size);
+        void new_signature_size(const size_t signature_size);
 
         /** Compute constants from scratch. */
         void init_signature(Signature genes);
@@ -140,12 +151,14 @@ class FriedmanScore {
          *
          * To be called again if two genes have been swapped.
          */
-        void cache_swap(const size_t gene_in, const size_t gene_out);
+        void new_swap(const size_t gene_in, const size_t gene_out);
+
+        double sqrt_logchisq(const double s, const double m) const;
+
+     public:
 
         /** Global score. */
         double score(Signature genes);
-
-        double sqrt_logchisq(const double s, const double m) const;
 
 };
 

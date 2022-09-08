@@ -4,6 +4,7 @@
 #include "frictionless/frictionless.h"
 #include "frictionless/transcriptome.h"
 #include "frictionless/parser.h"
+#include "frictionless/score.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -186,6 +187,156 @@ SCENARIO( "Ranking an expressions table" ) {
 
             THEN( "Ranks are consistents" ) {
                 REQUIRE(rk.check_ranks());
+            }
+        }
+    }
+    GIVEN( "Another simple expression table" ) {
+        const std::string ssv =
+            "GENE    S0  S0  S0  S1  S1  S1\n"
+            "G0      1   1   1   1   1   1\n"
+            "G1      0   1   2   1   1   1\n"
+            "G2      1   1   1   0   1   2\n"
+            "G3      0   1   2   0   1   2\n";
+        std::istringstream iss(ssv);
+        frictionless::NeftelExprParser parser(0);
+        frictionless::Transcriptome exprs = parser(iss);
+
+        WHEN( "Ranking the table" ) {
+            frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+
+            THEN( "Ranks are consistents" ) {
+                REQUIRE(rk.check_ranks());
+            }
+        }
+    }
+}
+
+SCENARIO( "Friedman cache" ) {
+    GIVEN( "A very simple ranked table" ) {
+        const std::string ssv =
+            "GENE    S0  S0  S0  S1  S1  S1\n"
+            "G0      1   1   1   1   1   1\n"
+            "G1      0   1   2   1   1   1\n"
+            "G2      1   1   1   0   1   2\n"
+            "G3      0   1   2   0   1   2\n";
+        std::istringstream iss(ssv);
+        frictionless::NeftelExprParser parser(0);
+        frictionless::Transcriptome exprs = parser(iss);
+        frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+
+        WHEN( "Computing transcriptome cache" ) {
+            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+
+            THEN( "Transcriptome cache for cells number is consistent" ) {
+                for(size_t i : {0,1}) { // 2 samples.
+                    REQUIRE(frs.E [i] == 144);
+                    REQUIRE(frs.F [i] == 12);
+                    REQUIRE(frs.GG[i] == 1.5);
+                }
+            }
+            THEN( "Transcriptome cache for squared ranks sums is consistent" ) {
+                //                 i  j     cells: 0    1    2
+                //                 v  v            v    v    v
+                REQUIRE(frs.SSR_ij[0][0] == 3); // 1² + 1² + 1²
+                REQUIRE(frs.SSR_ij[0][1] == 5); // 0² + 1² + 2²
+                REQUIRE(frs.SSR_ij[0][2] == 3);
+                REQUIRE(frs.SSR_ij[0][3] == 5);
+                REQUIRE(frs.SSR_ij[1][0] == 3);
+                REQUIRE(frs.SSR_ij[1][1] == 3);
+                REQUIRE(frs.SSR_ij[1][2] == 5);
+                REQUIRE(frs.SSR_ij[1][3] == 5);
+            }
+            THEN( "Transcriptome cache for tie-adjustment factors is consistent" ) {
+                //               i  j      ranks: 0    1    2
+                //               v  v             v    v    v
+                REQUIRE(frs.T_ij[0][0] == 27); // 0³ + 3³ + 0³
+                REQUIRE(frs.T_ij[0][1] ==  0); // 0³ + 0³ + 0³
+                REQUIRE(frs.T_ij[0][2] == 27);
+                REQUIRE(frs.T_ij[0][3] ==  0);
+                REQUIRE(frs.T_ij[1][0] == 27);
+                REQUIRE(frs.T_ij[1][1] == 27);
+                REQUIRE(frs.T_ij[1][2] ==  0);
+                REQUIRE(frs.T_ij[1][3] ==  0);
+            }
+        }
+        WHEN( "Computing a two-genes cache" ) {
+            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frs.new_signature_size(2);
+
+            THEN( "Signature size cache is consistent" ) {
+                REQUIRE(frs.B[0] == 576); // 3×2²×3(3+1)²
+                REQUIRE(frs.B[1] == 576);
+                REQUIRE(frs.C[0] ==  24); //   2×3(3+1)
+                REQUIRE(frs.C[1] ==  24);
+            }
+        }
+        WHEN( "Computing a three-genes cache" ) {
+            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frs.new_signature_size(3);
+
+            THEN( "Signature size cache is consistent" ) {
+                REQUIRE(frs.B[0] == 1296); // 3×3²×3(3+1)²
+                REQUIRE(frs.B[1] == 1296);
+                REQUIRE(frs.C[0] ==   36); //   3×3(3+1)
+                REQUIRE(frs.C[1] ==   36);
+            }
+        }
+        WHEN( "Computing two-genes signature cache from scratch") {
+            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frictionless::Signature genes(4,false); // 4 genes.
+            // Selects two genes.
+            genes[0] = true;
+            genes[1] = true;
+            frs.new_signature_size(2);
+            frs.init_signature(genes);
+
+            THEN( "Init cache for cellular rank sum is consistent" ) {
+                //       cell: c
+                //             v
+                REQUIRE(frs.Rc[0] == 1); // 1+0
+                REQUIRE(frs.Rc[1] == 2); // 1+1
+                REQUIRE(frs.Rc[2] == 3); // 1+2
+                REQUIRE(frs.Rc[3] == 2); // 1+1
+                REQUIRE(frs.Rc[4] == 2); // 1+1
+                REQUIRE(frs.Rc[5] == 2); // 1+1
+            }
+            THEN( "Init cache for sum of squared ranks is consistent" ) {
+                // 2 samples.
+                REQUIRE(frs.A[0] == 168); // 12(1²+2²+3²)
+                REQUIRE(frs.A[1] == 144); // 12(3*2²)
+            }
+            THEN( "Init cache for average sum of gap to average tied ranks number is consistent" ) {
+                // 2 samples.
+                REQUIRE(frs.D[0] == 10.5); // 1/(3-1)*((27-3)+(0-3))
+                REQUIRE(frs.D[1] == 24);   // 1/(3-1)*((27-3)+(27-3))
+            }
+        }
+    }
+}
+
+SCENARIO( "Friedman score" ) {
+    GIVEN( "A very simple ranked table" ) {
+        const std::string ssv =
+            "GENE    S0  S0  S0  S1  S1  S1\n"
+            "G0      1   1   1   1   1   1\n"
+            "G1      0   1   2   1   1   1\n"
+            "G2      1   1   1   0   1   2\n"
+            "G3      0   1   2   0   1   2\n";
+        std::istringstream iss(ssv);
+        frictionless::NeftelExprParser parser(0);
+        frictionless::Transcriptome exprs = parser(iss);
+        frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+
+        WHEN( "Considering a new signature" ) {
+            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frictionless::Signature genes(4,false); // 4 genes.
+            // Selects two genes.
+            genes[0] = true;
+            genes[1] = true;
+            double s;
+
+            THEN( "Scoring raises no error" ) {
+                CHECK_NOTHROW(s = frs.score(genes));
             }
         }
     }

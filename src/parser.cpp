@@ -81,6 +81,7 @@ size_t TranscriptomeParser::load_header(const std::string& line)
         }
         _rt._affiliations.push_back(current);
         _rt._cells_in[current].push_back(_rt._cells_nb);
+        _rt._cells_all.push_back(_rt._cells_nb);
         _rt._cells_nb++;
     }
     ASSERT(loaded.size() == i);

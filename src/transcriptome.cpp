@@ -94,9 +94,7 @@ size_t Transcriptome::cells_nb() const
 
 std::vector<size_t> Transcriptome::cells() const
 {
-    std::vector<size_t> ids(cells_nb());
-    std::iota(std::begin(ids), std::end(ids), 0);
-    return ids;
+    return _cells_all;
 }
 
 const std::vector<std::string>& Transcriptome::sample_names() const
@@ -120,7 +118,7 @@ size_t Transcriptome::samples_nb() const
 }
 
 
-void Transcriptome::check_tables() const
+bool Transcriptome::check_tables() const
 {
     CLUTCHLOG(progress, "Check ranks table consistency...");
     CLUTCHLOG(debug,"       _ranks #= " << _ranks.size());
@@ -147,9 +145,10 @@ void Transcriptome::check_tables() const
             << ")";
         RAISE(DataInconsistent, msg.str());
     }
+    return true;
 }
 
-void Transcriptome::check_genes() const
+bool Transcriptome::check_genes() const
 {
     CLUTCHLOG(progress, "Check all genes consistency...");
     std::vector<std::string> msg_genes;
@@ -175,9 +174,10 @@ void Transcriptome::check_genes() const
             msg << "[ " << msg_genes.size()-_errors_max_print << " more errors removed ]";}
         RAISE(DataInconsistent, "\n"+msg.str());
     }
+    return true;
 }
 
-void Transcriptome::check_ranks(const double epsilon) const
+bool Transcriptome::check_ranks(const double epsilon) const
 {
     CLUTCHLOG(debug, "Check sum of ranks across cells...");
     std::vector<std::string> msg_rank_sum;
@@ -218,8 +218,8 @@ void Transcriptome::check_ranks(const double epsilon) const
         } else {
             RAISE(DataSumRanks, msg_rank_sum.size() << " errors:\n"+msg.str());
         }
-
     }
+    return true;
 }
 
 /** Print a 2D colormap as a 256-color ASCII-art.

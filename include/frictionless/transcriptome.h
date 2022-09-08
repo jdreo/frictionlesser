@@ -32,6 +32,9 @@ class Transcriptome {
         /** total number of cells, across all samples. */
         size_t _cells_nb;
 
+        /** All cells indices at once. */
+        std::vector<size_t> _cells_all;
+
         /** The sample names. */
         std::vector<std::string> _sample_names;
 
@@ -117,9 +120,9 @@ class Transcriptome {
         std::ostream& as_csv(std::ostream& out = std::cout, const std::string sep="\t") const;
 
         size_t _errors_max_print;
-        void check_tables() const;
-        void check_genes() const;
-        void check_ranks(const double epsilon = 1e-6) const;
+        bool check_tables() const;
+        bool check_genes() const;
+        bool check_ranks(const double epsilon = 1e-6) const;
 
 }; // Transcriptome
 

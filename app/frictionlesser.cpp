@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
     ASSERT(log.levels().contains(log_level));
     log.threshold(log_level);
     log.out(std::cerr);
-    log.depth_mark(">");
+    log.depth_mark(" >");
     log.style(clutchlog::level::critical,
               clutchlog::fmt::fg::black,
               clutchlog::fmt::bg::red,
@@ -262,10 +262,9 @@ int main(int argc, char* argv[])
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
     // try {
         frictionless::FriedmanScore fs(tr,2);
+        std::cout << fs.score(alea) << std::endl;
     // } catch(...) {
         // EXIT_ON_ERROR(DataInconsistent, e.what());
     // }
     CLUTCHLOG(note, "OK");
-
-    std::cout << "no output defined yet" << std::endl;
 }
