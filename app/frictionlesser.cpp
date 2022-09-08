@@ -47,7 +47,10 @@ enum class Error : unsigned char {
 #endif
 
 
-static frictionless::Transcriptome load(const std::string filename, const size_t max_errors)
+static frictionless::Transcriptome load_file(
+    const std::string filename,
+    const size_t max_errors,
+    frictionless::TranscriptomeParser& tableparser)
 {
 
     if(not std::filesystem::exists(filename)) {
@@ -61,7 +64,7 @@ static frictionless::Transcriptome load(const std::string filename, const size_t
     ASSERT(ifs.is_open());
 
     frictionless::Transcriptome tr(max_errors);
-    frictionless::NeftelParser tableparser(max_errors);
+    // frictionless::NeftelExprParser tableparser(max_errors);
     tr = tableparser(ifs);
     ifs.close();
 
@@ -72,14 +75,14 @@ static frictionless::Transcriptome load(const std::string filename, const size_t
 
     CLUTCHCODE(xdebug,
         if( tr.ranks().size() < 90 and tr.genes_nb() < 125) {
-            CLUTCHLOG(xdebug, "Loaded ranks table:" << std::endl << tr.format_ranks(true) );
+            CLUTCHLOG(xdebug, "Loaded table:" << std::endl << tr.as_art(true) );
         }
     );
 
     return tr;
 }
 
-static void check(const frictionless::Transcriptome& tr)
+static void check_consistency(const frictionless::Transcriptome& tr)
 {
     CLUTCHCODE(debug,
         CLUTCHLOG(debug, "Samples:");
@@ -162,28 +165,54 @@ int main(int argc, char* argv[])
               clutchlog::fmt::bg::red,
               clutchlog::fmt::typo::bold);
     log.hfill_style(clutchlog::fmt::fg::black);
+    log.hfill_max(150);
+    #ifndef NDEBUG
+        log.format("{level_letter}:{depth_marks} {msg} {hfill} {func} @ {file}:{line}\n");
+    #else
+        log.format("{level_letter}:{depth_marks} {msg}\n");
+    #endif
+
+    frictionless::Transcriptome tr(max_errors);
 
     std::string filename;
     bool have_exprs;
     if(exprsfile != "" and ranksfile == "") {
         have_exprs = true;
         filename = exprsfile;
+        frictionless::NeftelExprParser tableparser(max_errors);
+        if(filename == "-") {
+            tr = tableparser(std::cin);
+        } else {
+            tr = load_file(filename, max_errors, tableparser);
+        }
 
     } else if(ranksfile != "" and exprsfile == "") {
         have_exprs = false;
         filename = ranksfile;
+        frictionless::CommonRankParser tableparser(max_errors);
+        if(filename == "-") {
+            tr = tableparser(std::cin);
+        } else {
+            tr = load_file(filename, max_errors, tableparser);
+        }
 
     } else {
         EXIT_ON_ERROR(Invalid_Argument, "You have to load either a rank file or an expression file.");
     }
 
-    frictionless::Transcriptome tr = load(filename, max_errors);
-    check(tr);
+    check_consistency(tr);
 
     if(have_exprs) {
         // Convert the expressions to ranks.
-
+        CLUTCHLOG(progress, "Compute ranks...");
         frictionless::Transcriptome ranked = frictionless::rank(tr, /* print_progress */true);
+        CLUTCHLOG(note, "OK");
+
+        CLUTCHCODE(xdebug,
+            if( ranked.ranks().size() < 90 and ranked.genes_nb() < 125) {
+                CLUTCHLOG(xdebug, "Ranked table:" << std::endl << ranked.as_art(true) );
+            }
+        );
 
         CLUTCHLOG(progress, "Check ranks consistency...");
         try {
@@ -193,47 +222,50 @@ int main(int argc, char* argv[])
         }
         CLUTCHLOG(note, "OK -- checks passed.");
 
-        std::clog << "OK" << std::endl;
+        CLUTCHLOG(progress, "Output...");
+        ranked.as_csv(std::cout, "\t");
 
-    } else {
-        CLUTCHLOG(progress, "Check ranks consistency...");
-        try {
-            tr.check_ranks();
-        } catch(const frictionless::DataSumRanks& e) {
-            EXIT_ON_ERROR(DataSumRanks, e.what());
-        }
-        CLUTCHLOG(note, "OK -- checks passed.");
-
-        // /*
-        CLUTCHLOG(debug, "Test signatures data structures...");
-        frictionless::Signature null(tr.genes().size(), 0);
-
-        rng.reseed(seed);
-        eoUniformGenerator<frictionless::Signature::AtomType> unigen;
-        eoInitFixedLength<frictionless::Signature> rinit(tr.genes().size(), unigen);
-
-        frictionless::Signature alea(tr.genes().size(),0);
-        rinit(alea);
-
-        alea.printOn(std::clog);
-        std::clog << std::endl;
-
-        for(size_t i=0; i < alea.size(); ++i) {
-            if(alea[i]) {
-                std::clog << tr.gene_name(i) << " ";
-            }
-        }
-        std::clog << std::endl;
-        CLUTCHLOG(debug, "OK");
-        // */
-        CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
-        // try {
-            frictionless::FriedmanScore fs(tr,2);
-        // } catch(...) {
-            // EXIT_ON_ERROR(DataInconsistent, e.what());
-        // }
-        CLUTCHLOG(note, "OK");
-
-        std::cout << "no output defined yet" << std::endl;
+        CLUTCHLOG(progress, "Done.");
+        exit(static_cast<unsigned char>(Error::No_Error));
     }
+
+    CLUTCHLOG(progress, "Check ranks consistency...");
+    try {
+        tr.check_ranks();
+    } catch(const frictionless::DataSumRanks& e) {
+        EXIT_ON_ERROR(DataSumRanks, e.what());
+    }
+    CLUTCHLOG(note, "OK -- checks passed.");
+
+    // /*
+    CLUTCHLOG(debug, "Test signatures data structures...");
+    frictionless::Signature null(tr.genes().size(), 0);
+
+    rng.reseed(seed);
+    eoUniformGenerator<frictionless::Signature::AtomType> unigen;
+    eoInitFixedLength<frictionless::Signature> rinit(tr.genes().size(), unigen);
+
+    frictionless::Signature alea(tr.genes().size(),0);
+    rinit(alea);
+
+    alea.printOn(std::clog);
+    std::clog << std::endl;
+
+    for(size_t i=0; i < alea.size(); ++i) {
+        if(alea[i]) {
+            std::clog << tr.gene_name(i) << " ";
+        }
+    }
+    std::clog << std::endl;
+    CLUTCHLOG(debug, "OK");
+    // */
+    CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
+    // try {
+        frictionless::FriedmanScore fs(tr,2);
+    // } catch(...) {
+        // EXIT_ON_ERROR(DataInconsistent, e.what());
+    // }
+    CLUTCHLOG(note, "OK");
+
+    std::cout << "no output defined yet" << std::endl;
 }

@@ -68,9 +68,14 @@ class TranscriptomeParser
 
 /** Load a transcriptome from the given input stream.
  *
+ * This converts Cell names to their corresponding sample
+ * by removing their suffix (e.g. "BT771-P8-A01" -> "BT771-P08").
+ *
+ * @note Suffix is detected with the following regex: "-[A-Z][0-9]{2}$".
+ *
  * Expects tabular, tabs-separated data of the shape:
  *
- * |  GENE   |  Aff_0  | … |  Aff_i | … |  Aff_m |
+ * |  GENE   |  Cell_0 | … | Cell_i | … | Cell_m |
  * |---------|---------|---|--------|---|--------|
  * | gene_0  |  r_00   | … |  r_i0  | … |  r_n0  |
  * |    …    |    …    | … |   …    | … |   …    |
@@ -81,15 +86,18 @@ class TranscriptomeParser
  * @note The first cell of the first row may be anything,
  *       but a warning will be printed if it is not "GENE".
  */
-class NeftelParser : public TranscriptomeParser
+class NeftelExprParser : public TranscriptomeParser
 {
     public:
-        NeftelParser(const size_t errors_max_print = 20);
-        virtual ~NeftelParser(){}
+        NeftelExprParser(const size_t errors_max_print = 20);
+        virtual ~NeftelExprParser(){}
 };
 
 
 /** Load a ranked transcriptome from the given input stream.
+ *
+ * @note This expects the header to display cells affiliations
+ *       (i.e. their sample), not cells IDs.
  *
  * Expects tabular, space-separated data of the shape:
  *
@@ -103,11 +111,37 @@ class NeftelParser : public TranscriptomeParser
  *
  * @warning The first cell of the first row should not exists.
  */
-class ZakievParser : public TranscriptomeParser
+class ZakievRankParser : public TranscriptomeParser
 {
     public:
-        ZakievParser(const size_t errors_max_print = 20);
-        virtual ~ZakievParser(){}
+        ZakievRankParser(const size_t errors_max_print = 20);
+        virtual ~ZakievRankParser(){}
+};
+
+
+/** Load a transcriptome from the given input stream.
+ *
+ * @note This expects the header to display cells affiliations
+ *       (i.e. their sample), not cells IDs.
+ *
+ * Expects tabular, tabs-separated data of the shape:
+ *
+ * |  GENE   |  Aff_0  | … |  Aff_i | … |  Aff_m |
+ * |---------|---------|---|--------|---|--------|
+ * | gene_0  |  r_00   | … |  r_i0  | … |  r_n0  |
+ * |    …    |    …    | … |   …    | … |   …    |
+ * | gene_j  |  r_0j   | … |  r_ij  | … |  r_mj  |
+ * |    …    |    …    | … |   …    | … |   …    |
+ * | gene_n  |  r_0n   | … |  r_in  | … |  r_mn  |
+ *
+ * @note The first cell of the first row may be anything,
+ *       but a warning will be printed if it is not "GENE".
+ */
+class CommonRankParser : public TranscriptomeParser
+{
+    public:
+        CommonRankParser(const size_t errors_max_print = 20);
+        virtual ~CommonRankParser(){}
 };
 
 } // frictionless

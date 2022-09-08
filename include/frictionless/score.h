@@ -23,10 +23,17 @@ class FriedmanScore {
         const double alpha;
         /** @} */
 
+        /** Guard flag. */
+        bool _has_init;
 
         /** @name Updated when one swap a gene:
          * Members part of the incremental evaluation.
          * @{ */
+
+        /** Cache guard. */
+        size_t _cached_gene_in;
+        /** Cache guard. */
+        size_t _cached_gene_out;
 
         /** Sum of squared ranks.
         * \f[
@@ -45,6 +52,9 @@ class FriedmanScore {
         /** @name Depending on signature size:
          * Remain constant if the number of genes does not change.
          * @{ */
+
+        /** Cache guard. */
+        size_t _cached_signature_size;
 
         /** Squared the number of genes times cubic number of cells.
          * \f[
@@ -76,7 +86,7 @@ class FriedmanScore {
          * \f] */
         std::vector<double> F;
 
-        /** Inverse number of cells (for each sample).
+        /** Inverse numb er of cells (for each sample).
          * \f[
          *    GG_i = \frac{m_i}{m_i-1}
          * \f] */
@@ -96,9 +106,47 @@ class FriedmanScore {
         /** @} */
 
 
+        /** @name Intialization:
+         * Values that are going to be updated at each gene swap, but need to be initialized first.
+         * @{ */
+
+        /** Sum of ranks across genes, for each cell.
+         * \f[
+         *      R_c(G) = \sum_{t\in G} r_{c_i,t}
+         * \f] */
         std::vector<double> Rc;
-        std::vector<double> logpvals;
-        std::vector<double> S_hats;
+
+        // TODO
+        // std::vector<double> logpvals;
+        // std::vector<double> S_hats;
+
+    protected:
+        /** Pre-compute constants for a given transcriptome: E, F, GG, T_ij, SSR_ij.
+         *
+         * To be called again if the transcriptome has been updated.
+         */
+        void cache_transcriptome();
+
+        /** Pre-compute constants for a given signature size: B, C.
+         *
+         * To be called again if the signature size changed.
+         */
+        void cache_signature_size(const size_t signature_size);
+
+        /** Compute constants from scratch. */
+        void init_signature(Signature genes);
+
+        /** Pre-compute constants for a single gene-swap: A, D.
+         *
+         * To be called again if two genes have been swapped.
+         */
+        void cache_swap(const size_t gene_in, const size_t gene_out);
+
+        /** Global score. */
+        double score(Signature genes);
+
+        double sqrt_logchisq(const double s, const double m) const;
+
 };
 
 } // frictionless

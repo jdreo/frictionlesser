@@ -92,6 +92,13 @@ size_t Transcriptome::cells_nb() const
     return _cells_nb;
 }
 
+std::vector<size_t> Transcriptome::cells() const
+{
+    std::vector<size_t> ids(cells_nb());
+    std::iota(std::begin(ids), std::end(ids), 0);
+    return ids;
+}
+
 const std::vector<std::string>& Transcriptome::sample_names() const
 {
     return _sample_names;
@@ -226,7 +233,7 @@ void Transcriptome::check_ranks(const double epsilon) const
  *
  * @param values If true, will display one 3-digits value within the colored pixels. Numbers with more than 3 digits are rendered as "+++".
   */
-std::string Transcriptome::format_ranks(bool values) const
+std::string Transcriptome::as_art(bool values) const
 {
     size_t fg_shift = 128;
 
@@ -305,14 +312,36 @@ std::string Transcriptome::format_ranks(bool values) const
     return out.str();
 }
 
+std::ostream& Transcriptome::as_csv(std::ostream& out, const std::string sep) const
+{
+    // HEADER
+    out << "GENE"; // Following Neftel’s format.
+    for(size_t i : samples()) {
+        for(size_t c : cells(i)) {
+            out << sep << sample_name(i);
+        }
+    }
+    out << "\n";
+
+    // TABLE
+    for(size_t j : genes()) {
+        out << gene_name(j);
+        for(size_t i : samples()) {
+            for(size_t c : cells(i)) {
+                out << sep << rank(c,j);
+            }
+        }
+        out << "\n";
+    }
+    return out;
+}
 
 Transcriptome rank(const Transcriptome& tr, const bool print_progress)
 {
-    CLUTCHLOG(progress, "Compute ranks...");
     frictionless::Transcriptome ranked = tr;
     double progress = 0;
     for(size_t j : ranked.genes()) {
-        CLUTCHLOG(xdebug, "Gene "  << j);
+        //CLUTCHLOG(xdebug, "Gene "  << j);
         for(size_t i : ranked.samples()) {
             if(print_progress) {
                 std::clog << "\r" << static_cast<size_t>(progress / (ranked.genes_nb() * ranked.samples_nb()) * 100) << "%     ";
@@ -340,7 +369,6 @@ Transcriptome rank(const Transcriptome& tr, const bool print_progress)
     if(print_progress) {
         std::clog << std::endl;
     }
-    CLUTCHLOG(note, "OK");
     return ranked;
 }
 

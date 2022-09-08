@@ -61,7 +61,7 @@ class Transcriptome {
         /** Returns the genes indices. */
         const std::vector<size_t>& genes() const;
 
-        /** Returns the number of genes. */
+        /** Returns the total number of genes. */
         size_t genes_nb() const;
 
         /** Returns the gene names list. */
@@ -102,13 +102,19 @@ class Transcriptome {
         /** Returns the number of cells in the i-th sample. */
         size_t cells_nb(const size_t i) const;
 
+        /** Returns the indices of all cells across any samples. */
+        std::vector<size_t> cells() const;
+
         /** returns the cells in the i-th sample. */
         const std::vector<size_t>& cells(const size_t i) const;
 
         /** @} */
 
         /** Returns an ASCII-art string representing the ranks table. */
-        std::string format_ranks(const bool values = true) const;
+        std::string as_art(const bool values = true) const;
+
+        /** Returns an *SV string of the ranks table. */
+        std::ostream& as_csv(std::ostream& out = std::cout, const std::string sep="\t") const;
 
         size_t _errors_max_print;
         void check_tables() const;

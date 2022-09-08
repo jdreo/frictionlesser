@@ -19,14 +19,6 @@ EXCEPTION(Exception, DataError);
     EXCEPTION(DataError, DataRowFormat);
     EXCEPTION(DataError, DataSumRanks);
 
-double sum( const std::vector<double>& t);
-double sum( const std::vector<size_t>& t);
-
-std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon=1e-6 );
-
-
-
-
 /** The score used to define the quality of a signature is a floating point number.
  *
  * @see Signature
@@ -41,5 +33,14 @@ using Score = double;
 using Signature = eoBit<Score,bool>;
  // We use Paradiseo/eo/eoBit with a Score as fitness,
  // and vector<bool> as data structure.
+
+double sum( const std::vector<double>& t);
+double sum( const std::vector<size_t>& t);
+size_t sum( const Signature& genes);
+
+std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon=1e-6 );
+
+
+
 
 } // frictionless

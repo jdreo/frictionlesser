@@ -15,6 +15,10 @@ double sum( const std::vector<size_t>& t)
     return std::accumulate(std::begin(t), std::end(t), 0.0);
 }
 
+size_t sum( const Signature& genes)
+{
+    return std::accumulate(std::begin(genes), std::end(genes), 0.0);
+}
 
 std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon )
 {

@@ -26,7 +26,7 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
             THEN( "the data loads correctly" ) {
                 CHECK_NOTHROW( rt = parser(iss) );
                 // Print the ranks table as a color map.
-                std::cout << rt.format_ranks(true) << std::endl;
+                std::cout << rt.as_art(true) << std::endl;
             }
         }
         WHEN( "loading data with inconsistent number of levels" ) {

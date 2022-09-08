@@ -127,12 +127,16 @@ size_t TranscriptomeParser::load_gene(std::istringstream& ss, size_t& igene)
     return ncolumn;
 }
 
-NeftelParser::NeftelParser(const size_t errors_max_print)
+NeftelExprParser::NeftelExprParser(const size_t errors_max_print)
     : TranscriptomeParser(true, "-[A-Z][0-9]{2}$", errors_max_print)
 {}
 
-ZakievParser::ZakievParser(const size_t errors_max_print)
+ZakievRankParser::ZakievRankParser(const size_t errors_max_print)
     : TranscriptomeParser(false, "", errors_max_print)
+{}
+
+CommonRankParser::CommonRankParser(const size_t errors_max_print)
+    : TranscriptomeParser(true, "", errors_max_print)
 {}
 
 } // frictionless
