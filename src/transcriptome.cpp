@@ -187,7 +187,7 @@ bool Transcriptome::check_ranks(const double epsilon) const
             for(size_t c : this->cells(i)) {
                 sum_ranks += this->rank(c,j);
             }
-            const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)-1) / 2;
+            const double true_sum_ranks = this->cells_nb(i) * (this->cells_nb(i)+1) / 2;
             if( std::abs(sum_ranks - true_sum_ranks) > epsilon) {
                 std::ostringstream msg;
                 msg << "\t - Gene " << j << " `" << this->gene_name(j) << "`"
@@ -317,7 +317,7 @@ std::ostream& Transcriptome::as_csv(std::ostream& out, const std::string sep) co
     // HEADER
     out << "GENE"; // Following Neftel’s format.
     for(size_t i : samples()) {
-        for(size_t c : cells(i)) {
+        for(size_t c = 0; c < cells(i).size(); ++c) {
             out << sep << sample_name(i);
         }
     }

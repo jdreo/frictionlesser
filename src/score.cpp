@@ -73,7 +73,7 @@ void FriedmanScore::clear_cache()
 /******************************************
  * E, F, GG, SSR, T
  ******************************************/
-void FriedmanScore::new_transcriptome()
+void FriedmanScore::new_transcriptome(const double epsilon)
 {
     CLUTCHLOG(debug, "New transcriptome");
     clear_cache();
@@ -90,7 +90,6 @@ void FriedmanScore::new_transcriptome()
         CLUTCHLOG(xdebug, "        E=" << E.back() << ",    F=" << F.back() << ",    GG=" << GG.back());
 
         // Constants for each cells of each sample: SSR, T.
-        // FIXME TODO tests
         std::vector<double> SSR_j;
         std::vector<double> T_j;
         for(size_t j : _transcriptome.genes()) { // All genes.
@@ -98,40 +97,34 @@ void FriedmanScore::new_transcriptome()
             double sum_ranks_sq = 0; // for SSR.
             // Rank => ties count^3, for T.
             // This should work even if ranks are unordered.
-            std::map<double,size_t> ties_cube;
-
+            std::map<double,size_t> ties; // For T.
             for(size_t c : _transcriptome.cells(i) ) { // All cells of this sample.
-                sum_ranks_sq += std::pow(_transcriptome.rank(c,j),2);
-#ifndef NDEBUG
-                auto& t = ties_cube[ _transcriptome.rank(c,j) ];
-#else
-                auto& t = ties_cube.at( _transcriptome.rank(c,j) );
-#endif
-                t++;
-
+                const double rk = _transcriptome.rank(c,j);
+                sum_ranks_sq += std::pow(rk,2); // For SSR.
+                if(ties.contains(rk)) { // For T.
+                    ties[rk]++;
+                } else {
+                    ties[rk] = 1;
+                }
             } // for c in cells
             SSR_j.push_back( sum_ranks_sq );
 
             // Sum cubic number of ties.
             double sum_ties_cube = 0;
-            for([[maybe_unused]] const auto& [r,t] : ties_cube) {
-                if(t > 1) { // There were ties for this rank.
-                    sum_ties_cube += std::pow(t,3);
-            }}
+            for([[maybe_unused]] const auto& [r,t] : ties) {
+                sum_ties_cube += std::pow(t,3);
+            }
             T_j.push_back( sum_ties_cube );
+
         } // for j in genes
         SSR.push_back(SSR_j);
         T.push_back(T_j);
         CLUTCHCODE(xdebug,
             std::ostringstream ssr;
-            for(double s : SSR_j) {
-                ssr << " " << s;
-            }
+            for(double s : SSR_j) { ssr << " " << s; }
             CLUTCHLOG(xdebug, "        SSR={" << ssr.str() << "}");
             std::ostringstream ts;
-            for(double t : T_j) {
-                ts << " " << t;
-            }
+            for(double t : T_j  ) {  ts << " " << t; }
             CLUTCHLOG(xdebug, "        T={" << ts.str() << "}");
         );
 
@@ -144,17 +137,14 @@ void FriedmanScore::new_transcriptome()
  ******************************************/
 void FriedmanScore::new_signature_size(const size_t signature_size)
 {
-    CLUTCHLOG(debug, "New signature size");
+    CLUTCHLOG(debug, "New signature size: " << signature_size);
     B.clear();
     C.clear();
     ASSERT(signature_size > 0);
 
     for(size_t i : _transcriptome.samples()) {
-        const size_t m_i = _transcriptome.cells_nb(i);
         ASSERT(_transcriptome.cells_nb(i) > 0);
         #ifndef NDEBUG
-            // B.push_back( 3 * std::pow(signature_size,2) * m_i * std::pow(m_i+1, 2) );
-            // C.push_back(              signature_size    * m_i *         (m_i+1)    );
             B.push_back( std::pow(signature_size,2) * E[i] );
             C.push_back(          signature_size    * F[i]);
         #else
@@ -174,7 +164,7 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
  ******************************************/
 void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 {
-    CLUTCHLOG(debug, "New swap");
+    CLUTCHLOG(debug, "New swap: in=" << gene_in << ", out=" << gene_out);
     ASSERT(gene_in != gene_out);
 
     for(size_t i : _transcriptome.samples()) {
@@ -219,7 +209,7 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
  ******************************************/
 void FriedmanScore::init_signature(Signature genes)
 {
-    CLUTCHLOG(debug, "Initialize signature");
+    CLUTCHLOG(debug, "Initialize signature: " << genes);
     ASSERT(not _has_init);
     ASSERT(A.size() == 0);
     ASSERT(D.size() == 0);
@@ -291,7 +281,7 @@ void FriedmanScore::init_signature(Signature genes)
 
 double FriedmanScore::score(Signature genes)
 {
-    CLUTCHLOG(debug, "Compute score");
+    CLUTCHLOG(debug, "Compute score of: " << genes);
     size_t current_signature_size = frictionless::sum(genes);
     ASSERT(current_signature_size > 0);
     if(_cached_signature_size != current_signature_size) {

@@ -136,7 +136,7 @@ class FriedmanScore {
          *
          * To be called again if the transcriptome has been updated.
          */
-        void new_transcriptome();
+        void new_transcriptome(const double epsilon = 1e-6);
 
         /** Pre-compute constants for a given signature size: B, C.
          *

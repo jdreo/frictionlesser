@@ -64,7 +64,7 @@ SCENARIO( "Ranking a vector" ) {
         WHEN( "ranking it" ) {
             std::vector<double> ranks = frictionless::ranks_of(values);
             THEN( "ranks are correct" ) {
-                std::vector<double> expected = {0, 1, 2, 3, 4};
+                std::vector<double> expected = {1, 2, 3, 4, 5};
                 REQUIRE( ranks == expected );
             }
         }
@@ -75,7 +75,7 @@ SCENARIO( "Ranking a vector" ) {
         WHEN( "ranking it" ) {
             std::vector<double> ranks = frictionless::ranks_of(values);
             THEN( "ranks are correct" ) {
-                std::vector<double> expected = {1, 0, 2, 4, 3};
+                std::vector<double> expected = {2, 1, 3, 5, 4};
                 REQUIRE( ranks == expected );
             }
         }
@@ -86,7 +86,7 @@ SCENARIO( "Ranking a vector" ) {
         WHEN( "ranking it" ) {
             std::vector<double> ranks = frictionless::ranks_of(values);
             THEN( "ranks are correct" ) {
-                std::vector<double> expected = {0.5, 0.5, 2, 3.5, 3.5};
+                std::vector<double> expected = {1.5, 1.5, 3, 4.5, 4.5};
                 REQUIRE( ranks == expected );
             }
         }
@@ -97,7 +97,7 @@ SCENARIO( "Ranking a vector" ) {
         WHEN( "ranking it" ) {
             std::vector<double> ranks = frictionless::ranks_of(values);
             THEN( "ranks are correct" ) {
-                std::vector<double> expected = {2, 2, 2, 2, 2};
+                std::vector<double> expected = {3, 3, 3, 3, 3};
                 REQUIRE( ranks == expected );
             }
         }
@@ -108,7 +108,7 @@ SCENARIO( "Ranking a vector" ) {
         WHEN( "ranking it" ) {
             std::vector<double> ranks = frictionless::ranks_of(values);
             THEN( "ranks are correct" ) {
-                std::vector<double> expected = {1.5, 1.5, 1.5, 6, 5, 4, 1.5};
+                std::vector<double> expected = {2.5, 2.5, 2.5, 7, 6, 5, 2.5};
                 REQUIRE( ranks == expected );
             }
         }
@@ -215,10 +215,10 @@ SCENARIO( "Friedman cache" ) {
     GIVEN( "A very simple ranked table" ) {
         const std::string ssv =
             "GENE    S0  S0  S0  S1  S1  S1\n"
-            "G0      1   1   1   1   1   1\n"
-            "G1      0   1   2   1   1   1\n"
-            "G2      1   1   1   0   1   2\n"
-            "G3      0   1   2   0   1   2\n";
+            "G0      2   2   2   2   2   2\n"
+            "G1      1   2   3   2   2   2\n"
+            "G2      2   2   2   1   2   3\n"
+            "G3      1   2   3   1   2   3\n";
         std::istringstream iss(ssv);
         frictionless::NeftelExprParser parser(0);
         frictionless::Transcriptome exprs = parser(iss);
@@ -235,28 +235,28 @@ SCENARIO( "Friedman cache" ) {
                 }
             }
             THEN( "Transcriptome cache for squared ranks sums is consistent" ) {
-                //                 i  j     cells: 0    1    2
-                //                 v  v            v    v    v
-                REQUIRE(frs.SSR[0][0] == 3); // 1² + 1² + 1²
-                REQUIRE(frs.SSR[0][1] == 5); // 0² + 1² + 2²
-                REQUIRE(frs.SSR[0][2] == 3);
-                REQUIRE(frs.SSR[0][3] == 5);
-                REQUIRE(frs.SSR[1][0] == 3);
-                REQUIRE(frs.SSR[1][1] == 3);
-                REQUIRE(frs.SSR[1][2] == 5);
-                REQUIRE(frs.SSR[1][3] == 5);
+                //              i  j     cells: 0    1    2
+                //              v  v            v    v    v
+                REQUIRE(frs.SSR[0][0] == 12); // 2² + 2² + 2²
+                REQUIRE(frs.SSR[0][1] == 14); // 1² + 2² + 3²
+                REQUIRE(frs.SSR[0][2] == 12);
+                REQUIRE(frs.SSR[0][3] == 14);
+                REQUIRE(frs.SSR[1][0] == 12);
+                REQUIRE(frs.SSR[1][1] == 12);
+                REQUIRE(frs.SSR[1][2] == 14);
+                REQUIRE(frs.SSR[1][3] == 14);
             }
             THEN( "Transcriptome cache for tie-adjustment factors is consistent" ) {
-                //               i  j      ranks: 0    1    2
-                //               v  v             v    v    v
+                //            i  j      ranks: 0    1    2
+                //            v  v             v    v    v
                 REQUIRE(frs.T[0][0] == 27); // 0³ + 3³ + 0³
-                REQUIRE(frs.T[0][1] ==  0); // 0³ + 0³ + 0³
+                REQUIRE(frs.T[0][1] ==  3); // 1³ + 1³ + 1³
                 REQUIRE(frs.T[0][2] == 27);
-                REQUIRE(frs.T[0][3] ==  0);
+                REQUIRE(frs.T[0][3] ==  3);
                 REQUIRE(frs.T[1][0] == 27);
                 REQUIRE(frs.T[1][1] == 27);
-                REQUIRE(frs.T[1][2] ==  0);
-                REQUIRE(frs.T[1][3] ==  0);
+                REQUIRE(frs.T[1][2] ==  3);
+                REQUIRE(frs.T[1][3] ==  3);
             }
         }
         WHEN( "Computing a two-genes cache" ) {
@@ -293,22 +293,22 @@ SCENARIO( "Friedman cache" ) {
             THEN( "Init cache for cellular rank sum is consistent" ) {
                 //       cell: c
                 //             v
-                REQUIRE(frs.Rc[0] == 1); // 1+0
-                REQUIRE(frs.Rc[1] == 2); // 1+1
-                REQUIRE(frs.Rc[2] == 3); // 1+2
-                REQUIRE(frs.Rc[3] == 2); // 1+1
-                REQUIRE(frs.Rc[4] == 2); // 1+1
-                REQUIRE(frs.Rc[5] == 2); // 1+1
+                REQUIRE(frs.Rc[0] == 3); // 2+1
+                REQUIRE(frs.Rc[1] == 4); // 2+2
+                REQUIRE(frs.Rc[2] == 5); // 2+3
+                REQUIRE(frs.Rc[3] == 4); // 2+2
+                REQUIRE(frs.Rc[4] == 4); // 2+2
+                REQUIRE(frs.Rc[5] == 4); // 2+2
             }
             THEN( "Init cache for sum of squared ranks is consistent" ) {
                 // 2 samples.
-                REQUIRE(frs.A[0] == 168); // 12(1²+2²+3²)
-                REQUIRE(frs.A[1] == 144); // 12(3*2²)
+                REQUIRE(frs.A[0] == 600); // 12(3²+4²+5²)
+                REQUIRE(frs.A[1] == 576); // 12(3*4²)
             }
             THEN( "Init cache for average sum of gap to average tied ranks number is consistent" ) {
                 // 2 samples.
-                REQUIRE(frs.D[0] == 10.5); // 1/(3-1)*(27+0)-3/(3-1)*2
-                REQUIRE(frs.D[1] == 24);   // 1/(3-1)*(27+27)-3(3-1)*2
+                REQUIRE(frs.D[0] == 12); // 1/(3-1)*(27+3)-3/(3-1)*2
+                REQUIRE(frs.D[1] == 24); // 1/(3-1)*(27+27)-3(3-1)*2
             }
         }
     }
