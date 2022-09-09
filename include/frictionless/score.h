@@ -27,9 +27,6 @@ class FriedmanScore {
         const double alpha;
         /** @} */
 
-        /** Guard flag. */
-        bool _has_init;
-
         /** @name Updated when one swap a gene:
          * Members part of the incremental evaluation.
          * @{ */

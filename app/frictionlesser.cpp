@@ -248,15 +248,18 @@ int main(int argc, char* argv[])
     frictionless::Signature alea(tr.genes().size(),0);
     rinit(alea);
 
-    alea.printOn(std::clog);
-    std::clog << std::endl;
+    CLUTCHCODE(xdebug,
+        alea.printOn(std::clog);
+        std::clog << std::endl;
 
-    for(size_t i=0; i < alea.size(); ++i) {
-        if(alea[i]) {
-            std::clog << tr.gene_name(i) << " ";
+        for(size_t i=0; i < alea.size(); ++i) {
+            if(alea[i]) {
+                std::clog << tr.gene_name(i) << " ";
+            }
         }
-    }
-    std::clog << std::endl;
+        std::clog << std::endl;
+    );
+
     CLUTCHLOG(debug, "OK");
     // */
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
@@ -267,4 +270,5 @@ int main(int argc, char* argv[])
         // EXIT_ON_ERROR(DataInconsistent, e.what());
     // }
     CLUTCHLOG(note, "OK");
+    CLUTCHLOG(progress, "Done.");
 }

@@ -10,7 +10,6 @@ namespace frictionless {
 FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
     _transcriptome(rt),
     alpha(a),
-    _has_init(false),
     _cached_signature_size(0)
 {
     ASSERT(_transcriptome.ranks( ).size() > 0);
@@ -64,7 +63,6 @@ void FriedmanScore::clear_cache()
     SSR.clear();
     Rc    .clear();
 
-    _has_init = false;
     _cached_signature_size = 0;
     _cached_gene_in = 0;
     _cached_gene_out = 0;
@@ -156,7 +154,6 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
     } // for i in samples
 
     _cached_signature_size = signature_size;
-    _has_init = false;
 }
 
 /******************************************
@@ -210,7 +207,6 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 void FriedmanScore::init_signature(Signature genes)
 {
     CLUTCHLOG(debug, "Initialize signature: " << genes);
-    ASSERT(not _has_init);
     ASSERT(A.size() == 0);
     ASSERT(D.size() == 0);
     ASSERT(genes.size() == _transcriptome.genes_nb());
@@ -274,8 +270,6 @@ void FriedmanScore::init_signature(Signature genes)
         CLUTCHLOG(xdebug, "        A=" << A.back() << ",    D=" << D.back());
 
     } // for i in samples
-
-    _has_init = true;
 }
 
 
@@ -288,9 +282,8 @@ double FriedmanScore::score(Signature genes)
         new_signature_size(current_signature_size);
     }
 
-    if(not _has_init) {
-        init_signature(genes);
-    }
+    // No partial update, so full init.
+    init_signature(genes);
 
     double score = 0;
     for(size_t i : _transcriptome.samples()) {
