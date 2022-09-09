@@ -307,8 +307,8 @@ SCENARIO( "Friedman cache" ) {
             }
             THEN( "Init cache for average sum of gap to average tied ranks number is consistent" ) {
                 // 2 samples.
-                REQUIRE(frs.D[0] == 10.5); // 1/(3-1)*((27-3)+(0-3))
-                REQUIRE(frs.D[1] == 24);   // 1/(3-1)*((27-3)+(27-3))
+                REQUIRE(frs.D[0] == 12); // 1/(3-1)*(27+0)-3/(3-1)
+                REQUIRE(frs.D[1] == 25.5); // 1/(3-1)*(27+27)-3(3-1)
             }
         }
     }

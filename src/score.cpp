@@ -146,8 +146,15 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
     for(size_t i : _transcriptome.samples()) {
         const size_t m_i = _transcriptome.cells_nb(i);
         ASSERT(_transcriptome.cells_nb(i) > 0);
-        B.push_back( 3 * std::pow(signature_size,2) * m_i * std::pow(m_i+1, 2) );
-        C.push_back(              signature_size    * m_i *         (m_i+1)    );
+        #ifndef NDEBUG
+            // B.push_back( 3 * std::pow(signature_size,2) * m_i * std::pow(m_i+1, 2) );
+            // C.push_back(              signature_size    * m_i *         (m_i+1)    );
+            B.push_back( std::pow(signature_size,2) * E[i] );
+            C.push_back(          signature_size    * F[i]);
+        #else
+            B.push_back( std::pow(signature_size,2) * E.at(i) );
+            C.push_back(          signature_size    * F.at(i));
+        #endif
         CLUTCHLOG(xdebug, "    Sample: " << i);
         CLUTCHLOG(xdebug, "        B=" << B.back() << ",    C=" << C.back());
     } // for i in samples
@@ -163,10 +170,10 @@ void FriedmanScore::init_signature(Signature genes)
     ASSERT(A.size() == 0);
     ASSERT(D.size() == 0);
     ASSERT(genes.size() == _transcriptome.genes_nb());
+    ASSERT(_cached_signature_size == sum(genes));
 
     Rc.clear();
     for(size_t c : _transcriptome.cells()) {
-        CLUTCHLOG(xdebug, "    Cell: " << c);
         double sum_r = 0;
         // FIXME use something else than eoBit to improve perf.
         // This should iterate over selected gene indices instead of all genes.
@@ -180,7 +187,7 @@ void FriedmanScore::init_signature(Signature genes)
             // CLUTCHLOG(xdebug, "         gene=" << j << ", selected=" << selected << ", sum_r=" << sum_r);
         } // for j in genes
         Rc.push_back(sum_r);
-        CLUTCHLOG(xdebug, "         Rc=" << Rc.back());
+        CLUTCHLOG(xdebug, "         R_" << c << "=" << Rc.back());
     } // for c in cells
 
     for(size_t i : _transcriptome.samples()) {
@@ -196,18 +203,28 @@ void FriedmanScore::init_signature(Signature genes)
         A.push_back(12 * sum_Rc2);
 
         // HERE
+        // Paper version:
+        // double sum_t = 0;
+        // const double m_i = _transcriptome.cells_nb(i);
+        // for(size_t j : _transcriptome.genes()) {
+        //     #ifndef NDEBUG
+        //         const bool selected = genes[j];
+        //         sum_t += selected * (T_ij[i][j] - m_i);
+        //     #else
+        //         const bool selected = genes.at(j);
+        //         sum_t += selected * (T_ij.at(i).at(j) - m_i);
+        //     #endif
+        // }
+        // D.push_back( 1/(m_i-1) * sum_t );
+
+        // Zakiev code:
         double sum_t = 0;
-        const double m_i = _transcriptome.cells_nb(i);
         for(size_t j : _transcriptome.genes()) {
-            #ifndef NDEBUG
-                const bool selected = genes[j];
-                sum_t += selected * (T_ij[i][j] - m_i);
-            #else
-                const bool selected = genes.at(j);
-                sum_t += selected * (T_ij.at(i).at(j) - m_i);
-            #endif
+            sum_t += T_ij[i][j];
         }
-        D.push_back( 1/(m_i-1) * sum_t );
+        const double m_i = _transcriptome.cells_nb(i);
+        D.push_back( (1/(m_i-1)) * sum_t - GG[i] * _cached_signature_size );
+
 
         CLUTCHLOG(xdebug, "        A=" << A.back() << ",    D=" << D.back());
 
@@ -301,6 +318,9 @@ double FriedmanScore::score(Signature genes)
         score += logpval;
     }
 
+        ASSERT(not std::isnan(score));
+        ASSERT(score >= 0);
+        ASSERT(not std::isinf(score));
     return score;
 }
 

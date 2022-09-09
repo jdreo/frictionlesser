@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
               clutchlog::fmt::bg::red,
               clutchlog::fmt::typo::bold);
     log.hfill_style(clutchlog::fmt::fg::black);
-    log.hfill_max(150);
+    log.hfill_max(100);
     #ifndef NDEBUG
         log.format("{level_letter}:{depth_marks} {msg} {hfill} {func} @ {file}:{line}\n");
     #else
