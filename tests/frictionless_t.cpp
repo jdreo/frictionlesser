@@ -237,26 +237,26 @@ SCENARIO( "Friedman cache" ) {
             THEN( "Transcriptome cache for squared ranks sums is consistent" ) {
                 //                 i  j     cells: 0    1    2
                 //                 v  v            v    v    v
-                REQUIRE(frs.SSR_ij[0][0] == 3); // 1² + 1² + 1²
-                REQUIRE(frs.SSR_ij[0][1] == 5); // 0² + 1² + 2²
-                REQUIRE(frs.SSR_ij[0][2] == 3);
-                REQUIRE(frs.SSR_ij[0][3] == 5);
-                REQUIRE(frs.SSR_ij[1][0] == 3);
-                REQUIRE(frs.SSR_ij[1][1] == 3);
-                REQUIRE(frs.SSR_ij[1][2] == 5);
-                REQUIRE(frs.SSR_ij[1][3] == 5);
+                REQUIRE(frs.SSR[0][0] == 3); // 1² + 1² + 1²
+                REQUIRE(frs.SSR[0][1] == 5); // 0² + 1² + 2²
+                REQUIRE(frs.SSR[0][2] == 3);
+                REQUIRE(frs.SSR[0][3] == 5);
+                REQUIRE(frs.SSR[1][0] == 3);
+                REQUIRE(frs.SSR[1][1] == 3);
+                REQUIRE(frs.SSR[1][2] == 5);
+                REQUIRE(frs.SSR[1][3] == 5);
             }
             THEN( "Transcriptome cache for tie-adjustment factors is consistent" ) {
                 //               i  j      ranks: 0    1    2
                 //               v  v             v    v    v
-                REQUIRE(frs.T_ij[0][0] == 27); // 0³ + 3³ + 0³
-                REQUIRE(frs.T_ij[0][1] ==  0); // 0³ + 0³ + 0³
-                REQUIRE(frs.T_ij[0][2] == 27);
-                REQUIRE(frs.T_ij[0][3] ==  0);
-                REQUIRE(frs.T_ij[1][0] == 27);
-                REQUIRE(frs.T_ij[1][1] == 27);
-                REQUIRE(frs.T_ij[1][2] ==  0);
-                REQUIRE(frs.T_ij[1][3] ==  0);
+                REQUIRE(frs.T[0][0] == 27); // 0³ + 3³ + 0³
+                REQUIRE(frs.T[0][1] ==  0); // 0³ + 0³ + 0³
+                REQUIRE(frs.T[0][2] == 27);
+                REQUIRE(frs.T[0][3] ==  0);
+                REQUIRE(frs.T[1][0] == 27);
+                REQUIRE(frs.T[1][1] == 27);
+                REQUIRE(frs.T[1][2] ==  0);
+                REQUIRE(frs.T[1][3] ==  0);
             }
         }
         WHEN( "Computing a two-genes cache" ) {
@@ -307,8 +307,8 @@ SCENARIO( "Friedman cache" ) {
             }
             THEN( "Init cache for average sum of gap to average tied ranks number is consistent" ) {
                 // 2 samples.
-                REQUIRE(frs.D[0] == 12); // 1/(3-1)*(27+0)-3/(3-1)
-                REQUIRE(frs.D[1] == 25.5); // 1/(3-1)*(27+27)-3(3-1)
+                REQUIRE(frs.D[0] == 10.5); // 1/(3-1)*(27+0)-3/(3-1)*2
+                REQUIRE(frs.D[1] == 24);   // 1/(3-1)*(27+27)-3(3-1)*2
             }
         }
     }

@@ -100,13 +100,13 @@ class FriedmanScore {
          * \f[
          *    T_{ij}=\left(\sum_{a=1}^{g_j} t_{j,a}^3\right)_{i}
          * \f] */
-        std::vector<std::vector<double> > T_ij;
+        std::vector<std::vector<double> > T;
 
         /** Sum of squared ranks of individual gene j in each sample i.
          * \f[
          *     (SSR)_{ij}= \sum_{c=1}^{m_i} r_{cj}^2
          * \f] */
-        std::vector<std::vector<double> > SSR_ij;
+        std::vector<std::vector<double> > SSR;
         /** @} */
 
 
@@ -132,7 +132,7 @@ class FriedmanScore {
 
         void clear_cache();
 
-        /** Pre-compute constants for a given transcriptome: E, F, GG, T_ij, SSR_ij.
+        /** Pre-compute constants for a given transcriptome: E, F, GG, T, SSR.
          *
          * To be called again if the transcriptome has been updated.
          */
