@@ -208,11 +208,11 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 void FriedmanScore::init_signature(Signature genes)
 {
     CLUTCHLOG(debug, "Initialize signature: " << genes);
-    ASSERT(A.size() == 0);
-    ASSERT(D.size() == 0);
     ASSERT(genes.size() == _transcriptome.genes_nb());
     ASSERT(_cached_signature_size == sum(genes));
 
+    A.clear();
+    D.clear();
     Rc.clear();
     for(size_t c : _transcriptome.cells()) {
         double sum_r = 0;

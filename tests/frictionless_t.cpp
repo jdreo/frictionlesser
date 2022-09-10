@@ -6,7 +6,7 @@
 #include "frictionless/parser.h"
 #include "frictionless/score.h"
 
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_all.hpp>
 
 SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
     GIVEN( "The Zakiev transcriptome parser" ) {
@@ -324,9 +324,9 @@ SCENARIO( "Friedman score" ) {
         std::istringstream iss(ssv);
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
+        frictionless::FriedmanScore frs(rk, /*alpha*/2);
 
         WHEN( "Considering a new signature" ) {
-            frictionless::FriedmanScore frs(rk, /*alpha*/2);
             frictionless::Signature geneset(4,false); // 4 geneset.
             // Selects two geneset.
             geneset[0] = true;
@@ -338,6 +338,32 @@ SCENARIO( "Friedman score" ) {
                 CHECK_NOTHROW(frs.new_signature_size(2));
                 CHECK_NOTHROW(frs.init_signature(geneset));
                 CHECK_NOTHROW(s = frs.score(geneset));
+            }
+        }
+        WHEN( "Comparing raw and partial evaluation" ) {
+            frs.new_signature_size(2);
+
+            frictionless::Signature A(4,false); // 4 geneset.
+            A[0] = true;
+            A[1] = true;
+            frs.init_signature(A);
+
+            frictionless::Signature B(4,false); // 4 geneset.
+            B[0] = true;
+            B[2] = true;
+            frs.init_signature(B);
+            // double s_B = frs.score(B);
+            size_t jout = 2;
+            size_t jin = 1;
+            B[jout] = 0;
+            B[jin] = 1;
+            frs.new_swap(jin, jout);
+            double s_A, s_Bp;
+
+            THEN( "Scores should be the same" ) {
+                CHECK_NOTHROW(s_A  = frs.score(A));
+                CHECK_NOTHROW(s_Bp = frs.score(B));
+                REQUIRE( s_Bp == Catch::Approx(s_A) );
             }
         }
     }
