@@ -42,7 +42,7 @@ SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
                 CHECK_THROWS( rt = parser(iss) );
             }
         }
-        WHEN( "loading data with inconsistent number of genes" ) {
+        WHEN( "loading data with inconsistent number of geneset" ) {
             const std::string fake =
                 "Sample_0\n"
                 "Gene_0\n"
@@ -220,9 +220,9 @@ SCENARIO( "Friedman cache" ) {
             "G2      2   2   2   1   2   3\n"
             "G3      1   2   3   1   2   3\n";
         std::istringstream iss(ssv);
-        frictionless::NeftelExprParser parser(0);
+        frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome exprs = parser(iss);
-        frictionless::Transcriptome rk = frictionless::rank(exprs, false, 1e-10);
+        frictionless::Transcriptome rk = frictionless::rank(exprs, /*print_progress*/false, /*epsilon*/1e-10);
 
         WHEN( "Computing transcriptome cache" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
@@ -259,7 +259,7 @@ SCENARIO( "Friedman cache" ) {
                 REQUIRE(frs.T[1][3] ==  3);
             }
         }
-        WHEN( "Computing a two-genes cache" ) {
+        WHEN( "Computing a two-geneset cache" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
             frs.new_signature_size(2);
 
@@ -270,7 +270,7 @@ SCENARIO( "Friedman cache" ) {
                 REQUIRE(frs.C[1] ==  24);
             }
         }
-        WHEN( "Computing a three-genes cache" ) {
+        WHEN( "Computing a three-geneset cache" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
             frs.new_signature_size(3);
 
@@ -281,14 +281,14 @@ SCENARIO( "Friedman cache" ) {
                 REQUIRE(frs.C[1] ==   36);
             }
         }
-        WHEN( "Computing two-genes signature cache from scratch") {
+        WHEN( "Computing two-geneset signature cache from scratch") {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
-            frictionless::Signature genes(4,false); // 4 genes.
-            // Selects two genes.
-            genes[0] = true;
-            genes[1] = true;
+            frictionless::Signature geneset(4,false); // 4 geneset.
+            // Selects two geneset.
+            geneset[0] = true;
+            geneset[1] = true;
             frs.new_signature_size(2);
-            frs.init_signature(genes);
+            frs.init_signature(geneset);
 
             THEN( "Init cache for cellular rank sum is consistent" ) {
                 //       cell: c
@@ -318,25 +318,28 @@ SCENARIO( "Friedman score" ) {
     GIVEN( "A very simple ranked table" ) {
         const std::string ssv =
             "GENE    S0  S0  S0  S1  S1  S1\n"
-            "G0      1   1   1   1   1   1\n"
-            "G1      0   1   2   1   1   1\n"
-            "G2      1   1   1   0   1   2\n"
-            "G3      0   1   2   0   1   2\n";
+            "G0      2   2   2   2   2   2\n"
+            "G1      1   2   3   2   2   2\n"
+            "G2      2   2   2   1   2   3\n"
+            "G3      1   2   3   1   2   3\n";
         std::istringstream iss(ssv);
-        frictionless::NeftelExprParser parser(0);
+        frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome exprs = parser(iss);
-        frictionless::Transcriptome rk = frictionless::rank(exprs, false, 1e-10);
+        frictionless::Transcriptome rk = frictionless::rank(exprs, /*print_progress*/false, /*epsilon*/1e-10);
 
         WHEN( "Considering a new signature" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
-            frictionless::Signature genes(4,false); // 4 genes.
-            // Selects two genes.
-            genes[0] = true;
-            genes[1] = true;
+            frictionless::Signature geneset(4,false); // 4 geneset.
+            // Selects two geneset.
+            geneset[0] = true;
+            geneset[1] = true;
             double s;
 
             THEN( "Scoring raises no error" ) {
-                CHECK_NOTHROW(s = frs.score(genes));
+                // Two selected genes among 4 available.
+                CHECK_NOTHROW(frs.new_signature_size(2));
+                CHECK_NOTHROW(frs.init_signature(geneset));
+                CHECK_NOTHROW(s = frs.score(geneset));
             }
         }
     }

@@ -267,14 +267,14 @@ int main(int argc, char* argv[])
     // */
     // try {
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
-        frictionless::FriedmanScore fs(tr,2);
+        frictionless::FriedmanScore frs(tr,2);
         const size_t geneset_nb = frictionless::sum(geneset);
         CLUTCHLOG(debug, "Signature of size " << geneset_nb);
-        fs.new_signature_size(geneset_nb);
+        frs.new_signature_size(geneset_nb);
     CLUTCHLOG(note, "OK");
     CLUTCHLOG(progress, "Compute Friedman score...");
-        fs.init_signature(geneset);
-        geneset.fitness(fs.score(geneset));
+        frs.init_signature(geneset);
+        geneset.fitness(frs.score(geneset));
         std::cout << geneset << std::endl;
     CLUTCHLOG(note, "OK");
 
@@ -285,8 +285,8 @@ int main(int argc, char* argv[])
         auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
         size_t jout = itout - std::begin(geneset);
         geneset[jout] = 0;
-        fs.new_swap(jin, jout);
-        geneset.fitness(fs.score(geneset));
+        frs.new_swap(jin, jout);
+        geneset.fitness(frs.score(geneset));
         std::cout << geneset << std::endl;
     CLUTCHLOG(note, "OK");
     // } catch(...) {
