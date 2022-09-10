@@ -62,7 +62,7 @@ SCENARIO( "Ranking a vector" ) {
     GIVEN( "the most simple vector of sorted values" ) {
         std::vector<double> values = {10, 11, 12, 13, 14};
         WHEN( "ranking it" ) {
-            std::vector<double> ranks = frictionless::ranks_of(values);
+            std::vector<double> ranks = frictionless::ranks_of(values, 1e-10);
             THEN( "ranks are correct" ) {
                 std::vector<double> expected = {1, 2, 3, 4, 5};
                 REQUIRE( ranks == expected );
@@ -73,7 +73,7 @@ SCENARIO( "Ranking a vector" ) {
     GIVEN( "the most simple vector of unsorted values" ) {
         std::vector<double> values = {11, 10, 12, 14, 13};
         WHEN( "ranking it" ) {
-            std::vector<double> ranks = frictionless::ranks_of(values);
+            std::vector<double> ranks = frictionless::ranks_of(values, 1e-10);
             THEN( "ranks are correct" ) {
                 std::vector<double> expected = {2, 1, 3, 5, 4};
                 REQUIRE( ranks == expected );
@@ -84,7 +84,7 @@ SCENARIO( "Ranking a vector" ) {
     GIVEN( "the most simple vector of unsorted values with equalities" ) {
         std::vector<double> values = {10, 10, 12, 14, 14};
         WHEN( "ranking it" ) {
-            std::vector<double> ranks = frictionless::ranks_of(values);
+            std::vector<double> ranks = frictionless::ranks_of(values, 1e-10);
             THEN( "ranks are correct" ) {
                 std::vector<double> expected = {1.5, 1.5, 3, 4.5, 4.5};
                 REQUIRE( ranks == expected );
@@ -95,7 +95,7 @@ SCENARIO( "Ranking a vector" ) {
     GIVEN( "a vector of all equals values" ) {
         std::vector<double> values = {0, 0, 0, 0, 0};
         WHEN( "ranking it" ) {
-            std::vector<double> ranks = frictionless::ranks_of(values);
+            std::vector<double> ranks = frictionless::ranks_of(values, 1e-10);
             THEN( "ranks are correct" ) {
                 std::vector<double> expected = {3, 3, 3, 3, 3};
                 REQUIRE( ranks == expected );
@@ -106,7 +106,7 @@ SCENARIO( "Ranking a vector" ) {
     GIVEN( "a realistic vector" ) {
         std::vector<double> values = {0, 0, 0, 0.3, 0.2, 0.1, 0};
         WHEN( "ranking it" ) {
-            std::vector<double> ranks = frictionless::ranks_of(values);
+            std::vector<double> ranks = frictionless::ranks_of(values, 1e-10);
             THEN( "ranks are correct" ) {
                 std::vector<double> expected = {2.5, 2.5, 2.5, 7, 6, 5, 2.5};
                 REQUIRE( ranks == expected );
@@ -117,7 +117,7 @@ SCENARIO( "Ranking a vector" ) {
     GIVEN( "an empty vector" ) {
         std::vector<double> values = {};
         WHEN( "ranking it" ) {
-            std::vector<double> ranks = frictionless::ranks_of(values);
+            std::vector<double> ranks = frictionless::ranks_of(values, 1e-10);
             THEN( "we get an empty vector" ) {
                 REQUIRE( ranks.size() == 0 );
             }
@@ -183,10 +183,10 @@ SCENARIO( "Ranking an expressions table" ) {
         frictionless::Transcriptome exprs = parser(iss);
 
         WHEN( "Ranking the table" ) {
-            frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+            frictionless::Transcriptome rk = frictionless::rank(exprs, false, 1e-10);
 
             THEN( "Ranks are consistents" ) {
-                REQUIRE(rk.check_ranks());
+                REQUIRE(rk.check_ranks(1e-10));
             }
         }
     }
@@ -202,10 +202,10 @@ SCENARIO( "Ranking an expressions table" ) {
         frictionless::Transcriptome exprs = parser(iss);
 
         WHEN( "Ranking the table" ) {
-            frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+            frictionless::Transcriptome rk = frictionless::rank(exprs, false, 1e-10);
 
             THEN( "Ranks are consistents" ) {
-                REQUIRE(rk.check_ranks());
+                REQUIRE(rk.check_ranks(1e-10));
             }
         }
     }
@@ -222,7 +222,7 @@ SCENARIO( "Friedman cache" ) {
         std::istringstream iss(ssv);
         frictionless::NeftelExprParser parser(0);
         frictionless::Transcriptome exprs = parser(iss);
-        frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+        frictionless::Transcriptome rk = frictionless::rank(exprs, false, 1e-10);
 
         WHEN( "Computing transcriptome cache" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
@@ -325,7 +325,7 @@ SCENARIO( "Friedman score" ) {
         std::istringstream iss(ssv);
         frictionless::NeftelExprParser parser(0);
         frictionless::Transcriptome exprs = parser(iss);
-        frictionless::Transcriptome rk = frictionless::rank(exprs, false);
+        frictionless::Transcriptome rk = frictionless::rank(exprs, false, 1e-10);
 
         WHEN( "Considering a new signature" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);

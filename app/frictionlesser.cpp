@@ -281,8 +281,10 @@ int main(int argc, char* argv[])
     CLUTCHLOG(progress, "Swap two genes and update...");
         auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
         size_t jin = itin - std::begin(geneset);
+        geneset[jin] = 1;
         auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
         size_t jout = itout - std::begin(geneset);
+        geneset[jout] = 0;
         fs.new_swap(jin, jout);
         geneset.fitness(fs.score(geneset));
         std::cout << geneset << std::endl;
