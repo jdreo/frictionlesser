@@ -115,7 +115,7 @@ class FriedmanScore {
          * \f[
          *      R_c(G) = \sum_{t\in G} r_{c_i,t}
          * \f] */
-        std::vector<double> Rc;
+        std::vector<double> R;
 
         // TODO
         // std::vector<double> logpvals;

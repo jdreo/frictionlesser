@@ -65,7 +65,7 @@ namespace R {
  */
 
 #ifndef NDEBUG
-    #define DEBUG_p
+    //#define DEBUG_p
     #define REprintf printf
 #endif
 

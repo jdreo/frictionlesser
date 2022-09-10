@@ -30,7 +30,7 @@ FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
     T  .reserve(samples_nb);
     SSR.reserve(samples_nb);
 
-    Rc.reserve(_transcriptome.cells_nb());
+    R.reserve(_transcriptome.cells_nb());
 
     new_transcriptome();
 
@@ -61,7 +61,7 @@ void FriedmanScore::clear_cache()
     GG    .clear();
     T  .clear();
     SSR.clear();
-    Rc    .clear();
+    R    .clear();
 
     _cached_signature_size = 0;
     _cached_gene_in = 0;
@@ -157,8 +157,50 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
 }
 
 /******************************************
- * A, D
+ * A, D, R
  ******************************************/
+// void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
+// {
+//     CLUTCHLOG(debug, "New swap: in=" << gene_in << ", out=" << gene_out);
+//     ASSERT(gene_in != gene_out);
+//     ASSERT(not (gene_in == _cached_gene_in and gene_out == _cached_gene_out));
+
+//     for(size_t i : _transcriptome.samples()) {
+//         double sum_Rin = 0;
+//         double sum_r2 = 0;
+//         for(size_t c : _transcriptome.cells(i)) {
+//             // FIXME double check that
+//             // R_c(G\setminus j_{in}) == R_c(G)-r_{c,j_{in}}
+//             #ifndef NDEBUG
+//                 sum_Rin +=  _transcriptome.rank(c,gene_out) * (R[c] - _transcriptome.rank(c,gene_in))
+//                           - _transcriptome.rank(c,gene_in ) *  R[c];
+//             #else
+//                 sum_Rin +=  _transcriptome.rank(c,gene_out) * (R.at(c) - _transcriptome.rank(c,gene_in))
+//                           - _transcriptome.rank(c,gene_in ) *  R.at(c);
+//             #endif
+//             sum_r2 += std::pow(_transcriptome.rank(c,gene_in),2)
+//                     + std::pow(_transcriptome.rank(c,gene_out),2);
+//         } // for c in cells
+//         #ifndef NDEBUG
+//             const double Ai = A[i];
+//             A[i] = Ai + 24*sum_Rin + 12*sum_r2;
+
+//             const double Di = D[i];
+//             D[i] = Di + 1/(_transcriptome.cells_nb(i)-1)
+//                  * ( T[i][gene_out] - T[i][gene_in] );
+//          #else
+//             const double Ai = A.at(i);
+//             A.at(i) = Ai + 24*sum_Rin + 12*sum_r2;
+
+//             const double Di = D.at(i);
+//             D.at(i) = Di + 1/(_transcriptome.cells_nb(i)-1)
+//                  * ( T.at(i).at(gene_out) - T.at(i).at(gene_in) );
+//          #endif
+//     } // for i in samples
+
+//     _cached_gene_in = gene_in;
+//     _cached_gene_out = gene_out;
+// }
 void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 {
     CLUTCHLOG(debug, "New swap: in=" << gene_in << ", out=" << gene_out);
@@ -166,36 +208,21 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
     ASSERT(not (gene_in == _cached_gene_in and gene_out == _cached_gene_out));
 
     for(size_t i : _transcriptome.samples()) {
-        double sum_Rin = 0;
-        double sum_r2 = 0;
         for(size_t c : _transcriptome.cells(i)) {
-            // FIXME double check that
-            // R_c(G\setminus j_{in}) == R_c(G)-r_{c,j_{in}}
-            #ifndef NDEBUG
-                sum_Rin +=  _transcriptome.rank(c,gene_out) * (Rc[c] - _transcriptome.rank(c,gene_in))
-                          - _transcriptome.rank(c,gene_in ) *  Rc[c];
-            #else
-                sum_Rin +=  _transcriptome.rank(c,gene_out) * (Rc.at(c) - _transcriptome.rank(c,gene_in))
-                          - _transcriptome.rank(c,gene_in ) *  Rc.at(c);
-            #endif
-            sum_r2 += std::pow(_transcriptome.rank(c,gene_in),2)
-                    + std::pow(_transcriptome.rank(c,gene_out),2);
+            // Substract gene_out.
+            A[i] -= 24 * R[c] * _transcriptome.rank(c,gene_out);
+            R[c] -= _transcriptome.rank(c,gene_out);
+            // Add gene_in.
+            A[i] += 24 * R[c] * _transcriptome.rank(c,gene_in);
+            R[c] += _transcriptome.rank(c,gene_in);
         } // for c in cells
-        #ifndef NDEBUG
-            const double Ai = A[i];
-            A[i] = Ai + 24*sum_Rin + 12*sum_r2;
 
-            const double Di = D[i];
-            D[i] = Di + 1/(_transcriptome.cells_nb(i)-1)
-                 * ( T[i][gene_out] - T[i][gene_in] );
-         #else
-            const double Ai = A.at(i);
-            A.at(i) = Ai + 24*sum_Rin + 12*sum_r2;
+        A[i] += 12 * SSR[i][gene_in];
+        A[i] += 12 * SSR[i][gene_out];
 
-            const double Di = D.at(i);
-            D.at(i) = Di + 1/(_transcriptome.cells_nb(i)-1)
-                 * ( T.at(i).at(gene_out) - T.at(i).at(gene_in) );
-         #endif
+        const size_t m_i = _transcriptome.cells_nb(i);
+        D[i] += T[i][gene_in]  / (m_i - 1);
+        D[i] -= T[i][gene_out] / (m_i - 1);
     } // for i in samples
 
     _cached_gene_in = gene_in;
@@ -203,7 +230,7 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 }
 
 /******************************************
- * Rc, A, D
+ * R, A, D
  ******************************************/
 void FriedmanScore::init_signature(Signature genes)
 {
@@ -213,7 +240,7 @@ void FriedmanScore::init_signature(Signature genes)
 
     A.clear();
     D.clear();
-    Rc.clear();
+    R.clear();
     for(size_t c : _transcriptome.cells()) {
         double sum_r = 0;
         // FIXME use something else than eoBit to improve perf.
@@ -227,8 +254,8 @@ void FriedmanScore::init_signature(Signature genes)
             sum_r += selected * _transcriptome.rank(c,j);
             // CLUTCHLOG(xdebug, "         gene=" << j << ", selected=" << selected << ", sum_r=" << sum_r);
         } // for j in genes
-        Rc.push_back(sum_r);
-        CLUTCHLOG(xdebug, "         R_" << c << "=" << Rc.back());
+        R.push_back(sum_r);
+        CLUTCHLOG(xdebug, "         R_" << c << "=" << R.back());
     } // for c in cells
 
     for(size_t i : _transcriptome.samples()) {
@@ -236,9 +263,9 @@ void FriedmanScore::init_signature(Signature genes)
         double sum_Rc2 = 0;
         for(size_t c : _transcriptome.cells(i)) {
             #ifndef NDEBUG
-                sum_Rc2 += 12*std::pow(Rc[c], 2);
+                sum_Rc2 += 12*std::pow(R[c], 2);
             #else
-                sum_Rc2 += 12*std::pow(Rc.at(c), 2);
+                sum_Rc2 += 12*std::pow(R.at(c), 2);
             #endif
         } // c in sample cells
         // A.push_back(12 * sum_Rc2);

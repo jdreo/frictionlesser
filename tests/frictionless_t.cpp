@@ -292,12 +292,12 @@ SCENARIO( "Friedman cache" ) {
             THEN( "Init cache for cellular rank sum is consistent" ) {
                 //       cell: c
                 //             v
-                REQUIRE(frs.Rc[0] == 3); // 2+1
-                REQUIRE(frs.Rc[1] == 4); // 2+2
-                REQUIRE(frs.Rc[2] == 5); // 2+3
-                REQUIRE(frs.Rc[3] == 4); // 2+2
-                REQUIRE(frs.Rc[4] == 4); // 2+2
-                REQUIRE(frs.Rc[5] == 4); // 2+2
+                REQUIRE(frs.R[0] == 3); // 2+1
+                REQUIRE(frs.R[1] == 4); // 2+2
+                REQUIRE(frs.R[2] == 5); // 2+3
+                REQUIRE(frs.R[3] == 4); // 2+2
+                REQUIRE(frs.R[4] == 4); // 2+2
+                REQUIRE(frs.R[5] == 4); // 2+2
             }
             THEN( "Init cache for sum of squared ranks is consistent" ) {
                 // 2 samples.
@@ -342,27 +342,34 @@ SCENARIO( "Friedman score" ) {
         }
         WHEN( "Comparing raw and partial evaluation" ) {
             frs.new_signature_size(2);
+            double s_A, s_B, s_Bp;
 
+            // First two genes.
             frictionless::Signature A(4,false); // 4 geneset.
             A[0] = true;
             A[1] = true;
             frs.init_signature(A);
+            s_A  = frs.score(A);
 
+            // First and last gene.
             frictionless::Signature B(4,false); // 4 geneset.
             B[0] = true;
-            B[2] = true;
+            B[3] = true;
             frs.init_signature(B);
-            // double s_B = frs.score(B);
-            size_t jout = 2;
+            s_B = frs.score(B);
+
+            // Remove last gene, select second gene,
+            // making the same than signature A.
+            size_t jout = 3;
             size_t jin = 1;
             B[jout] = 0;
             B[jin] = 1;
             frs.new_swap(jin, jout);
-            double s_A, s_Bp;
+            s_Bp = frs.score(B);
 
             THEN( "Scores should be the same" ) {
-                CHECK_NOTHROW(s_A  = frs.score(A));
-                CHECK_NOTHROW(s_Bp = frs.score(B));
+                REQUIRE( s_A  != Catch::Approx(s_B) );
+                REQUIRE( s_B  != Catch::Approx(s_Bp) );
                 REQUIRE( s_Bp == Catch::Approx(s_A) );
             }
         }
