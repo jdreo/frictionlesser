@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
     // eoState state;
 
     const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
-        "Filename of the expressions table to be ranked", 'r', "Data").value();
+        "Filename of the expressions table to be ranked", 'x', "Data").value();
 
     const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
         "Filename of the input ranks table", 'r', "Data").value();
@@ -141,7 +141,10 @@ int main(int argc, char* argv[])
         "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
 
     const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
-        "Maximum number of errors reported for each check", 'e', "Misc").value();
+        "Maximum number of errors reported for each check", 'm', "Misc").value();
+
+    const double epsilon = argparser.createParam<double>(1e-10, "epsilon",
+        "Precision for floating-point numbers comparison", 'e', "Misc").value();
 
     make_verbose(argparser);
     make_help(argparser);
@@ -205,7 +208,7 @@ int main(int argc, char* argv[])
     if(have_exprs) {
         // Convert the expressions to ranks.
         CLUTCHLOG(progress, "Compute ranks...");
-        frictionless::Transcriptome ranked = frictionless::rank(tr, /* print_progress */true);
+        frictionless::Transcriptome ranked = frictionless::rank(tr, /* print_progress */true, epsilon);
         CLUTCHLOG(note, "OK");
 
         CLUTCHCODE(xdebug,
@@ -216,7 +219,7 @@ int main(int argc, char* argv[])
 
         CLUTCHLOG(progress, "Check ranks consistency...");
         try {
-            ranked.check_ranks();
+            ranked.check_ranks(epsilon);
         } catch(const frictionless::DataSumRanks& e) {
             EXIT_ON_ERROR(DataSumRanks, e.what());
         }
@@ -231,7 +234,7 @@ int main(int argc, char* argv[])
 
     CLUTCHLOG(progress, "Check ranks consistency...");
     try {
-        tr.check_ranks();
+        tr.check_ranks(epsilon);
     } catch(const frictionless::DataSumRanks& e) {
         EXIT_ON_ERROR(DataSumRanks, e.what());
     }
@@ -245,15 +248,15 @@ int main(int argc, char* argv[])
     eoUniformGenerator<frictionless::Signature::AtomType> unigen;
     eoInitFixedLength<frictionless::Signature> rinit(tr.genes().size(), unigen);
 
-    frictionless::Signature alea(tr.genes().size(),0);
-    rinit(alea);
+    frictionless::Signature geneset(tr.genes().size(),0);
+    rinit(geneset);
 
     CLUTCHCODE(xdebug,
-        alea.printOn(std::clog);
+        geneset.printOn(std::clog);
         std::clog << std::endl;
 
-        for(size_t i=0; i < alea.size(); ++i) {
-            if(alea[i]) {
+        for(size_t i=0; i < geneset.size(); ++i) {
+            if(geneset[i]) {
                 std::clog << tr.gene_name(i) << " ";
             }
         }
@@ -262,13 +265,30 @@ int main(int argc, char* argv[])
 
     CLUTCHLOG(debug, "OK");
     // */
-    CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
     // try {
+    CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
         frictionless::FriedmanScore fs(tr,2);
-        std::cout << fs.score(alea) << std::endl;
+        const size_t geneset_nb = frictionless::sum(geneset);
+        CLUTCHLOG(debug, "Signature of size " << geneset_nb);
+        fs.new_signature_size(geneset_nb);
+    CLUTCHLOG(note, "OK");
+    CLUTCHLOG(progress, "Compute Friedman score...");
+        fs.init_signature(geneset);
+        geneset.fitness(fs.score(geneset));
+        std::cout << geneset << std::endl;
+    CLUTCHLOG(note, "OK");
+
+    CLUTCHLOG(progress, "Swap two genes and update...");
+        auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
+        size_t jin = itin - std::begin(geneset);
+        auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
+        size_t jout = itout - std::begin(geneset);
+        fs.new_swap(jin, jout);
+        geneset.fitness(fs.score(geneset));
+        std::cout << geneset << std::endl;
+    CLUTCHLOG(note, "OK");
     // } catch(...) {
         // EXIT_ON_ERROR(DataInconsistent, e.what());
     // }
-    CLUTCHLOG(note, "OK");
     CLUTCHLOG(progress, "Done.");
 }

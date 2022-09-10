@@ -38,7 +38,7 @@ double sum( const std::vector<double>& t);
 double sum( const std::vector<size_t>& t);
 size_t sum( const Signature& genes);
 
-std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon=1e-6 );
+std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon );
 
 
 

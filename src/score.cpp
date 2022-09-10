@@ -71,7 +71,7 @@ void FriedmanScore::clear_cache()
 /******************************************
  * E, F, GG, SSR, T
  ******************************************/
-void FriedmanScore::new_transcriptome(const double epsilon)
+void FriedmanScore::new_transcriptome()
 {
     CLUTCHLOG(debug, "New transcriptome");
     clear_cache();
@@ -163,6 +163,7 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 {
     CLUTCHLOG(debug, "New swap: in=" << gene_in << ", out=" << gene_out);
     ASSERT(gene_in != gene_out);
+    ASSERT(not (gene_in == _cached_gene_in and gene_out == _cached_gene_out));
 
     for(size_t i : _transcriptome.samples()) {
         double sum_Rin = 0;
@@ -281,9 +282,6 @@ double FriedmanScore::score(Signature genes)
     if(_cached_signature_size != current_signature_size) {
         new_signature_size(current_signature_size);
     }
-
-    // No partial update, so full init.
-    init_signature(genes);
 
     double score = 0;
     for(size_t i : _transcriptome.samples()) {

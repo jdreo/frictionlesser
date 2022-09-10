@@ -336,7 +336,7 @@ std::ostream& Transcriptome::as_csv(std::ostream& out, const std::string sep) co
     return out;
 }
 
-Transcriptome rank(const Transcriptome& tr, const bool print_progress)
+Transcriptome rank(const Transcriptome& tr, const bool print_progress, const double epsilon)
 {
     frictionless::Transcriptome ranked = tr;
     double progress = 0;
@@ -354,7 +354,7 @@ Transcriptome rank(const Transcriptome& tr, const bool print_progress)
                 exprs.push_back( tr.rank(c,j) );
             }
             ASSERT(exprs.size() == cells.size());
-            std::vector<double> cell_ranks = frictionless::ranks_of(exprs);
+            std::vector<double> cell_ranks = frictionless::ranks_of(exprs, epsilon);
             ASSERT(cell_ranks.size() == exprs.size());
             for(size_t c=0; c < cells.size(); ++c) {
                 #ifndef NDEBUG

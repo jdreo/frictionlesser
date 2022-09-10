@@ -122,10 +122,10 @@ class Transcriptome {
         size_t _errors_max_print;
         bool check_tables() const;
         bool check_genes() const;
-        bool check_ranks(const double epsilon = 1e-6) const;
+        bool check_ranks(const double epsilon) const;
 
 }; // Transcriptome
 
-Transcriptome rank(const Transcriptome& tr, const bool print_progress);
+Transcriptome rank(const Transcriptome& tr, const bool print_progress, const double epsilon);
 
 } // frictionless

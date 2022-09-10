@@ -133,7 +133,12 @@ class FriedmanScore {
          *
          * To be called again if the transcriptome has been updated.
          */
-        void new_transcriptome(const double epsilon = 1e-6);
+        void new_transcriptome();
+
+        /** Computes squared root of the log chi-squared. */
+        double sqrt_logchisq(const double s, const double m) const;
+
+     public:
 
         /** Pre-compute constants for a given signature size: B, C.
          *
@@ -149,10 +154,6 @@ class FriedmanScore {
          * To be called again if two genes have been swapped.
          */
         void new_swap(const size_t gene_in, const size_t gene_out);
-
-        double sqrt_logchisq(const double s, const double m) const;
-
-     public:
 
         /** Global score. */
         double score(Signature genes);
