@@ -278,17 +278,19 @@ int main(int argc, char* argv[])
         std::cout << geneset << std::endl;
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Swap two genes and update...");
-        auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
-        size_t jin = itin - std::begin(geneset);
-        geneset[jin] = 1;
-        auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
-        size_t jout = itout - std::begin(geneset);
-        geneset[jout] = 0;
-        frs.new_swap(jin, jout);
-        geneset.fitness(frs.score(geneset));
-        std::cout << geneset << std::endl;
-    CLUTCHLOG(note, "OK");
+    for(size_t i=0; i < 3; ++i) {
+        CLUTCHLOG(progress, "Swap two genes and update...");
+            auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
+            auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
+            size_t jin = itin - std::begin(geneset);
+            size_t jout = itout - std::begin(geneset);
+            geneset[jin] = 1;
+            geneset[jout] = 0;
+            frs.new_swap(jin, jout);
+            geneset.fitness(frs.score(geneset));
+            std::cout << geneset << std::endl;
+        CLUTCHLOG(note, "OK");
+    }
     // } catch(...) {
         // EXIT_ON_ERROR(DataInconsistent, e.what());
     // }

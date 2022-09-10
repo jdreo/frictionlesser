@@ -221,8 +221,7 @@ SCENARIO( "Friedman cache" ) {
             "G3      1   2   3   1   2   3\n";
         std::istringstream iss(ssv);
         frictionless::CommonRankParser parser(/*max_errors*/0);
-        frictionless::Transcriptome exprs = parser(iss);
-        frictionless::Transcriptome rk = frictionless::rank(exprs, /*print_progress*/false, /*epsilon*/1e-10);
+        frictionless::Transcriptome rk = parser(iss);
 
         WHEN( "Computing transcriptome cache" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
@@ -324,8 +323,7 @@ SCENARIO( "Friedman score" ) {
             "G3      1   2   3   1   2   3\n";
         std::istringstream iss(ssv);
         frictionless::CommonRankParser parser(/*max_errors*/0);
-        frictionless::Transcriptome exprs = parser(iss);
-        frictionless::Transcriptome rk = frictionless::rank(exprs, /*print_progress*/false, /*epsilon*/1e-10);
+        frictionless::Transcriptome rk = parser(iss);
 
         WHEN( "Considering a new signature" ) {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
