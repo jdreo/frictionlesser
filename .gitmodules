@@ -7,6 +7,3 @@
 [submodule "ext/exceptions"]
 	path = ext/exceptions
 	url = https://github.com/nojhan/exceptions.git
-[submodule "ext/paradiseo"]
-	path = ext/paradiseo
-	url = https://github.com/nojhan/paradiseo.git
