@@ -132,6 +132,7 @@ class FriedmanScore {
         /** Pre-compute constants for a given transcriptome: E, F, GG, T, SSR.
          *
          * To be called again if the transcriptome has been updated.
+         * Called by the constructor for now.
          */
         void new_transcriptome();
 

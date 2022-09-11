@@ -12,6 +12,7 @@
 #include <frictionless/transcriptome.h>
 #include <frictionless/parser.h>
 #include <frictionless/score.h>
+#include <frictionless/eval.h>
 
 //! Error codes returned on exit.
 enum class Error : unsigned char {
@@ -291,6 +292,15 @@ int main(int argc, char* argv[])
             std::cout << geneset << std::endl;
         CLUTCHLOG(note, "OK");
     }
+
+    CLUTCHLOG(progress, "Full eval...");
+    frictionless::FullEval feval(tr, 2);
+    geneset.invalidate();
+    feval(geneset);
+    std::cout << geneset << std::endl;
+    CLUTCHLOG(note, "OK");
+
+    
     // } catch(...) {
         // EXIT_ON_ERROR(DataInconsistent, e.what());
     // }

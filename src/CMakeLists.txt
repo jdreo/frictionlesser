@@ -3,6 +3,7 @@ add_library(frictionless
     transcriptome.cpp
     score.cpp
     parser.cpp
+    eval.cpp
 )
 target_include_directories(frictionless PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>
