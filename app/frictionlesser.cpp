@@ -243,23 +243,17 @@ int main(int argc, char* argv[])
 
     // /*
     CLUTCHLOG(debug, "Test signatures data structures...");
-    frictionless::Signature null(tr.genes().size(), 0);
 
-    rng.reseed(seed);
-    eoUniformGenerator<frictionless::Signature::AtomType> unigen;
-    eoInitFixedLength<frictionless::Signature> rinit(tr.genes().size(), unigen);
-
-    frictionless::Signature geneset(tr.genes().size(),0);
-    rinit(geneset);
+    frictionless::Signature geneset(tr.genes_nb());
+    geneset.select(0);
+    geneset.select(1);
 
     CLUTCHCODE(xdebug,
         geneset.printOn(std::clog);
         std::clog << std::endl;
 
-        for(size_t i=0; i < geneset.size(); ++i) {
-            if(geneset[i]) {
-                std::clog << tr.gene_name(i) << " ";
-            }
+        for(size_t j : geneset.selected) {
+            std::clog << tr.gene_name(j) << " ";
         }
         std::clog << std::endl;
     );
@@ -269,7 +263,7 @@ int main(int argc, char* argv[])
     // try {
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
         frictionless::FriedmanScore frs(tr,2);
-        const size_t geneset_nb = frictionless::sum(geneset);
+        const size_t geneset_nb = geneset.selected.size();
         CLUTCHLOG(debug, "Signature of size " << geneset_nb);
         frs.new_signature_size(geneset_nb);
     CLUTCHLOG(note, "OK");
@@ -279,15 +273,18 @@ int main(int argc, char* argv[])
         std::cout << geneset << std::endl;
     CLUTCHLOG(note, "OK");
 
-    for(size_t i=0; i < 3; ++i) {
+    for(size_t i=2; i < 4; ++i) {
         CLUTCHLOG(progress, "Swap two genes and update...");
-            auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
-            auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
-            size_t jin = itin - std::begin(geneset);
-            size_t jout = itout - std::begin(geneset);
-            geneset[jin] = 1;
-            geneset[jout] = 0;
-            frs.new_swap(jin, jout);
+            // auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
+            // auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
+            // size_t jin = itin - std::begin(geneset);
+            // size_t jout = itout - std::begin(geneset);
+            // geneset[jin] = 1;
+            // geneset[jout] = 0;
+            geneset.reject(i-1);
+            geneset.select(i);
+
+            frs.new_swap(i, i-1);
             geneset.fitness(frs.score(geneset));
             std::cout << geneset << std::endl;
         CLUTCHLOG(note, "OK");
@@ -300,7 +297,6 @@ int main(int argc, char* argv[])
     std::cout << geneset << std::endl;
     CLUTCHLOG(note, "OK");
 
-    
     // } catch(...) {
         // EXIT_ON_ERROR(DataInconsistent, e.what());
     // }

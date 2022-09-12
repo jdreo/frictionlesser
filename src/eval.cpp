@@ -8,7 +8,7 @@ FullEval::FullEval(const Transcriptome& ranked, const double alpha) :
 
 void FullEval::operator()(Signature& geneset)
 {
-    _frs.new_signature_size(sum(geneset));
+    _frs.new_signature_size(geneset.selected.size());
     _frs.init_signature(geneset);
     geneset.fitness(_frs.score(geneset));
 }

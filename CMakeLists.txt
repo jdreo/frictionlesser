@@ -36,6 +36,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_CLUTCHLOG")
 # Dependencies
 ######################################################################################
 
+# Own lib
+include_directories(include)
+
 # ParadisEO
 set(PARADISEO_ROOT "PARADISEO_NOT_FOUND" CACHE PATH "Where to find ParadisEO")
 set(PARADISEO_BUILD "${PARADISEO_ROOT}/build" CACHE PATH "Build dir of ParadisEO")

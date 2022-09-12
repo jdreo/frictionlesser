@@ -1,6 +1,10 @@
 add_executable(tests tests.cpp frictionless_t.cpp)
 target_link_libraries(tests PUBLIC frictionless R Catch2::Catch2WithMain ${PARADISEO_LIBRARIES} stdc++fs)
 
+add_executable(t-moBinaryPartition t-moBinaryPartition.cpp)
+target_link_libraries(t-moBinaryPartition PUBLIC ${PARADISEO_LIBRARIES})
+
+
 # allow user to run tests with `make test` or `ctest`
 catch_discover_tests(tests)
 

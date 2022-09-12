@@ -17,7 +17,8 @@ double sum( const std::vector<size_t>& t)
 
 size_t sum( const Signature& genes)
 {
-    return std::accumulate(std::begin(genes), std::end(genes), 0.0);
+    CLUTCHLOG(warning, "DEPRECATED FUNCTION");
+    return genes.selected.size();
 }
 
 std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon )

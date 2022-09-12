@@ -282,10 +282,10 @@ SCENARIO( "Friedman cache" ) {
         }
         WHEN( "Computing two-geneset signature cache from scratch") {
             frictionless::FriedmanScore frs(rk, /*alpha*/2);
-            frictionless::Signature geneset(4,false); // 4 geneset.
+            frictionless::Signature geneset(4); // 4 genes.
             // Selects two geneset.
-            geneset[0] = true;
-            geneset[1] = true;
+            geneset.select(0);
+            geneset.select(1);
             frs.new_signature_size(2);
             frs.init_signature(geneset);
 
@@ -327,10 +327,10 @@ SCENARIO( "Friedman score" ) {
         frictionless::FriedmanScore frs(rk, /*alpha*/2);
 
         WHEN( "Considering a new signature" ) {
-            frictionless::Signature geneset(4,false); // 4 geneset.
+            frictionless::Signature geneset(4); // 4 genes.
             // Selects two geneset.
-            geneset[0] = true;
-            geneset[1] = true;
+            geneset.select(0);
+            geneset.select(1);
             double s;
 
             THEN( "Scoring raises no error" ) {
@@ -345,26 +345,24 @@ SCENARIO( "Friedman score" ) {
             double s_A, s_B, s_Bp;
 
             // First two genes.
-            frictionless::Signature A(4,false); // 4 geneset.
-            A[0] = true;
-            A[1] = true;
+            frictionless::Signature A(4); // 4 genes.
+            A.select(0);
+            A.select(1);
             frs.init_signature(A);
             s_A  = frs.score(A);
 
             // First and last gene.
-            frictionless::Signature B(4,false); // 4 geneset.
-            B[0] = true;
-            B[3] = true;
+            frictionless::Signature B(4); // 4 genes.
+            B.select(0);
+            B.select(3);
             frs.init_signature(B);
             s_B = frs.score(B);
 
             // Remove last gene, select second gene,
             // making the same than signature A.
-            size_t jout = 3;
-            size_t jin = 1;
-            B[jout] = 0;
-            B[jin] = 1;
-            frs.new_swap(jin, jout);
+            B.reject(3);
+            B.select(1);
+            frs.new_swap(/*in*/1, /*out*/3);
             s_Bp = frs.score(B);
 
             THEN( "Scores should be the same" ) {
