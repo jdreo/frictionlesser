@@ -10,6 +10,13 @@ This software aims at finding genetic "signatures" in RNA sequencing data.
 A signature is hereby define as a set of genes that are "differentially" expressed
 across a set of samples (bulk or single cells).
 
+The problem is modelled as a multi-modal maximization
+of a partition on the multi-dimensional boolean space
+(of genes).
+So far, only the objective function is implemented,
+with partial evaluation for the stable neighborhood
+(i.e. swaping genes, so having a fixed-dimensional partition).
+
 
 Build
 =====
@@ -29,6 +36,21 @@ Usage
 =====
 
 The executable is `app/frictionlesser`, you will need to feed it with either a raw expression table or a ranked table.
+
+To generate the ranked table:
+```
+frictionlesser --exprs=<expression_table.tsv> > ranked.tsv
+```
+
+To compute the score of some arbitrary solutions:
+```
+frictionlesser --ranks=ranked.tsv
+```
+
+
+Input data
+==========
+
 Expression tables are expected to follow the following space-separated table format.
 
 |  GENE   |  Cell_0 | … | Cell_i | … | Cell_m |
@@ -45,6 +67,17 @@ NOTES:
 - Cells should be named from their sample name, followed by an ID of the form "-[A-Z][0-9]{2}$",
 e.g. "-A01" (following Neftel et al. convention [1]).
 
+
+Files
+=====
+
+Headers are in `include/`, sources in `src/`, executable in `app/`, examples and tests in `tests/`.
+
+The build generates `libfrictionless` and `libR`.
+
+
+References
+==========
 
 [1] Neftel et al., An Integrative Model of Cellular States, Plasticity, and Genetics for Glioblastoma,
     Cell. 2019 Aug 8; 178(4):835-849.e21,
