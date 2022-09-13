@@ -135,8 +135,8 @@ int main(int argc, char* argv[])
     // const bool optimum = argparser.createParam<bool>(true, "optimum",
     //     "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
 
-    const long seed = argparser.createParam<long>(0, "seed",
-        "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
+    // const long seed = argparser.createParam<long>(0, "seed",
+    //     "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
 
     const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
         "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
@@ -241,33 +241,29 @@ int main(int argc, char* argv[])
     }
     CLUTCHLOG(note, "OK -- checks passed.");
 
-    // /*
     CLUTCHLOG(debug, "Test signatures data structures...");
+        frictionless::Signature geneset(tr.genes_nb());
+        geneset.select(0);
+        geneset.select(1);
+        CLUTCHCODE(xdebug,
+            geneset.printOn(std::clog);
+            std::clog << std::endl;
 
-    frictionless::Signature geneset(tr.genes_nb());
-    geneset.select(0);
-    geneset.select(1);
-
-    CLUTCHCODE(xdebug,
-        geneset.printOn(std::clog);
-        std::clog << std::endl;
-
-        for(size_t j : geneset.selected) {
-            std::clog << tr.gene_name(j) << " ";
-        }
-        std::clog << std::endl;
-    );
-
+            for(size_t j : geneset.selected) {
+                std::clog << tr.gene_name(j) << " ";
+            }
+            std::clog << std::endl;
+        );
     CLUTCHLOG(debug, "OK");
-    // */
-    // try {
+
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
         frictionless::FriedmanScore frs(tr,2);
         const size_t geneset_nb = geneset.selected.size();
         CLUTCHLOG(debug, "Signature of size " << geneset_nb);
         frs.new_signature_size(geneset_nb);
     CLUTCHLOG(note, "OK");
-    CLUTCHLOG(progress, "Compute Friedman score...");
+
+    CLUTCHLOG(progress, "Compute Friedman score from scratch...");
         frs.init_signature(geneset);
         geneset.fitness(frs.score(geneset));
         std::cout << geneset << std::endl;
@@ -275,12 +271,6 @@ int main(int argc, char* argv[])
 
     for(size_t i=2; i < 4; ++i) {
         CLUTCHLOG(progress, "Swap two genes and update...");
-            // auto itin = std::find(std::begin(geneset), std::end(geneset), 0);
-            // auto itout = std::find(std::begin(geneset), std::end(geneset), 1);
-            // size_t jin = itin - std::begin(geneset);
-            // size_t jout = itout - std::begin(geneset);
-            // geneset[jin] = 1;
-            // geneset[jout] = 0;
             geneset.reject(i-1);
             geneset.select(i);
 
@@ -291,14 +281,11 @@ int main(int argc, char* argv[])
     }
 
     CLUTCHLOG(progress, "Full eval...");
-    frictionless::FullEval feval(tr, 2);
-    geneset.invalidate();
-    feval(geneset);
-    std::cout << geneset << std::endl;
+        frictionless::FullEval feval(tr, 2);
+        geneset.invalidate();
+        feval(geneset);
+        std::cout << geneset << std::endl;
     CLUTCHLOG(note, "OK");
 
-    // } catch(...) {
-        // EXIT_ON_ERROR(DataInconsistent, e.what());
-    // }
     CLUTCHLOG(progress, "Done.");
 }

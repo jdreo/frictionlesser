@@ -243,21 +243,9 @@ void FriedmanScore::init_signature(Signature geneset)
     R.clear();
     for(size_t c : _transcriptome.cells()) {
         double sum_r = 0;
-        // FIXME use something else than eoBit to improve perf.
-        // This should iterate over selected gene indices instead of all geneset.
         for(size_t j : geneset.selected) {
             sum_r += _transcriptome.rank(c,j);
         }
-        // for(size_t j : _transcriptome.geneset()) {
-        //     #ifndef NDEBUG
-        //         const bool selected = geneset[j];
-        //     #else
-        //         const bool selected = geneset.at(j);
-        //     #endif
-        //     sum_r += selected * _transcriptome.rank(c,j);
-        //     // CLUTCHLOG(xdebug, "         gene=" << j << ", selected=" << selected << ", sum_r=" << sum_r);
-        // } // for j in geneset
-
         R.push_back(sum_r);
         CLUTCHLOG(xdebug, "         R_" << c << "=" << R.back());
     } // for c in cells
@@ -291,10 +279,6 @@ void FriedmanScore::init_signature(Signature geneset)
 
         // Zakiev code:
         double sum_t = 0;
-        // for(size_t j : _transcriptome.geneset()) {
-        //     const bool selected = geneset[j];
-        //     sum_t += selected * T[i][j];
-        // }
         for(size_t j : geneset.selected) {
             sum_t += T[i][j];
         }

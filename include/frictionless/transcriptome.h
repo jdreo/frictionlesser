@@ -10,7 +10,9 @@ namespace frictionless {
  */
 class Transcriptome {
     public:
+        /** Shortcut for the underlying table data structure. */
         using Type = std::vector<std::vector<double>>;
+
         /** Table of ranks, covering each gene/cell pair.
          *
          * Ranks may be half-ranks, so we use floating-point numbers.
@@ -42,6 +44,10 @@ class Transcriptome {
         std::vector<size_t> _samples;
 
     public:
+        /** Constructor.
+         *
+         * @param errors_max_print Maximum number of identical errors to log. If there are more errors than this number, will draw a random sample of errors to display.
+         */
         Transcriptome( const size_t errors_max_print = 20 );
 
         /** @name Accessors on ranks.
@@ -119,9 +125,16 @@ class Transcriptome {
         /** Returns an *SV string of the ranks table. */
         std::ostream& as_csv(std::ostream& out = std::cout, const std::string sep="\t") const;
 
+        /** Maximum number of errors to print. */
         size_t _errors_max_print;
+
+        /** Check the table shape. */
         bool check_tables() const;
+
+        /** Check the genes consistency. */
         bool check_genes() const;
+
+        /** Check the ranks consistency. */
         bool check_ranks(const double epsilon) const;
 
 }; // Transcriptome

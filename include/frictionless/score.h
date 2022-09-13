@@ -9,6 +9,11 @@ namespace frictionless {
 /** Data structure for computing the score, along with some cached data. */
 class FriedmanScore {
     public:
+        /** Constructor
+         *
+         * @param rt Ranked expression table.
+         * @param alpha The alpha parameter of the score function.
+         */
         FriedmanScore( const Transcriptome& rt, const double alpha=2);
 
     #ifndef NDEBUG

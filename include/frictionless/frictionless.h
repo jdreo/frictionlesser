@@ -23,8 +23,12 @@ EXCEPTION(Exception, DataError);
 
 double sum( const std::vector<double>& t);
 double sum( const std::vector<size_t>& t);
-size_t sum( const Signature& genes);
 
+/** Compute the rank of the given vector.
+ *
+ * @param exprs The vector to be ranked.
+ * @param epsilon Precision at which one test for equality.
+ */
 std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon );
 
 

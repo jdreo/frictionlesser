@@ -89,7 +89,12 @@ class TranscriptomeParser
 class NeftelExprParser : public TranscriptomeParser
 {
     public:
+        /** Constructor.
+         *
+         * @param errors_max_print Maximum number of identical errors to log. If there are more errors than this number, will draw a random sample of errors to display.
+         */
         NeftelExprParser(const size_t errors_max_print = 20);
+
         virtual ~NeftelExprParser(){}
 };
 
@@ -114,7 +119,12 @@ class NeftelExprParser : public TranscriptomeParser
 class ZakievRankParser : public TranscriptomeParser
 {
     public:
+        /** Constructor.
+         *
+         * @param errors_max_print Maximum number of identical errors to log. If there are more errors than this number, will draw a random sample of errors to display.
+         */
         ZakievRankParser(const size_t errors_max_print = 20);
+
         virtual ~ZakievRankParser(){}
 };
 
@@ -140,7 +150,12 @@ class ZakievRankParser : public TranscriptomeParser
 class CommonRankParser : public TranscriptomeParser
 {
     public:
+        /** Constructor.
+         *
+         * @param errors_max_print Maximum number of identical errors to log. If there are more errors than this number, will draw a random sample of errors to display.
+         */
         CommonRankParser(const size_t errors_max_print = 20);
+
         virtual ~CommonRankParser(){}
 };
 
