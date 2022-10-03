@@ -117,6 +117,7 @@ class FriedmanScore {
          * @{ */
 
         /** Sum of ranks across genes, for each cell.
+         *   FIXME: $c$ or $c_i$?
          * \f[
          *      R_c(G) = \sum_{t\in G} r_{c_i,t}
          * \f] */
@@ -153,7 +154,7 @@ class FriedmanScore {
         void new_signature_size(const size_t signature_size);
 
         /** Compute constants from scratch. */
-        void init_signature(Signature genes);
+        void init_signature(const Signature& genes);
 
         /** Pre-compute constants for a single gene-swap: A, D.
          *
@@ -162,7 +163,7 @@ class FriedmanScore {
         void new_swap(const size_t gene_in, const size_t gene_out);
 
         /** Global score. */
-        double score(Signature genes);
+        double score(const Signature& genes);
 
 };
 

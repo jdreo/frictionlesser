@@ -136,6 +136,7 @@ void FriedmanScore::new_transcriptome()
 void FriedmanScore::new_signature_size(const size_t signature_size)
 {
     CLUTCHLOG(debug, "New signature size: " << signature_size);
+    CLUTCHLOG(xdebug, "Cached signature size: " << _cached_signature_size);
     B.clear();
     C.clear();
     ASSERT(signature_size > 0);
@@ -232,7 +233,7 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 /******************************************
  * R, A, D
  ******************************************/
-void FriedmanScore::init_signature(Signature geneset)
+void FriedmanScore::init_signature(const Signature& geneset)
 {
     CLUTCHLOG(debug, "Initialize signature: " << geneset);
     ASSERT(geneset.selected.size()+geneset.rejected.size() == _transcriptome.genes_nb());
@@ -284,7 +285,6 @@ void FriedmanScore::init_signature(Signature geneset)
         }
         const double m_i = _transcriptome.cells_nb(i);
         D.push_back( (1/(m_i-1)) * sum_t - GG[i] * _cached_signature_size );
-        // HERE
 
         CLUTCHLOG(xdebug, "        A=" << A.back() << ",    D=" << D.back());
 
@@ -292,12 +292,15 @@ void FriedmanScore::init_signature(Signature geneset)
 }
 
 
-double FriedmanScore::score(Signature geneset)
+double FriedmanScore::score(const Signature& geneset)
 {
     CLUTCHLOG(debug, "Compute score of: " << geneset);
     size_t current_signature_size = geneset.selected.size();
     ASSERT(current_signature_size > 0);
     if(_cached_signature_size != current_signature_size) {
+        CLUTCHLOG(warning, "Current signature size " << current_signature_size
+            << " does not match cached signature size of " << _cached_signature_size
+            << ", I will silently call for a new_signature_size");
         new_signature_size(current_signature_size);
     }
 

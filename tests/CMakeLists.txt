@@ -1,4 +1,4 @@
-add_executable(tests tests.cpp frictionless_t.cpp)
+add_executable(tests tests.cpp frictionless_t.cpp evals_t.cpp)
 target_link_libraries(tests PUBLIC frictionless R Catch2::Catch2WithMain ${PARADISEO_LIBRARIES} stdc++fs)
 
 add_executable(t-moBinaryPartition t-moBinaryPartition.cpp)

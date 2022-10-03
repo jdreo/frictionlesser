@@ -281,10 +281,24 @@ int main(int argc, char* argv[])
     }
 
     CLUTCHLOG(progress, "Full eval...");
-        frictionless::FullEval feval(tr, 2);
+        frictionless::EvalFull feval(frs);
         geneset.invalidate();
         feval(geneset);
         std::cout << geneset << std::endl;
+    CLUTCHLOG(note, "OK");
+
+    CLUTCHLOG(progress, "Partial eval...");
+        frictionless::EvalSwap peval(frs);
+        moBinaryPartitionSwapNeighbor<frictionless::Signature>
+            neighbor(geneset.selected.size());
+        neighbor.set(1,3);
+        peval(geneset, neighbor);
+        std::cout << neighbor << " = " << neighbor.fitness() << std::endl;
+    CLUTCHLOG(progress, "Equivalent full eval...");
+        neighbor.move(geneset);
+        feval(geneset); // Compare with full eval.
+        std::cout << geneset << std::endl;
+        ASSERT(geneset.fitness() == neighbor.fitness());
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Done.");
