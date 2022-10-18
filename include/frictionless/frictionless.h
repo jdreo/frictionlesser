@@ -31,7 +31,4 @@ double sum( const std::vector<size_t>& t);
  */
 std::vector<double> ranks_of( const std::vector<double>& exprs, const double epsilon );
 
-
-
-
 } // frictionless

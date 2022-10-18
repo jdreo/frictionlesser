@@ -266,7 +266,7 @@ int main(int argc, char* argv[])
     CLUTCHLOG(progress, "Compute Friedman score from scratch...");
         frs.init_signature(geneset);
         geneset.fitness(frs.score(geneset));
-        std::cout << geneset << std::endl;
+        CLUTCHLOG(debug, geneset);
     CLUTCHLOG(note, "OK");
 
     for(size_t i=2; i < 4; ++i) {
@@ -276,7 +276,7 @@ int main(int argc, char* argv[])
 
             frs.new_swap(i, i-1);
             geneset.fitness(frs.score(geneset));
-            std::cout << geneset << std::endl;
+            CLUTCHLOG(debug, geneset);
         CLUTCHLOG(note, "OK");
     }
 
@@ -284,21 +284,53 @@ int main(int argc, char* argv[])
         frictionless::EvalFull feval(frs);
         geneset.invalidate();
         feval(geneset);
-        std::cout << geneset << std::endl;
+        CLUTCHLOG(debug, geneset);
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Partial eval...");
         frictionless::EvalSwap peval(frs);
-        moBinaryPartitionSwapNeighbor<frictionless::Signature>
+        frictionless::Neighbor
             neighbor(geneset.selected.size());
         neighbor.set(1,3);
         peval(geneset, neighbor);
-        std::cout << neighbor << " = " << neighbor.fitness() << std::endl;
+        CLUTCHLOG(debug, neighbor );
     CLUTCHLOG(progress, "Equivalent full eval...");
         neighbor.move(geneset);
         feval(geneset); // Compare with full eval.
-        std::cout << geneset << std::endl;
+        CLUTCHLOG(debug, geneset);
         ASSERT(geneset.fitness() == neighbor.fitness());
+    CLUTCHLOG(note, "OK");
+
+    CLUTCHLOG(progress, "Algo run...");
+        // Print stuff on stdlog.
+        eoOStreamMonitor logger(std::clog);
+            moBestFitnessStat<frictionless::Signature> best;
+            logger.add(best);
+            moCounterStat<frictionless::Signature> counter;
+            logger.add(counter);
+        // Print stuff every 10 seconds.
+        eoTimedMonitor every(10);
+            every.add(logger);
+        // Continue search until exhaustion of the neighborhood.
+        moTrueContinuator<frictionless::Neighbor> until_end;
+        moCheckpoint<frictionless::Neighbor> check(until_end);
+            check.add(best);    // Update this stat.
+            check.add(counter); // Update this state.
+            check.add(every);   // Call this monitor.
+
+        // The actual algorithm.
+        frictionless::Neighborhood neighborhood;
+        // Hill climber, selecting a random solution among the equal-best ones.
+        moRandomBestHC<frictionless::Neighbor>
+            search(neighborhood, feval, peval, check);
+
+        frictionless::Signature signature(tr.genes_nb());
+        signature.select(0);
+        signature.select(1);
+        feval(signature);
+        CLUTCHLOG(progress, "Initial signature: " << signature);
+
+        search(signature);
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Done.");

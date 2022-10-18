@@ -30,7 +30,34 @@ class EvalFull : public eoEvalFunc<Signature>
         void operator()(Signature& geneset);
 };
 
+#ifndef NDEBUG
+/** Partial evaluator that actually perform a full evaluation.
+ *
+ * This is to test that a partial evaluation ends on the same value than a full evaluation.
+ */
+class EvalTest : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
+{
+    protected:
+        EvalFull& _full_eval;
 
+    public:
+        /** Constructor.
+         *
+         * @param full_eval The full evaluator.
+         */
+        EvalTest(EvalFull& full_eval);
+
+        /** Incremental evaluation.
+         *
+         * @param solution the solution on which to apply the move.
+         * @param neighbor the move to consider.
+         */
+        void operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor); 
+};
+#endif
+
+/** Partial evaluator of a neighbor that is one swap away.
+ */
 class EvalSwap : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
 {
     protected:

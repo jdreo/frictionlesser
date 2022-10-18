@@ -13,6 +13,22 @@ void EvalFull::operator()(Signature& geneset)
     geneset.fitness(_frs.score(geneset));
 }
 
+#ifndef NDEBUG
+EvalTest::EvalTest(EvalFull& full_eval) :
+    _full_eval(full_eval)
+{ }
+
+void EvalTest::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor)
+{
+    // Apply the neighbor move on a temp solution.
+    Signature newsol = solution;
+    neighbor.move(newsol);
+    // Full evaluation.
+    _full_eval(newsol);
+    neighbor.fitness(newsol.fitness());
+    assert(not neighbor.invalid());
+}
+#endif
 
 EvalSwap::EvalSwap(FriedmanScore& frs) :
     _frs(frs)
@@ -32,6 +48,7 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
 
     // Final score computation.
     neighbor.fitness(_frs.score(newsol));
+    assert(not neighbor.invalid());
 }
 
 } // frictionless

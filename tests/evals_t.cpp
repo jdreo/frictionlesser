@@ -33,21 +33,38 @@ SCENARIO( "Evaluators are consistent" ) {
                 REQUIRE( geneset.fitness() == Catch::Approx(0.5) );
             }
         }
-        WHEN( "Computing a partial evaluation leading to a known signature" ) {
+        WHEN( "Computing partial evaluations of known signatures" ) {
+            frictionless::EvalTest teval(feval);
+
             frictionless::Signature geneset(rk.genes_nb());
             geneset.select(0);
-            geneset.select(3);
+            geneset.select(1);
             feval(geneset); // We need a first eval.
 
-            moBinaryPartitionSwapNeighbor<frictionless::Signature>
-                neighbor(geneset.selected.size());
-            neighbor.set(/*selects*/1, /*rejects*/3);
-            peval(geneset, neighbor);
+            frictionless::Neighborhood phood;
+            frictionless::Neighbor part;
+            phood.init(geneset, part);
 
-            THEN( "Scores are consistents" ) {
-                REQUIRE( not neighbor.invalid() );
-                REQUIRE( neighbor.fitness() == Catch::Approx(0.5) );
-            }
+            frictionless::Neighborhood fhood;
+            frictionless::Neighbor full;
+            fhood.init(geneset, full);
+
+            // Use the neighborhood to generate signatures to test.
+            size_t i = 0;
+            do {
+                peval(geneset, part);
+                teval(geneset, full);
+
+                DYNAMIC_SECTION( "Neighbor `" << part << "` have the same score with full evaluation" ) {
+                    REQUIRE( not part.invalid() );
+                    REQUIRE( not full.invalid() );
+                    REQUIRE( part.fitness() == Catch::Approx(full.fitness()) );
+                }
+
+                phood.next(geneset, part);
+                fhood.next(geneset, full);
+                i++;
+            } while(phood.cont(geneset) and fhood.cont(geneset));
         }
     }
 }
