@@ -17,9 +17,10 @@ SCENARIO( "Evaluators are consistent" ) {
         std::istringstream iss(ssv);
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
-        frictionless::FriedmanScore frs(rk, /*alpha*/2);
-        frictionless::EvalFull feval(frs);
-        frictionless::EvalSwap peval(frs);
+        frictionless::FriedmanScore ffrs(rk, /*alpha*/2);
+        frictionless::FriedmanScore pfrs(rk, /*alpha*/2);
+        frictionless::EvalFull feval(ffrs);
+        frictionless::EvalSwap peval(pfrs);
 
         WHEN( "Computing a full evaluation" ) {
             frictionless::Signature geneset(rk.genes_nb());
@@ -39,11 +40,11 @@ SCENARIO( "Evaluators are consistent" ) {
             frictionless::Signature geneset(rk.genes_nb());
             geneset.select(0);
             geneset.select(1);
-            feval(geneset); // We need a first eval.
+            feval(geneset); // We need a first full eval to init the state of ffrs.
 
             frictionless::Neighborhood phood;
             frictionless::Neighbor part;
-            phood.init(geneset, part);
+            phood.init(geneset, part); // Make `part` be the first possible swap.
 
             frictionless::Neighborhood fhood;
             frictionless::Neighbor full;
@@ -52,8 +53,8 @@ SCENARIO( "Evaluators are consistent" ) {
             // Use the neighborhood to generate signatures to test.
             size_t i = 0;
             do {
-                peval(geneset, part);
-                teval(geneset, full);
+                peval(geneset, part); // Partial update of pfrs, then back to previous state.
+                teval(geneset, full); // Reset ffrs state and re-compute score.
 
                 DYNAMIC_SECTION( "Neighbor `" << part << "` have the same score with full evaluation" ) {
                     REQUIRE( not part.invalid() );
@@ -61,7 +62,7 @@ SCENARIO( "Evaluators are consistent" ) {
                     REQUIRE( part.fitness() == Catch::Approx(full.fitness()) );
                 }
 
-                phood.next(geneset, part);
+                phood.next(geneset, part); // Next swap in `part`.
                 fhood.next(geneset, full);
                 i++;
             } while(phood.cont(geneset) and fhood.cont(geneset));
