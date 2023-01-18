@@ -95,7 +95,7 @@ void FriedmanScore::new_transcriptome()
             double sum_ranks_sq = 0; // for SSR.
             // Rank => ties count^3, for T.
             // This should work even if ranks are unordered.
-            std::map<double,size_t> ties; // For T.
+            std::map<double,unsigned long long> ties; // For T.
             for(size_t c : _transcriptome.cells(i) ) { // All cells of this sample.
                 const double rk = _transcriptome.rank(c,j);
                 sum_ranks_sq += std::pow(rk,2); // For SSR.
@@ -104,6 +104,7 @@ void FriedmanScore::new_transcriptome()
                 } else {
                     ties[rk] = 1;
                 }
+                ASSERT(ties[rk]!=0); // Overflow guard.
             } // for c in cells
             SSR_j.push_back( sum_ranks_sq );
 
