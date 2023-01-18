@@ -10,6 +10,7 @@ namespace frictionless {
 FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
     _transcriptome(rt),
     alpha(a),
+    _has_init_signature(false),
     _cached_signature_size(0)
 {
     ASSERT(_transcriptome.ranks( ).size() > 0);
@@ -206,6 +207,7 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
 void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 {
     CLUTCHLOG(debug, "New swap: in=" << gene_in << ", out=" << gene_out);
+    ASSERT(_has_init_signature);
     ASSERT(gene_in != gene_out);
     ASSERT(not (gene_in == _cached_gene_in and gene_out == _cached_gene_out));
 
@@ -232,7 +234,7 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 }
 
 /******************************************
- * R, A, D
+ * A, D, R
  ******************************************/
 void FriedmanScore::init_signature(const Signature& geneset)
 {
@@ -243,6 +245,7 @@ void FriedmanScore::init_signature(const Signature& geneset)
     A.clear();
     D.clear();
     R.clear();
+    CLUTCHLOG(xdebug, "    R:");
     for(size_t c : _transcriptome.cells()) {
         double sum_r = 0;
         for(size_t j : geneset.selected) {
@@ -290,6 +293,8 @@ void FriedmanScore::init_signature(const Signature& geneset)
         CLUTCHLOG(xdebug, "        A=" << A.back() << ",    D=" << D.back());
 
     } // for i in samples
+
+    _has_init_signature = true;
 }
 
 
@@ -334,6 +339,7 @@ double FriedmanScore::score(const Signature& geneset)
         score += logpval;
     }
 
+    CLUTCHLOG(debug, "    Score: " << score);
     ASSERT(not std::isnan(score));
     ASSERT(score >= 0);
     ASSERT(not std::isinf(score));
@@ -343,6 +349,11 @@ double FriedmanScore::score(const Signature& geneset)
 double FriedmanScore::sqrt_logchisq(const double s, const double m) const
 {
     return std::sqrt(-1 * R::pgamma(/*x*/s, /*alph*/m/2, /*scale*/2, /*lower_tail*/0, /*log_p*/1));
+}
+
+bool FriedmanScore::has_init_signature()
+{
+    return _has_init_signature;
 }
 
 } // frictionless

@@ -6,7 +6,18 @@
 
 namespace frictionless {
 
-/** Data structure for computing the score, along with some cached data. */
+/** Data structure for computing the score, along with some cached data.
+ *
+ * Methods updating the internal state are expected to honor the following order.
+ * I.E. If you call a method, you should have called before the previous ones.
+ * 1. constructor [calling new_transcriptome]
+ * 2. new_signature_size
+ * 3. init_signature
+ * 4. new_swap (on a previously initialized signature)
+ * 5. score
+ *
+ * @note This is only double-checked with asserts, thus in Debug builds.
+ */
 class FriedmanScore {
     public:
         /** Constructor
@@ -16,11 +27,11 @@ class FriedmanScore {
          */
         FriedmanScore( const Transcriptome& rt, const double alpha=2);
 
-    #ifndef NDEBUG
-        public: // Needs to be public for testing.
-    #else
-        protected:
-    #endif
+#ifndef NDEBUG
+    public: // Needs to be public for testing.
+#else
+    protected:
+#endif
         /** @name Parameters:
          * Chosen at instantiation by the user.
          * @{ */
@@ -30,6 +41,12 @@ class FriedmanScore {
 
         /** The user-set parameter of the score. */
         const double alpha;
+        /** @} */
+
+        /** @name Intialization
+         * Values that are going to be updated at each gene swap, but need to be initialized first.
+         * @{ */
+             bool _has_init_signature;
         /** @} */
 
         /** @name Updated when one swap a gene:
@@ -52,6 +69,13 @@ class FriedmanScore {
          *     D_i(G) = \frac{1}{m_i-1}\sum_{v = 1}^{|G|} \left(\left(\sum_{a=1}^{g_{v}} t_{v,a}^3\right) - m_i\right)
          * \f] */
         std::vector<double> D;
+
+        /** Sum of ranks across genes, for each cell.
+         *   FIXME: $c$ or $c_i$?
+         * \f[
+         *      R_c(G) = \sum_{t\in G} r_{c_i,t}
+         * \f] */
+        std::vector<double> R;
         /** @} */
 
 
@@ -112,17 +136,6 @@ class FriedmanScore {
         /** @} */
 
 
-        /** @name Intialization:
-         * Values that are going to be updated at each gene swap, but need to be initialized first.
-         * @{ */
-
-        /** Sum of ranks across genes, for each cell.
-         *   FIXME: $c$ or $c_i$?
-         * \f[
-         *      R_c(G) = \sum_{t\in G} r_{c_i,t}
-         * \f] */
-        std::vector<double> R;
-
         // TODO
         // std::vector<double> logpvals;
         // std::vector<double> S_hats;
@@ -153,12 +166,21 @@ class FriedmanScore {
          */
         void new_signature_size(const size_t signature_size);
 
+        /** Returns true if a first signature has been evaluated.
+         *
+         * Useful to check whether you have to call init_signature.
+         */
+        bool has_init_signature();
+
         /** Compute constants from scratch. */
         void init_signature(const Signature& genes);
 
-        /** Pre-compute constants for a single gene-swap: A, D.
+        /** Pre-compute constants for a single gene-swap: A, D, R.
          *
          * To be called again if two genes have been swapped.
+         *
+         * @warning Expects the signature to have been previously initialized.
+         *          You must ensure to call init_signature at least once before.
          */
         void new_swap(const size_t gene_in, const size_t gene_out);
 
