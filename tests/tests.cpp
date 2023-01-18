@@ -34,11 +34,46 @@ int main( int argc, char* argv[] ) {
               clutchlog::fmt::fg::black,
               clutchlog::fmt::bg::red,
               clutchlog::fmt::typo::bold);
-    log.hfill_style(clutchlog::fmt::fg::black);
+    log.style(clutchlog::level::error,
+              clutchlog::fmt::fg::black,
+              clutchlog::fmt::bg::red);
+    log.style(clutchlog::level::warning,
+              clutchlog::fmt::fg::black,
+              clutchlog::fmt::bg::magenta,
+              clutchlog::fmt::typo::bold);
+    log.style(clutchlog::level::progress,
+              clutchlog::fmt::fg::yellow,
+              clutchlog::fmt::typo::bold);
+    log.style(clutchlog::level::note,
+              clutchlog::fmt::fg::green,
+              clutchlog::fmt::typo::bold);
+    log.style(clutchlog::level::info,
+              clutchlog::fmt::fg::green);
+    log.style(clutchlog::level::debug,
+              clutchlog::fmt::fg::cyan);
+    log.style(clutchlog::level::xdebug,
+              clutchlog::fmt::fg::blue);
     log.hfill_max(100);
     log.strip_calls(5); // Catch2 inserts a lot of intermediate calls.
+    // log.hfill_style(clutchlog::fmt::fg::black);
     #ifndef NDEBUG
-        log.format("{level_letter}:{depth_marks} {msg} {hfill} {func} @ {file}:{line}\n");
+        std::ostringstream format;
+        clutchlog::fmt reset(clutchlog::fmt::typo::reset);
+        clutchlog::fmt discreet(clutchlog::fmt::fg::black);
+        clutchlog::fmt bold(clutchlog::fmt::typo::bold);
+        format << "{level_fmt}"
+               << "{level_letter}:"
+               << "{depth_marks} "
+               << bold("{msg}")
+               << discreet(" {hfill} ")
+               << "{level_fmt}{func}"
+               << discreet(" @ ")
+               << "{level_fmt}{file}"
+               << reset << ":"
+               << "{level_fmt}{line}"
+               << "\n";
+        log.format(format.str());
+        // log.format("{level_letter}:{depth_marks} {msg} {hfill} {func} @ {file}:{line}\n");
     #else
         log.format("{level_letter}:{depth_marks} {msg}\n");
     #endif
