@@ -7,8 +7,8 @@
 #include <ga/eoBit.h>
 
 #include <exceptions/exceptions.h>
-#include <clutchlog/clutchlog.h>
 
+#include "log.h"
 #include "signature.h"
 
 // Make asserts (de)clutchable.

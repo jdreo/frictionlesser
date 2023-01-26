@@ -43,17 +43,18 @@ EvalSwap::EvalSwap(FriedmanScore& frs) :
 
 void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor)
 {
-    CLUTCHLOG(debug, "Partial eval of: " << solution << " moved as " << neighbor);
+    CLUTCHLOG(debug, "Partial eval of: " << solution);
 
     // We should have a valid state to swap from.
     if(not _frs.has_init_signature()) {
-        CLUTCHLOG(xdebug, "First initialization of the EvalSwap's FriedmanScore");
+        CLUTCHLOG(note, "First initialization of the EvalSwap's FriedmanScore");
         _frs.new_signature_size(solution.selected.size());
         _frs.init_signature(solution);
     }
-    // ASSERT(not solution.invalid());
-    // ASSERT(solution.fitness() == _frs.score(solution));
+    ASSERT(not solution.invalid()); // TODO: necessary?
+    ASSERT(solution.fitness() == _frs.score(solution));
 
+    CLUTCHLOG(debug, "Moved as " << neighbor);
     // Save the partial state of the given solution.
     std::vector<double> A = _frs.A;
     std::vector<double> D = _frs.D;
@@ -62,7 +63,7 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
     // Apply the neighbor move on a temp solution.
     Signature newsol = solution;
     neighbor.move(newsol);
-    CLUTCHLOG(debug, "    That is solution: " << newsol);
+    CLUTCHLOG(debug, "    That is neighbor solution: " << newsol);
 
     // Partial score cache update.
     auto [in,out] = neighbor.get();
@@ -71,18 +72,26 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
 
     // Final score computation.
     neighbor.fitness(_frs.score(newsol));
-    CLUTCHLOG(debug, "Score: " << neighbor.fitness());
+    CLUTCHLOG(debug, "Neighbor solution score: " << neighbor.fitness());
     ASSERT(not neighbor.invalid());
 
     // Reverse the core state to the one of the origin solution.
-    CLUTCHLOG(debug, "Reverse swap");
+    CLUTCHLOG(debug, "Reverse swap state: " << neighbor << " to: -" << in << " +" << out);
     _frs.A = std::move(A);
     _frs.D = std::move(D);
     _frs.R = std::move(R);
     _frs._cached_gene_in  = std::move(out);
     _frs._cached_gene_out = std::move(in);
-    CLUTCHLOG(debug, "Solution: " << solution << " has fitness: " << solution.fitness() << " / score: " << _frs.score(solution));
+    // _frs.A = A;
+    // _frs.D = D;
+    // _frs.R = R;
+    // _frs._cached_gene_in  = out;
+    // _frs._cached_gene_out = in;
+    CLUTCHLOG(info, "Previous solution: " << solution << " / score: " << _frs.score(solution));
+    CLUTCHLOG(info, "Neighbor solution: " << newsol << " has neighbor fitness: " << neighbor.fitness());
     ASSERT(_frs.score(solution) == solution.fitness());
+
+    ASSERT(not neighbor.invalid());
 }
 
 } // frictionless

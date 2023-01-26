@@ -13,6 +13,7 @@
 #include <frictionless/parser.h>
 #include <frictionless/score.h>
 #include <frictionless/eval.h>
+#include <frictionless/log.h>
 
 //! Error codes returned on exit.
 enum class Error : unsigned char {
@@ -159,22 +160,10 @@ int main(int argc, char* argv[])
     size_t max_errors=30;
     */
 
+    frictionless::clutchlog_config(); // common config
     auto& log = clutchlog::logger();
     ASSERT(log.levels().contains(log_level));
     log.threshold(log_level);
-    log.out(std::cerr);
-    log.depth_mark(" >");
-    log.style(clutchlog::level::critical,
-              clutchlog::fmt::fg::black,
-              clutchlog::fmt::bg::red,
-              clutchlog::fmt::typo::bold);
-    log.hfill_style(clutchlog::fmt::fg::black);
-    log.hfill_max(100);
-    #ifndef NDEBUG
-        log.format("{level_letter}:{depth_marks} {msg} {hfill} {func} @ {file}:{line}\n");
-    #else
-        log.format("{level_letter}:{depth_marks} {msg}\n");
-    #endif
 
     frictionless::Transcriptome tr(max_errors);
 
