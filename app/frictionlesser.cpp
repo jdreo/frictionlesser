@@ -142,6 +142,15 @@ int main(int argc, char* argv[])
     const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
         "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
 
+    const std::string log_file = argparser.createParam<std::string>(".*", "log-file",
+        "Regexp indicating which source file is allowed logging (default=all)", 'f', "Misc").value();
+
+    const std::string log_func = argparser.createParam<std::string>(".*", "log-func",
+        "Regexp indicating which function is allowed logging (default=all)", 'F', "Misc").value();
+
+   const size_t log_depth = argparser.createParam<size_t>(9999, "log-depth",
+        "Maximum stack depth above which logging is not allowed (default=no limit)", 'D', "Misc").value();
+
     const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
         "Maximum number of errors reported for each check", 'm', "Misc").value();
 
@@ -164,6 +173,9 @@ int main(int argc, char* argv[])
     auto& log = clutchlog::logger();
     ASSERT(log.levels().contains(log_level));
     log.threshold(log_level);
+    log.depth(log_depth);
+    log.file(log_file);
+    log.func(log_func);
 
     frictionless::Transcriptome tr(max_errors);
 
@@ -281,12 +293,13 @@ int main(int argc, char* argv[])
         frictionless::Neighbor neighbor(geneset.selected.size());
         neighbor.set(1,3);
         peval(geneset, neighbor);
-        CLUTCHLOG(info, "Partially evaled neighbor: " << neighbor << " from: " << geneset);
+        CLUTCHLOG(info, "Partially evaled neighbor: " << neighbor);
     CLUTCHLOG(progress, "Equivalent full eval...");
         neighbor.move(geneset);
         feval(geneset); // Compare with full eval.
         CLUTCHLOG(info, "Fully evaled solution: " << geneset);
-        CLUTCHLOG(xdebug, "Solution fitness: " << geneset.fitness() << ", neighbor fitness: " << neighbor.fitness());
+        CLUTCHLOG(debug, "Solution: " << geneset << ", neighbor: " << neighbor);
+        CLUTCHLOG(debug, "Solution fitness: " << geneset.fitness() << ", neighbor fitness: " << neighbor.fitness());
         ASSERT(geneset.fitness() == neighbor.fitness());
     CLUTCHLOG(note, "OK");
 
