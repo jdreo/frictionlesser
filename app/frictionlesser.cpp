@@ -89,7 +89,7 @@ static void check_consistency(const frictionless::Transcriptome& tr)
     CLUTCHCODE(debug,
         CLUTCHLOG(debug, "Samples:");
         for(const auto& i : tr.samples()) {
-            CLUTCHLOG(debug, "    - " << tr.sample_name(i) << ": " << tr.cells(i).size() << " cells" );
+            CLUTCHLOGD(debug, tr.sample_name(i) << ": " << tr.cells(i).size() << " cells" , 1);
         }
     );
 
@@ -273,20 +273,20 @@ int main(int argc, char* argv[])
         frictionless::EvalFull feval(frs);
         geneset.invalidate();
         feval(geneset);
-        CLUTCHLOG(debug, geneset);
+        CLUTCHLOG(info, "Fully evaled solution:" << geneset);
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Partial eval...");
+    CLUTCHLOG(progress, "Partial eval on neighbor...");
         frictionless::EvalSwap peval(frs);
-        frictionless::Neighbor
-            neighbor(geneset.selected.size());
+        frictionless::Neighbor neighbor(geneset.selected.size());
         neighbor.set(1,3);
         peval(geneset, neighbor);
-        CLUTCHLOG(debug, neighbor );
+        CLUTCHLOG(info, "Partially evaled neighbor: " << neighbor << " from: " << geneset);
     CLUTCHLOG(progress, "Equivalent full eval...");
         neighbor.move(geneset);
         feval(geneset); // Compare with full eval.
-        CLUTCHLOG(debug, geneset);
+        CLUTCHLOG(info, "Fully evaled solution: " << geneset);
+        CLUTCHLOG(xdebug, "Solution fitness: " << geneset.fitness() << ", neighbor fitness: " << neighbor.fitness());
         ASSERT(geneset.fitness() == neighbor.fitness());
     CLUTCHLOG(note, "OK");
 
