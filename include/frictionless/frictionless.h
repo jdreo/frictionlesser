@@ -9,7 +9,7 @@
 #include <exceptions/exceptions.h>
 
 #include "log.h"
-#include "signature.h"
+// #include "signature.h"
 
 // Make asserts (de)clutchable.
 #define ASSERT(EXPR) { CLUTCHFUNC(critical, assert, EXPR); }

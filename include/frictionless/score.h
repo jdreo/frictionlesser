@@ -2,7 +2,9 @@
 
 #include <vector>
 
-#include "frictionless/transcriptome.h"
+#include "cache.h"
+#include "transcriptome.h"
+#include "signature.h"
 
 namespace frictionless {
 
@@ -58,25 +60,10 @@ class FriedmanScore {
         /** Cache guard. */
         size_t _cached_gene_out;
 
-        /** Sum of squared ranks.
-        * \f[
-        *     A_i(G) = 12\sum_{c=1}^{m_i} R_c(G)^2
-        * \f] */
-        std::vector<double> A;
-
-        /** Average sum of gap to average tied ranks number.
-         * \f[
-         *     D_i(G) = \frac{1}{m_i-1}\sum_{v = 1}^{|G|} \left(\left(\sum_{a=1}^{g_{v}} t_{v,a}^3\right) - m_i\right)
-         * \f] */
-        std::vector<double> D;
-
-        /** Sum of ranks across genes, for each cell.
-         *   FIXME: $c$ or $c_i$?
-         * \f[
-         *      R_c(G) = \sum_{t\in G} r_{c_i,t}
-         * \f] */
-        std::vector<double> R;
-        /** @} */
+        // TODO HERE
+             
+        CacheSwap _swap_cache;
+            
 
 
         /** @name Depending on signature size:
@@ -187,6 +174,9 @@ class FriedmanScore {
         /** Global score. */
         double score(const Signature& genes);
 
+        CacheSwap& swap_cache();
+        void swap_cache( const CacheSwap& cache);
+        void swap_cache( CacheSwap&& cache);
 };
 
 } // frictionless

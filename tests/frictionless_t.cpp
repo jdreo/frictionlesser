@@ -292,22 +292,22 @@ SCENARIO( "Friedman cache" ) {
             THEN( "Init cache for cellular rank sum is consistent" ) {
                 //       cell: c
                 //             v
-                REQUIRE(frs.R[0] == 3); // 2+1
-                REQUIRE(frs.R[1] == 4); // 2+2
-                REQUIRE(frs.R[2] == 5); // 2+3
-                REQUIRE(frs.R[3] == 4); // 2+2
-                REQUIRE(frs.R[4] == 4); // 2+2
-                REQUIRE(frs.R[5] == 4); // 2+2
+                REQUIRE(frs._swap_cache.R()[0] == 3); // 2+1
+                REQUIRE(frs._swap_cache.R()[1] == 4); // 2+2
+                REQUIRE(frs._swap_cache.R()[2] == 5); // 2+3
+                REQUIRE(frs._swap_cache.R()[3] == 4); // 2+2
+                REQUIRE(frs._swap_cache.R()[4] == 4); // 2+2
+                REQUIRE(frs._swap_cache.R()[5] == 4); // 2+2
             }
             THEN( "Init cache for sum of squared ranks is consistent" ) {
                 // 2 samples.
-                REQUIRE(frs.A[0] == 600); // 12(3²+4²+5²)
-                REQUIRE(frs.A[1] == 576); // 12(3*4²)
+                REQUIRE(frs._swap_cache.A()[0] == 600); // 12(3²+4²+5²)
+                REQUIRE(frs._swap_cache.A()[1] == 576); // 12(3*4²)
             }
             THEN( "Init cache for average sum of gap to average tied ranks number is consistent" ) {
                 // 2 samples.
-                REQUIRE(frs.D[0] == 12); // 1/(3-1)*(27+3)-3/(3-1)*2
-                REQUIRE(frs.D[1] == 24); // 1/(3-1)*(27+27)-3(3-1)*2
+                REQUIRE(frs._swap_cache.D()[0] == 12); // 1/(3-1)*(27+3)-3/(3-1)*2
+                REQUIRE(frs._swap_cache.D()[1] == 24); // 1/(3-1)*(27+27)-3(3-1)*2
             }
         }
     }

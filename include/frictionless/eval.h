@@ -28,6 +28,8 @@ class EvalFull : public eoEvalFunc<Signature>
 
         /** Compute the score function and set the result as a fitness of the given signature. */
         void operator()(Signature& geneset);
+
+        FriedmanScore& frs();
 };
 
 #ifndef NDEBUG
@@ -52,7 +54,9 @@ class EvalTest : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
          * @param solution the solution on which to apply the move.
          * @param neighbor the move to consider.
          */
-        void operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor); 
+        void operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor);
+
+        EvalFull& full_eval();
 };
 #endif
 
@@ -77,7 +81,7 @@ class EvalSwap : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
          * @param solution the solution on which to apply the move.
          * @param neighbor the move to consider.
          */
-        void operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor); 
+        void operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor);
 };
 
 } // frictionless
