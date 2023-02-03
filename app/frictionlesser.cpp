@@ -218,5 +218,16 @@ int main(int argc, char* argv[])
         search(signature);
     CLUTCHLOG(note, "OK");
 
+    CLUTCHLOG(progress, "Found signature:");
+    CLUTCHLOG(note, signature.str() );
+
+    // Real output.
+    std::clog << "# score size genes..." << std::endl;
+    std::cout << signature.fitness() << " " << signature.selected.size();
+    for(auto i : signature.selected) {
+        std::cout << " " << tr.gene_name(i);
+    }
+    std::cout << std::endl;
+
     CLUTCHLOG(progress, "Done.");
 }

@@ -62,8 +62,8 @@ class Score
 
         friend std::ostream& operator<<(std::ostream& out, const Score<C>& s)
         {
-            out << s._has_cache;
-            out << " ";
+            // out << s._has_cache;
+            // out << " ";
             out << s._score;
             return out;
         }
@@ -71,15 +71,14 @@ class Score
         friend std::istream& operator>>(std::istream& in, Score<C>& score)
         {
             Type value;
-            bool has_cache;
-            in >> has_cache;
+            // bool has_cache;
+            // in >> has_cache;
             in >> value;
             score._score = value;
-            // score._has_cache = has_cache;
             score._has_cache = false; // Cache is not serialized.
+            // score._has_cache = has_cache;
             return in;
         }
-
 };
 
 using Fitness = Score<CacheSwap>;

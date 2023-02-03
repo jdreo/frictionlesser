@@ -114,7 +114,7 @@ size_t TranscriptomeParser::load_header(const std::string& line)
 size_t TranscriptomeParser::load_row(const std::string& line, size_t& igene)
 {
     std::istringstream ss(line);
-    // FIXME memory leak?
+    // This is no memory leak, as the standard indicates that locale is responsible for freeing the given ctype pointer.
     ss.imbue(std::locale(ss.getloc(), new delimiter_ctype(_more_separators) ));
 
     if(line[0] == '#' or line.empty()) {
