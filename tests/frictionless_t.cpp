@@ -228,34 +228,34 @@ SCENARIO( "Friedman cache" ) {
 
             THEN( "Transcriptome cache for cells number is consistent" ) {
                 for(size_t i : {0,1}) { // 2 samples.
-                    REQUIRE(frs.E [i] == 144);
-                    REQUIRE(frs.F [i] == 12);
-                    REQUIRE(frs.GG[i] == 1.5);
+                    REQUIRE(frs._transcriptome_cache.E [i] == 144);
+                    REQUIRE(frs._transcriptome_cache.F [i] == 12);
+                    REQUIRE(frs._transcriptome_cache.GG[i] == 1.5);
                 }
             }
             THEN( "Transcriptome cache for squared ranks sums is consistent" ) {
-                //              i  j     cells: 0    1    2
-                //              v  v            v    v    v
-                REQUIRE(frs.SSR[0][0] == 12); // 2² + 2² + 2²
-                REQUIRE(frs.SSR[0][1] == 14); // 1² + 2² + 3²
-                REQUIRE(frs.SSR[0][2] == 12);
-                REQUIRE(frs.SSR[0][3] == 14);
-                REQUIRE(frs.SSR[1][0] == 12);
-                REQUIRE(frs.SSR[1][1] == 12);
-                REQUIRE(frs.SSR[1][2] == 14);
-                REQUIRE(frs.SSR[1][3] == 14);
+                //                                   i  j     cells: 0    1    2
+                //                                   v  v            v    v    v
+                REQUIRE(frs._transcriptome_cache.SSR[0][0] == 12); // 2² + 2² + 2²
+                REQUIRE(frs._transcriptome_cache.SSR[0][1] == 14); // 1² + 2² + 3²
+                REQUIRE(frs._transcriptome_cache.SSR[0][2] == 12);
+                REQUIRE(frs._transcriptome_cache.SSR[0][3] == 14);
+                REQUIRE(frs._transcriptome_cache.SSR[1][0] == 12);
+                REQUIRE(frs._transcriptome_cache.SSR[1][1] == 12);
+                REQUIRE(frs._transcriptome_cache.SSR[1][2] == 14);
+                REQUIRE(frs._transcriptome_cache.SSR[1][3] == 14);
             }
             THEN( "Transcriptome cache for tie-adjustment factors is consistent" ) {
-                //            i  j      ranks: 0    1    2
-                //            v  v             v    v    v
-                REQUIRE(frs.T[0][0] == 27); // 0³ + 3³ + 0³
-                REQUIRE(frs.T[0][1] ==  3); // 1³ + 1³ + 1³
-                REQUIRE(frs.T[0][2] == 27);
-                REQUIRE(frs.T[0][3] ==  3);
-                REQUIRE(frs.T[1][0] == 27);
-                REQUIRE(frs.T[1][1] == 27);
-                REQUIRE(frs.T[1][2] ==  3);
-                REQUIRE(frs.T[1][3] ==  3);
+                //                                 i  j      ranks: 0    1    2
+                //                                 v  v             v    v    v
+                REQUIRE(frs._transcriptome_cache.T[0][0] == 27); // 0³ + 3³ + 0³
+                REQUIRE(frs._transcriptome_cache.T[0][1] ==  3); // 1³ + 1³ + 1³
+                REQUIRE(frs._transcriptome_cache.T[0][2] == 27);
+                REQUIRE(frs._transcriptome_cache.T[0][3] ==  3);
+                REQUIRE(frs._transcriptome_cache.T[1][0] == 27);
+                REQUIRE(frs._transcriptome_cache.T[1][1] == 27);
+                REQUIRE(frs._transcriptome_cache.T[1][2] ==  3);
+                REQUIRE(frs._transcriptome_cache.T[1][3] ==  3);
             }
         }
         WHEN( "Computing a two-geneset cache" ) {
@@ -371,5 +371,40 @@ SCENARIO( "Friedman score" ) {
                 REQUIRE( s_Bp == Catch::Approx(s_A) );
             }
         }
+    }
+}
+
+SCENARIO("Score cache save/reload is consistent") {
+    GIVEN("A very simple ranked table") {
+        const std::string ssv =
+            "GENE    S0  S0  S0  S1  S1  S1\n"
+            "G0      2   2   2   2   2   2\n"
+            "G1      1   2   3   2   2   2\n"
+            "G2      2   2   2   1   2   3\n"
+            "G3      1   2   3   1   2   3\n";
+        std::istringstream iss(ssv);
+        frictionless::CommonRankParser parser(/*max_errors*/0);
+        frictionless::Transcriptome rk = parser(iss);
+        frictionless::FriedmanScore frs1(rk, /*alpha*/2);
+        frictionless::FriedmanScore frs2(rk, /*alpha*/2);
+
+        WHEN("Saving and reload") {
+            std::ofstream ofs("tmp.dat", std::ios::binary);
+            frs1._transcriptome_cache.save(ofs);
+            ofs.close();
+
+            std::ifstream ifs("tmp.dat", std::ios::binary);
+            frs2._transcriptome_cache.load(ifs);
+            ifs.close();
+
+            THEN("Data is the same") {
+                REQUIRE(frs1._transcriptome_cache.E   == frs2._transcriptome_cache.E);
+                REQUIRE(frs1._transcriptome_cache.F   == frs2._transcriptome_cache.F);
+                REQUIRE(frs1._transcriptome_cache.GG  == frs2._transcriptome_cache.GG);
+                REQUIRE(frs1._transcriptome_cache.T   == frs2._transcriptome_cache.T);
+                REQUIRE(frs1._transcriptome_cache.SSR == frs2._transcriptome_cache.SSR);
+            }
+        }
+
     }
 }

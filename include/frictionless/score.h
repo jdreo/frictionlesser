@@ -60,7 +60,7 @@ class FriedmanScore {
         /** Cache guard. */
         size_t _cached_gene_out;
 
-        // TODO HERE
+        //! Cache data structures involved in swaping genes: R, A, D.
         CacheSwap _swap_cache;
 
         /** @name Depending on signature size:
@@ -84,41 +84,8 @@ class FriedmanScore {
         /** @} */
 
 
-        /** @name Constants:
-         * Remain constant for a given transcriptome.
-         * @{ */
-
-        /** Cubic number of cells (for each sample).
-         * \f[
-         *     E_i = 3 m_i(m_i+1)^2
-         * \f] */
-        std::vector<double> E;
-
-        /** Squared number of cells (for each sample).
-         * \f[
-         *    F_i = m_i(m_i+1)
-         * \f] */
-        std::vector<double> F;
-
-        /** Inverse numb er of cells (for each sample).
-         * \f[
-         *    GG_i = \frac{m_i}{m_i-1}
-         * \f] */
-        std::vector<double> GG;
-
-        /** Tie-adjustment factors for each gene j in each sample i.
-         * \f[
-         *    T_{ij}=\left(\sum_{a=1}^{g_j} t_{j,a}^3\right)_{i}
-         * \f] */
-        std::vector<std::vector<double> > T;
-
-        /** Sum of squared ranks of individual gene j in each sample i.
-         * \f[
-         *     (SSR)_{ij}= \sum_{c=1}^{m_i} r_{cj}^2
-         * \f] */
-        std::vector<std::vector<double> > SSR;
-        /** @} */
-
+        //! Cache data structure that are stable for a given transcritpome: E, F, GG, T, SSR
+        CacheTranscriptome _transcriptome_cache;
 
         // TODO
         // std::vector<double> logpvals;
