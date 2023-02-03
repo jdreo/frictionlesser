@@ -6,6 +6,15 @@
 
 namespace frictionless {
 
+//! Ridiculously complex separator management for parsing files with istreams.
+struct delimiter_ctype : std::ctype<char> {
+
+    //! Add characters to the underlying table mask.
+    static const mask* make_table(const std::string& delims);
+
+    //! Constructor taking a list of separators.
+    delimiter_ctype(const std::string& delims, ::size_t refs = 0);
+};
 
 /** Load a transcriptome from the given input stream.
  *
@@ -28,12 +37,15 @@ class TranscriptomeParser
         /** The main call interface. */
         virtual Transcriptome operator()(std::istream& input);
 
-        /**
+        /** Constructor.
+         *
+         * @param more_separators List of additional columns/lines separators for parsing files (on top of C defaults, defaults to ",;" for parsing CSV).
          * @param ignore_header_first If `true`, will not load the first element of the header row.
          * @param cell_to_sample A regular expression that will be removed from the cell affiliation, in order to create the sample name.
          * @param errors_max_print Maximum number of identical errors to log. If there are more errors than this number, will draw a random sample of errors to display.
          */
         TranscriptomeParser(
+            const std::string more_separators = ",;",
             const bool ignore_header_first = false,
             const std::string cell_to_sample = "",
             const size_t errors_max_print = 20
@@ -42,6 +54,9 @@ class TranscriptomeParser
         virtual ~TranscriptomeParser() {}
 
     protected:
+        /** Additional separators for parsing data files. */
+        const std::string _more_separators;
+
         /** Whether or not to ignore the first element of the header. */
         const bool _ignore_header_first;
 

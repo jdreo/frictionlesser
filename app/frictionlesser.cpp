@@ -25,10 +25,10 @@ int main(int argc, char* argv[])
     // eoState state;
 
     const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
-        "Space-separated (spaces, tabs, etc.) file of the expressions table to be ranked", 'x', "Data").value();
+        "File of the expressions table to be ranked", 'x', "Data").value();
 
     const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
-        "Space-separated (spaces, tabs, etc.) file of the input ranks table", 'r', "Data").value();
+        "File of the input ranks table", 'r', "Data").value();
 
     const std::string signatures = argparser.createParam<std::string>("", "signatures",
         "Name of a file containing candidate/starting signatures", 'i', "Data").value();

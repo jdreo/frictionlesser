@@ -11,15 +11,34 @@
 namespace frictionless {
 
 
+const delimiter_ctype::mask* delimiter_ctype::make_table(const std::string& delims)
+{
+    // Copy the existing table.
+    static std::vector<delimiter_ctype::mask> orig(classic_table(), classic_table() + table_size);
+    for(mask m : orig){
+        m &= ~space;
+    }
+    for(char d : delims){
+        orig[d] |= space;
+    }
+    return &orig[0];
+}
+
+delimiter_ctype::delimiter_ctype(const std::string& delims, ::size_t refs)
+    : ctype(make_table(delims), false, refs)
+{ }
+
 TranscriptomeParser::TranscriptomeParser(
+    const std::string more_separators,
     const bool ignore_header_first,
     const std::string cell_to_sample,
     const size_t errors_max_print
 ) :
+    _more_separators(more_separators),
     _ignore_header_first(ignore_header_first),
     _cell_to_sample(cell_to_sample),
     _rt(errors_max_print)
-{}
+{ }
 
 
 Transcriptome TranscriptomeParser::operator()( std::istream& input )
@@ -50,6 +69,9 @@ size_t TranscriptomeParser::load_header(const std::string& line)
     size_t i = 0;
     // Cell affiliations header.
     std::istringstream iss(line);
+    // Add more separators.
+    iss.imbue(std::locale(iss.getloc(), new delimiter_ctype(_more_separators) ));
+
     std::string name;
     std::map<std::string,size_t> loaded;
 
@@ -92,6 +114,8 @@ size_t TranscriptomeParser::load_header(const std::string& line)
 size_t TranscriptomeParser::load_row(const std::string& line, size_t& igene)
 {
     std::istringstream ss(line);
+    // FIXME memory leak?
+    ss.imbue(std::locale(ss.getloc(), new delimiter_ctype(_more_separators) ));
 
     if(line[0] == '#' or line.empty()) {
         // Catch empty lines or commented lines.
@@ -129,15 +153,15 @@ size_t TranscriptomeParser::load_gene(std::istringstream& ss, size_t& igene)
 }
 
 NeftelExprParser::NeftelExprParser(const size_t errors_max_print)
-    : TranscriptomeParser(true, "-[A-Z][0-9]{2}$", errors_max_print)
+    : TranscriptomeParser(",;", true, "-[A-Z][0-9]{2}$", errors_max_print)
 {}
 
 ZakievRankParser::ZakievRankParser(const size_t errors_max_print)
-    : TranscriptomeParser(false, "", errors_max_print)
+    : TranscriptomeParser(",;", false, "", errors_max_print)
 {}
 
 CommonRankParser::CommonRankParser(const size_t errors_max_print)
-    : TranscriptomeParser(true, "", errors_max_print)
+    : TranscriptomeParser(",;", true, "", errors_max_print)
 {}
 
 } // frictionless
