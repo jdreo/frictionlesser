@@ -312,7 +312,7 @@ void FriedmanScore::init_signature(const Signature& geneset)
 double FriedmanScore::score(const Signature& geneset)
 {
     CLUTCHLOG(debug, "Compute score of: " << geneset);
-    size_t current_signature_size = geneset.selected.size();
+    const size_t current_signature_size = geneset.selected.size();
     ASSERT(current_signature_size > 0);
     if(_cached_signature_size != current_signature_size) {
         CLUTCHLOG(warning, "Current signature size " << current_signature_size
@@ -345,9 +345,7 @@ double FriedmanScore::score(const Signature& geneset)
         ASSERT(s_hat >= 0);
         ASSERT(not std::isinf(s_hat));
 
-        double logpval = sqrt_logchisq(s_hat, _transcriptome.cells_nb(i)-1);
-
-        score += logpval;
+        score += sqrt_logchisq(s_hat, _transcriptome.cells_nb(i)-1);
     }
 
     CLUTCHLOGD(debug, "Score: " << score, 1);
