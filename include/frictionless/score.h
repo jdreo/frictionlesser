@@ -27,7 +27,7 @@ class FriedmanScore {
          * @param rt Ranked expression table.
          * @param alpha The alpha parameter of the score function.
          */
-        FriedmanScore( const Transcriptome& rt, const double alpha=2);
+        FriedmanScore( const Transcriptome& rt, const double alpha=2, const bool print_progress = false);
 
 #ifndef NDEBUG
     public: // Needs to be public for testing.
@@ -61,10 +61,7 @@ class FriedmanScore {
         size_t _cached_gene_out;
 
         // TODO HERE
-             
         CacheSwap _swap_cache;
-            
-
 
         /** @name Depending on signature size:
          * Remain constant if the number of genes does not change.
@@ -140,7 +137,7 @@ class FriedmanScore {
          * To be called again if the transcriptome has been updated.
          * Called by the constructor for now.
          */
-        void new_transcriptome();
+        void new_transcriptome(const bool print_progress = false);
 
         /** Computes squared root of the log chi-squared. */
         double sqrt_logchisq(const double s, const double m) const;

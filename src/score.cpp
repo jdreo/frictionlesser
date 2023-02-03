@@ -7,7 +7,7 @@
 
 namespace frictionless {
 
-FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
+FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a, const bool print_progress) :
     _transcriptome(rt),
     alpha(a),
     _has_init_signature(false),
@@ -33,7 +33,7 @@ FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
 
     _swap_cache.R().reserve(_transcriptome.cells_nb());
 
-    new_transcriptome();
+    new_transcriptome(print_progress);
 
 #ifndef NDEBUG
     // Basic size checks.
@@ -72,14 +72,23 @@ void FriedmanScore::clear_cache()
 /******************************************
  * E, F, GG, SSR, T
  ******************************************/
-void FriedmanScore::new_transcriptome()
+void FriedmanScore::new_transcriptome(const bool print_progress)
 {
-    CLUTCHLOG(debug, "New transcriptome");
+    CLUTCHLOG(progress, "New transcriptome...");
     clear_cache();
 
-    // Precompute constants.
+    CLUTCHLOG(info,"Precompute constants");
+    double progress = 0;
     for(size_t i : _transcriptome.samples() ) { // All samples.
-        CLUTCHLOGD(xdebug, "Sample: " << i, 1);
+        if(print_progress) {
+            std::clog << "\r" << static_cast<size_t>(progress / _transcriptome.samples_nb() * 100.0) << "%     ";
+            std::clog.flush();
+            CLUTCHCODE(debug,
+                std::clog << std::endl;
+           );
+            progress++;
+        }
+        CLUTCHLOGD(debug, "Sample: " << i, 1);
         // Constants depending only on the number of cells
         // in each sample: E, F, GG.
         const double m_i = _transcriptome.cells_nb(i);
@@ -129,7 +138,8 @@ void FriedmanScore::new_transcriptome()
         );
 
     } // for i in samples
-
+    if(print_progress) {std::clog << std::endl;}
+    CLUTCHLOG(note, "OK");
 }
 
 /******************************************
@@ -137,7 +147,7 @@ void FriedmanScore::new_transcriptome()
  ******************************************/
 void FriedmanScore::new_signature_size(const size_t signature_size)
 {
-    CLUTCHLOG(debug, "New signature size: " << signature_size);
+    CLUTCHLOG(progress, "New signature size: " << signature_size << "...");
     CLUTCHLOG(xdebug, "Cached signature size: " << _cached_signature_size);
     B.clear();
     C.clear();
@@ -157,6 +167,7 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
     } // for i in samples
 
     _cached_signature_size = signature_size;
+    CLUTCHLOG(note, "OK");
 }
 
 /******************************************

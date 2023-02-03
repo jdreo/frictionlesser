@@ -54,7 +54,7 @@ EvalSwap::EvalSwap(FriedmanScore& frs) :
 
 void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor)
 {
-    CLUTCHLOG(debug, "Partial eval of: " << solution << " to be moved by: " << neighbor);
+    CLUTCHLOG(xdebug, "Partial eval of: " << solution << " to be moved by: " << neighbor);
 
     // We should have a valid state to swap from.
     if(not _frs.has_init_signature()) {
@@ -63,36 +63,36 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
         _frs.init_signature(solution);
     }
     ASSERT(not solution.invalid()); // TODO: necessary?
-    CLUTCHLOG(debug, "Load cache from solution");
+    CLUTCHLOG(xdebug, "Load cache from solution");
     _frs.swap_cache( solution.fitness().cache() );
 
-    CLUTCHLOG(debug, "Double check that fitness equals the score...");
+    CLUTCHLOG(xdebug, "Double check that fitness equals the score...");
     ASSERT(solution.fitness() == _frs.score(solution));
-    CLUTCHLOG(debug, "OK");
+    CLUTCHLOG(xdebug, "OK");
 
     // Apply the neighbor move on a temp solution.
     Signature newsol = solution;
     neighbor.move(newsol);
-    CLUTCHLOG(debug, "Apply to temp neighbor solution: " << newsol);
+    CLUTCHLOG(xdebug, "Apply to temp neighbor solution: " << newsol);
 
     // Partial score cache update.
     auto [in,out] = neighbor.get();
-    CLUTCHLOG(debug, "Prepare swap: " << neighbor);
+    CLUTCHLOG(xdebug, "Prepare swap: " << neighbor);
     _frs.new_swap(in, out);
 
     // Final score computation and save cache to neighbor.
     Fitness::Type newscore = _frs.score(newsol);
     neighbor.fitness(Fitness(newscore, _frs.swap_cache()));
-    CLUTCHLOG(debug, "Neighbor solution score: " << neighbor.fitness());
+    CLUTCHLOG(xdebug, "Neighbor solution score: " << neighbor.fitness());
     ASSERT(not neighbor.invalid());
 
     // Reverse the core state to the one of the origin solution.
-    CLUTCHLOG(debug, "Reverse swap state: " << neighbor << " to: -" << in << " +" << out);
+    CLUTCHLOG(xdebug, "Reverse swap state: " << neighbor << " to: -" << in << " +" << out);
     // i.e. reload previous cache.
     _frs.swap_cache( solution.fitness().cache() );
 
-    CLUTCHLOG(info, "Previous solution: " << solution << " / score: " << _frs.score(solution));
-    CLUTCHLOG(info, "Neighbor solution: " << newsol << " has (neighbor) fitness: " << neighbor.fitness());
+    CLUTCHLOG(xdebug, "Previous solution: " << solution << " / score: " << _frs.score(solution));
+    CLUTCHLOG(xdebug, "Neighbor solution: " << newsol << " has (neighbor) fitness: " << neighbor.fitness());
     ASSERT(_frs.score(solution) == solution.fitness());
 
     ASSERT(not neighbor.invalid());

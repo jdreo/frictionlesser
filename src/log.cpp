@@ -57,11 +57,11 @@ void clutchlog_config()
          fmt(203),fmt(209),fmt(215),
          fmt(204),fmt(210),fmt(216)} );
 
+    std::ostringstream format;
+    fmt reset(typo::reset);
+    fmt bold(typo::bold);
     #ifndef NDEBUG
-        std::ostringstream format;
-        fmt reset(typo::reset);
         fmt discreet(fg::black);
-        fmt bold(typo::bold);
         format
                // << fmt(typo::inverse)
                << "{level_fmt}"
@@ -78,7 +78,10 @@ void clutchlog_config()
                << "\n";
         log.format(format.str());
     #else
-        log.format("{level_letter}:{depth_marks} {msg}\n");
+        format << "[{name}] {level_fmt}{level_letter}" << reset
+               << ":{depth_marks} "
+               << bold("{level_fmt}{msg}") << "\n";
+        log.format(format.str());
     #endif
 
 }

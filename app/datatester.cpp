@@ -1,7 +1,6 @@
+#include <string>
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <ctime>
 
 #include <eo>
 #include <mo>
@@ -25,10 +24,10 @@ int main(int argc, char* argv[])
     // eoState state;
 
     const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
-        "Space-separated (spaces, tabs, etc.) file of the expressions table to be ranked", 'x', "Data").value();
+        "Filename of the expressions table to be ranked", 'x', "Data").value();
 
     const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
-        "Space-separated (spaces, tabs, etc.) file of the input ranks table", 'r', "Data").value();
+        "Filename of the input ranks table", 'r', "Data").value();
 
     const std::string signatures = argparser.createParam<std::string>("", "signatures",
         "Name of a file containing candidate/starting signatures", 'i', "Data").value();
@@ -36,8 +35,8 @@ int main(int argc, char* argv[])
     // const bool permute = argparser.createParam<bool>(false, "permute",
     //     "Randomly permute the data to get rid of the signal", 'R', "Data").value();
 
-    const size_t genesetsize = argparser.createParam<size_t>(10, "ngenes",
-        "Number of genes in the signatures", 'g', "Parameters").value();
+    // const size_t genes = argparser.createParam<size_t>(50, "genes",
+    //     "Number of genes in the signatures", 'g', "Parameters").value();
 
     // const double alpha = argparser.createParam<double>(1, "alpha",
     //     "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
@@ -48,8 +47,8 @@ int main(int argc, char* argv[])
     // const bool optimum = argparser.createParam<bool>(true, "optimum",
     //     "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
 
-    unsigned long long seed = argparser.createParam<long>(0, "seed",
-        "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
+    // const long seed = argparser.createParam<long>(0, "seed",
+    //     "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
 
     const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
         "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
@@ -89,17 +88,11 @@ int main(int argc, char* argv[])
     log.file(log_file);
     log.func(log_func);
 
-    if(seed == 0) {
-        seed = std::time(nullptr); // Epoch
-    }
-
-
     frictionless::Transcriptome tr(max_errors);
 
     std::string filename;
     bool have_exprs;
     if(exprsfile != "" and ranksfile == "") {
-        CLUTCHLOG(progress, "Loading an expressions file...");
         have_exprs = true;
         filename = exprsfile;
         frictionless::NeftelExprParser tableparser(max_errors);
@@ -110,7 +103,6 @@ int main(int argc, char* argv[])
         }
 
     } else if(ranksfile != "" and exprsfile == "") {
-        CLUTCHLOG(progress, "Loading a ranks file...");
         have_exprs = false;
         filename = ranksfile;
         frictionless::CommonRankParser tableparser(max_errors);
@@ -125,7 +117,6 @@ int main(int argc, char* argv[])
     }
 
     check_consistency(tr);
-    CLUTCHLOG(note, "OK");
 
     if(have_exprs) {
         // Convert the expressions to ranks.
@@ -162,61 +153,67 @@ int main(int argc, char* argv[])
     }
     CLUTCHLOG(note, "OK -- checks passed.");
 
+    CLUTCHLOG(debug, "Test signatures data structures...");
+        frictionless::Signature geneset(tr.genes_nb());
+        geneset.select(0);
+        geneset.select(1);
+        CLUTCHCODE(xdebug,
+            geneset.printOn(std::clog);
+            std::clog << std::endl;
+
+            for(size_t j : geneset.selected) {
+                std::clog << tr.gene_name(j) << " ";
+            }
+            std::clog << std::endl;
+        );
+    CLUTCHLOG(debug, "OK");
+
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
-        frictionless::FriedmanScore frs(tr,2, /*print_progress=*/true);
-        frs.new_signature_size(genesetsize);
-        ASSERT(tr.genes_nb() >= genesetsize);
+        frictionless::FriedmanScore frs(tr,2);
+        const size_t geneset_nb = geneset.selected.size();
+        CLUTCHLOG(debug, "Signature of size " << geneset_nb);
+        frs.new_signature_size(geneset_nb);
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Pick a random signature...");
-        frictionless::Signature signature(tr.genes_nb());
-
-        std::vector<size_t> indices(tr.genes_nb());
-        std::iota(indices.begin(), indices.end(), 0);
-        std::mt19937 rg(seed);
-        std::shuffle(indices.begin(), indices.end(), rg);
-        for(size_t i=0; i<genesetsize; ++i) {
-            ASSERT( std::find(tr.genes().begin(), tr.genes().end(), i) != tr.genes().end() );
-            signature.select(indices[i]);
-            CLUTCHLOGD(xdebug, tr.gene_name(i), 1);
-        }
-        CLUTCHLOG(debug, "Signature of size: " << genesetsize);
-        ASSERT(signature.selected.size() == genesetsize);
+    CLUTCHLOG(progress, "Compute Friedman score from scratch...");
+        frs.init_signature(geneset);
+        geneset.fitness(frs.score(geneset));
+        CLUTCHLOG(debug, geneset);
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Instantiate solver...");
+    for(size_t i=2; i < 4; ++i) {
+        CLUTCHLOG(progress, "Swap two genes and update...");
+            geneset.reject(i-1);
+            geneset.select(i);
+
+            frs.new_swap(i, i-1);
+            geneset.fitness(frs.score(geneset));
+            CLUTCHLOG(debug, geneset);
+        CLUTCHLOG(note, "OK");
+    }
+
+    CLUTCHLOG(progress, "Full eval...");
         frictionless::EvalFull feval(frs);
-        frictionless::EvalSwap peval(frs);
-
-        // Print stuff on stdlog.
-        eoOStreamMonitor logger(std::clog);
-            moBestFitnessStat<frictionless::Signature> best;
-            logger.add(best);
-            moCounterStat<frictionless::Signature> counter;
-            logger.add(counter);
-        // Print stuff every 10 seconds.
-        eoTimedMonitor every(10);
-            every.add(logger);
-        // Continue search until exhaustion of the neighborhood.
-        moTrueContinuator<frictionless::Neighbor> until_end;
-        moCheckpoint<frictionless::Neighbor> check(until_end);
-            check.add(best);    // Update this stat.
-            check.add(counter); // Update this state.
-            check.add(every);   // Call this monitor.
-
-        // The actual algorithm.
-        frictionless::Neighborhood neighborhood;
-        // Hill climber, selecting a random solution among the equal-best ones.
-        moRandomBestHC<frictionless::Neighbor>
-            search(neighborhood, feval, peval, check);
+        geneset.invalidate();
+        feval(geneset);
+        CLUTCHLOG(info, "Fully evaled solution:" << geneset);
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Solver run...");
-        feval(signature);
-        CLUTCHLOG(note, "Initial signature: " << signature.str());
-
-        search(signature);
+    CLUTCHLOG(progress, "Partial eval on neighbor...");
+        frictionless::EvalSwap peval(frs);
+        frictionless::Neighbor neighbor(geneset.selected.size());
+        neighbor.set(1,3);
+        peval(geneset, neighbor);
+        CLUTCHLOG(info, "Partially evaled neighbor: " << neighbor);
+    CLUTCHLOG(progress, "Equivalent full eval...");
+        neighbor.move(geneset);
+        feval(geneset); // Compare with full eval.
+        CLUTCHLOG(info, "Fully evaled solution: " << geneset);
+        CLUTCHLOG(debug, "Solution: " << geneset << ", neighbor: " << neighbor);
+        CLUTCHLOG(debug, "Solution fitness: " << geneset.fitness() << ", neighbor fitness: " << neighbor.fitness());
+        ASSERT(geneset.fitness() == neighbor.fitness());
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Done.");
 }
+
