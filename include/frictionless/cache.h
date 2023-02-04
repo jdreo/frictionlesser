@@ -155,6 +155,57 @@ class CacheTranscriptome : public Serialize
 
 };
 
+class CacheSize : public Serialize
+{
+    public:
+
+        virtual void save(std::ostream& out) const override
+        {
+            Serialize::save(out, B);
+            Serialize::save(out, C);
+        }
+
+        virtual void load(std::istream& in) override
+        {
+            B = Serialize::load_vector(in);
+            C = Serialize::load_vector(in);
+        }
+
+    public:
+
+        void reserve(const size_t samples_nb)
+        {
+            B.reserve(samples_nb);
+            C.reserve(samples_nb);
+        }
+
+        void clear()
+        {
+            B.clear();
+            C.clear();
+        }
+
+        /** @name Depending on signature size:
+         * Remain constant if the number of genes does not change.
+         * @{ */
+
+        /** Cache guard. */
+        size_t signature_size;
+
+        /** Squared the number of genes times cubic number of cells.
+         * \f[
+         *     B_i(G) = 3|G|^2 m_i(m_i+1)^2
+         * \f] */
+        std::vector<double> B;
+
+        /** Number of genes times squared number of cells.
+         * \f[
+         *     C_i(G) = |G|m_i(m_i+1)
+         * \f] */
+        std::vector<double> C;
+        /** @} */
+};
+
 
 /** Cache data structure involved in swaping two genes.
  *
@@ -168,30 +219,30 @@ class CacheSwap
             const std::vector<double>& r,
             const std::vector<double>& a,
             const std::vector<double>& d
-            ) : _R(r), _A(a), _D(d), _has_cache(true)
+            ) : R(r), A(a), D(d), _has_cache(true)
         {}
 
         CacheSwap( // move
             std::vector<double>&& r,
             std::vector<double>&& a,
             std::vector<double>&& d
-            ) : _R(std::move(r)), _A(std::move(a)), _D(std::move(d)), _has_cache(true)
+            ) : R(std::move(r)), A(std::move(a)), D(std::move(d)), _has_cache(true)
         {}
 
         CacheSwap() : _has_cache(false) {}
 
         void reserve(const size_t samples_nb, const size_t cells_nb)
         {
-            _A.reserve(samples_nb);
-            _D.reserve(samples_nb);
-            _R.reserve(cells_nb);
+            A.reserve(samples_nb);
+            D.reserve(samples_nb);
+            R.reserve(cells_nb);
         }
 
         void clear()
         {
-            _R.clear();
-            _A.clear();
-            _D.clear();
+            R.clear();
+            A.clear();
+            D.clear();
         }
 
         /** Sum of ranks across genes, for each cell.
@@ -199,26 +250,22 @@ class CacheSwap
          * \f[
          *      R_c(G) = \sum_{t\in G} r_{c_i,t}
          * \f] */
-        std::vector<double>& R() {return _R;}
+        std::vector<double> R;
         /** @} */
 
         /** Sum of squared ranks.
         * \f[
         *     A_i(G) = 12\sum_{c=1}^{m_i} R_c(G)^2
         * \f] */
-        std::vector<double>& A() {return _A;}
+        std::vector<double> A;
 
         /** Average sum of gap to average tied ranks number.
          * \f[
          *     D_i(G) = \frac{1}{m_i-1}\sum_{v = 1}^{|G|} \left(\left(\sum_{a=1}^{g_{v}} t_{v,a}^3\right) - m_i\right)
          * \f] */
-        std::vector<double>& D() {return _D;}
+        std::vector<double> D;
 
     protected:
-        std::vector<double> _R;
-        std::vector<double> _A;
-        std::vector<double> _D;
-
         bool _has_cache;
 };
 

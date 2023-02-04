@@ -63,26 +63,11 @@ class FriedmanScore {
         //! Cache data structures involved in swaping genes: R, A, D.
         CacheSwap _swap_cache;
 
-        /** @name Depending on signature size:
+        /** Depending on signature size.
+         *
          * Remain constant if the number of genes does not change.
-         * @{ */
-
-        /** Cache guard. */
-        size_t _cached_signature_size;
-
-        /** Squared the number of genes times cubic number of cells.
-         * \f[
-         *     B_i(G) = 3|G|^2 m_i(m_i+1)^2
-         * \f] */
-        std::vector<double> B;
-
-        /** Number of genes times squared number of cells.
-         * \f[
-         *     C_i(G) = |G|m_i(m_i+1)
-         * \f] */
-        std::vector<double> C;
-        /** @} */
-
+         */
+        CacheSize _size_cache;
 
         //! Cache data structure that are stable for a given transcritpome: E, F, GG, T, SSR
         CacheTranscriptome _transcriptome_cache;
