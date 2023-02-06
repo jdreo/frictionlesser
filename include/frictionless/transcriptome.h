@@ -139,6 +139,7 @@ class Transcriptome {
 
 }; // Transcriptome
 
+//! Compute the ranked version of the given (expressions) transcriptome.
 Transcriptome rank(const Transcriptome& tr, const bool print_progress, const double epsilon);
 
 } // frictionless

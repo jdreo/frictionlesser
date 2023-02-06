@@ -8,7 +8,7 @@
 
 namespace frictionless {
 
-/** Full evaluator of a @ref Signature.
+/** Full evaluator of a frictionless::Signature.
  *
  * Do not perform any partial update.
  */
@@ -21,14 +21,14 @@ class EvalFull : public eoEvalFunc<Signature>
     public:
         /** Constructor.
          *
-         * @param ranked A ranked expression matrix.
-         * @param alpha The alpha parameter of the score function.
+         * @param frs The related FriedmanScore.
          */
         EvalFull(FriedmanScore& frs);
 
         /** Compute the score function and set the result as a fitness of the given signature. */
         void operator()(Signature& geneset);
 
+        //! Accessor to the FriedmanScore.
         FriedmanScore& frs();
 };
 
@@ -40,6 +40,7 @@ class EvalFull : public eoEvalFunc<Signature>
 class EvalTest : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
 {
     protected:
+        //! Underlying full evaluator.
         EvalFull& _full_eval;
 
     public:
@@ -56,6 +57,7 @@ class EvalTest : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
          */
         void operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Signature> & neighbor);
 
+        //! Accessor to the underlying full evaluator.
         EvalFull& full_eval();
 };
 #endif
@@ -71,8 +73,7 @@ class EvalSwap : public moEval<moBinaryPartitionSwapNeighbor<Signature>>
     public:
         /** Constructor.
          *
-         * @param ranked A ranked expression matrix.
-         * @param alpha The alpha parameter of the score function.
+         * @param frs The related FriedmanScore.
          */
         EvalSwap(FriedmanScore& frs);
 

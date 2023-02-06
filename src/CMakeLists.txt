@@ -5,6 +5,7 @@ add_library(frictionless
     parser.cpp
     eval.cpp
     log.cpp
+    cache.cpp
 )
 target_include_directories(frictionless PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>

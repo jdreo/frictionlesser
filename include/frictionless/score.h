@@ -12,13 +12,14 @@ namespace frictionless {
  *
  * Methods updating the internal state are expected to honor the following order.
  * I.E. If you call a method, you should have called before the previous ones.
- * 1. constructor [calling new_transcriptome]
- * 2. new_signature_size
- * 3. init_signature
- * 4. new_swap (on a previously initialized signature)
- * 5. score
+ * 1. constructor
+ * 2. new_transcriptome  OR load_transcriptome_cache
+ * 3. new_signature_size OR load_size_cache
+ * 4. init_signature
+ * 5. new_swap (on a previously initialized signature)
+ * 6. score
  *
- * @note This is only double-checked with asserts, thus in Debug builds.
+ * @note This is only double-checked with asserts, thus only in Debug builds.
  */
 class FriedmanScore {
     public:
@@ -43,40 +44,95 @@ class FriedmanScore {
 
         /** The user-set parameter of the score. */
         const double alpha;
-        /** @} */
 
-        /** @name Intialization
-         * Values that are going to be updated at each gene swap, but need to be initialized first.
-         * @{ */
-             bool _has_init_signature;
-        /** @} */
+        /** @} Parameters */
 
-        /** @name Updated when one swap a gene:
-         * Members part of the incremental evaluation.
+        /** @name Cache management
          * @{ */
 
-        /** Cache guard. */
+        //! New signature cache guard.
+        bool _has_init_signature;
+
+        //! Swap cache guard.
         size_t _cached_gene_in;
-        /** Cache guard. */
+
+        //! Swap cache guard.
         size_t _cached_gene_out;
 
         //! Cache data structures involved in swaping genes: R, A, D.
         CacheSwap _swap_cache;
 
-        /** Depending on signature size.
+        /** Cache depending on signature size: B, C.
          *
          * Remain constant if the number of genes does not change.
          */
         CacheSize _size_cache;
+
+        //! cache guard.
         bool _has_size_cache;
 
         //! Cache data structure that are stable for a given transcritpome: E, F, GG, T, SSR
         CacheTranscriptome _transcriptome_cache;
+
+        //! cache guard.
         bool _has_transcriptome_cache;
 
-        // TODO
-        // std::vector<double> logpvals;
-        // std::vector<double> S_hats;
+     public:
+        //! Accessor to get the swap cache.
+        CacheSwap& swap_cache();
+
+        //! Accessor to set the swap cache by copy.
+        void swap_cache( const CacheSwap& cache);
+
+        //! Accessor to set the swap cache by move.
+        void swap_cache( CacheSwap&& cache);
+
+        //! Empty all caches.
+        void clear_cache();
+
+        /** Load a transcriptome cache from a stream.
+         *
+         * @warning STREAM SHOULD BE OPENED IN BINARY MODE.
+         */
+        void load_transcriptome_cache(std::istream& in);
+
+        /** Load a size cache from a stream.
+         *
+         * @warning STREAM SHOULD BE OPENED IN BINARY MODE.
+         */
+        void load_size_cache(std::istream& in);
+
+        /** Save the transcriptome cache to a stream.
+         *
+         * @warning STREAM SHOULD BE OPENED IN BINARY MODE.
+         */
+        void save_transcriptome_cache(std::ostream& out);
+
+        /** Save the size cache to a stream.
+         *
+         * @warning STREAM SHOULD BE OPENED IN BINARY MODE.
+         */
+        void save_size_cache(std::ostream& out);
+
+        /** Returns true if a transcriptome cache is computed or loaded.
+         *
+         * Useful to check whether you have to call new_transcriptome.
+         */
+        bool has_transcriptome_cache();
+
+        /** Returns true if a size cache is computed or loaded.
+         *
+         * Useful to check whether you have to call new_signature_size.
+         */
+        bool has_size_cache();
+
+        /** Returns true if a first signature has been evaluated.
+         *
+         * Useful to check whether you have to call init_signature.
+         */
+        bool has_init_signature();
+
+        /** @} Cache management */
 
     #ifndef NDEBUG
         public:
@@ -87,24 +143,7 @@ class FriedmanScore {
         /** Computes squared root of the log chi-squared. */
         double sqrt_logchisq(const double s, const double m) const;
 
-     public:
-
-        void clear_cache();
-        void load_transcriptome_cache(std::istream& in);
-        void load_size_cache(std::istream& in);
-        void save_transcriptome_cache(std::ostream& out);
-        void save_size_cache(std::ostream& out);
-
-        /** Returns true if a first signature has been evaluated.
-         *
-         * Useful to check whether you have to call init_signature.
-         */
-        bool has_init_signature();
-
-        bool has_transcriptome_cache();
-
-        bool has_size_cache();
-
+    public:
         /** Pre-compute constants for a given transcriptome: E, F, GG, T, SSR.
          *
          * To be called again if the transcriptome has been updated.
@@ -132,10 +171,6 @@ class FriedmanScore {
 
         /** Global score. */
         double score(const Signature& genes);
-
-        CacheSwap& swap_cache();
-        void swap_cache( const CacheSwap& cache);
-        void swap_cache( CacheSwap&& cache);
 };
 
 } // frictionless

@@ -3,151 +3,102 @@
 #include <vector>
 #include <iostream>
 
+#include "log.h"
+
 namespace frictionless {
 
-/**
- * 
+/** Basic serialization capabilities.
+ *
+ * Helper class that provides raw serialization of scalars,
+ * vector of doubles and tables of doubles.
+ *
  * @warning EXPECT STREAMS IN BINARY MODE.
  *          If saved cache fails to reload, you probably saved/opened in the default text mode.
+ *
+ * A derived class is expected to implement `save` and `load`,
+ * calling the protected methods on the members it wants to cache,
+ * while paying attention to the order of their serialization.
+ *
+ * @note The type of serialization used here is raw memory dump.
+ *       While it is fast and compact, it is not suitable for sharing data.
+ *       It is only suitable for internal use in the very same executable.
+ *       If the cached files are to be read by another binary version,
+ *       another software or on another machine, it will probably fail.
+ *
+ * You are responsible to ensure that the serialization calls
+ * follow the same order in `save` and `load`.
  */
-struct Serialize
+class Serialize
 {
-    virtual void save(std::ostream& out) const = 0;
-    virtual void load(std::istream& in ) = 0;
+    public:
+        //! Interface for calling a cache write.
+        virtual void save(std::ostream& out) const = 0;
 
-    template<typename T>
-    void save(std::ostream& out, T scalar, const size_t depth = 0) const
-    {
-        static_assert(std::is_trivial_v<T>);
-        CLUTCHLOGD(xdebug, "save scalar: " << scalar, depth);
-        out.write(reinterpret_cast<char*>(&scalar), sizeof(T));
-    }
+        //! Interface for calling a cache read.
+        virtual void load(std::istream& in ) = 0;
 
-    void save(std::ostream& out, const std::vector<double>& vec, const size_t depth = 0) const
-    {
-        CLUTCHLOGD(xdebug, "save vector of size: " << vec.size(), depth);
-        this->save(out, vec.size(), depth+1);
-        for(const double& v : vec) {
-            this->save(out, v, depth+1);
+    protected:
+        //! Serialize any scalar.
+        template<typename T>
+        void save(std::ostream& out, T scalar, const size_t depth = 0) const
+        {
+            static_assert(std::is_trivial_v<T>);
+            CLUTCHLOGD(xdebug, "save scalar: " << scalar, depth);
+            out.write(reinterpret_cast<char*>(&scalar), sizeof(T));
         }
-    }
 
-    void save(std::ostream& out, const std::vector<std::vector<double>>& table, const size_t depth = 0) const
-    {
-        CLUTCHLOGD(xdebug, "save table of size: " << table.size(), depth);
-        this->save(out, table.size(), depth+1);
-        for(const std::vector<double>& vec : table) {
-            this->save(out, vec, depth+1);
+        //! Serialize a vector of double.
+        void save(std::ostream& out, const std::vector<double>& vec, const size_t depth = 0) const;
+
+        /** Serialize a table of double (i.e. a vector of vector of double).
+         *
+         * @note This does not check whether each row fas the same length.
+         */
+        void save(std::ostream& out, const std::vector<std::vector<double>>& table, const size_t depth = 0) const;
+
+        //! Deserialize any scalar.
+        template<typename T>
+        double load_scalar(std::istream& in, const size_t depth = 0) const
+        {
+            static_assert(std::is_trivial_v<T>);
+            T scalar;
+            in.read(reinterpret_cast<char*>(&scalar), sizeof(T));
+            CLUTCHLOGD(xdebug, "loaded scalar: " << scalar, depth);
+            return scalar;
         }
-    }
 
+        //! Deserialize a vector of double.
+        std::vector<double> load_vector(std::istream& in, const size_t depth = 0) const;
 
-    template<typename T>
-    double load_scalar(std::istream& in, const size_t depth = 0) const
-    {
-        static_assert(std::is_trivial_v<T>);
-        T scalar;
-        in.read(reinterpret_cast<char*>(&scalar), sizeof(T));
-        CLUTCHLOGD(xdebug, "loaded scalar: " << scalar, depth);
-        return scalar;
-    }
-
-    std::vector<double> load_vector(std::istream& in, const size_t depth = 0) const
-    {
-        CLUTCHLOGD(xdebug, "load vector", depth);
-        auto size = this->load_scalar<std::vector<double>::size_type>(in);
-
-        std::vector<double> vec;
-        vec.reserve(size);
-        for(size_t i = 0; i < size; ++i) {
-            vec.push_back( this->load_scalar<double>(in, depth+1) );
-        }
-        return vec;
-    }
-
-    std::vector<std::vector<double>> load_table(std::istream& in, const size_t depth = 0) const
-    {
-        CLUTCHLOGD(xdebug, "load table", depth);
-        auto size = this->load_scalar<std::vector<std::vector<double>>::size_type>(in);
-
-        std::vector<std::vector<double>> table;
-        table.reserve(size);
-        for(size_t i = 0; i < size; ++i) {
-            table.push_back( this->load_vector(in, depth+1) );
-        }
-        return table;
-    }
+        /** Deserialize a table of double (i.e. a vector of vector of double).
+         *
+         * @note This does not check whether each row fas the same length.
+         */
+        std::vector<std::vector<double>> load_table(std::istream& in, const size_t depth = 0) const;
 };
 
+/** Cache for Friedman score's intermediate results that are tied to a given transcriptome.
+ *
+ * That is:
+ *     - vectors: E, F, GG;
+ *     - tables: T, SSR
+ */
 class CacheTranscriptome : public Serialize
 {
     public:
-        virtual void save(std::ostream& out) const override
-        {
-            CLUTCHLOG(info, "Save transcriptome cache...");
-            ASSERT(E  .size() > 0);
-            ASSERT(F  .size() > 0);
-            ASSERT(GG .size() > 0);
-            ASSERT(T  .size() > 0);
-            ASSERT(SSR.size() > 0);
-            ASSERT(E  .size() == F  .size());
-            ASSERT(F  .size() == GG .size());
-            ASSERT(GG .size() == T  .size());
-            ASSERT(T  .size() == SSR.size());
+        //! Serialize.
+        virtual void save(std::ostream& out) const override;
 
-            Serialize::save(out, E);
-            Serialize::save(out, F);
-            Serialize::save(out, GG);
-
-            Serialize::save(out, T);
-            Serialize::save(out, SSR);
-            CLUTCHLOG(info, "OK");
-        }
-
-        virtual void load(std::istream& in) override
-        {
-            CLUTCHLOG(info, "Load transcriptome cache...");
-            clear();
-
-            E   = Serialize::load_vector(in);
-            F   = Serialize::load_vector(in);
-            GG  = Serialize::load_vector(in);
-
-            T   = Serialize::load_table(in);
-            SSR = Serialize::load_table(in);
-
-            ASSERT(E  .size() > 0);
-            ASSERT(F  .size() > 0);
-            ASSERT(GG .size() > 0);
-            ASSERT(T  .size() > 0);
-            ASSERT(SSR.size() > 0);
-            ASSERT(E  .size() == F  .size());
-            ASSERT(F  .size() == GG .size());
-            ASSERT(GG .size() == T  .size());
-            ASSERT(T  .size() == SSR.size());
-            CLUTCHLOG(info, "OK");
-        }
+        //! Deserialize.
+        virtual void load(std::istream& in) override;
 
     public:
 
-        void reserve(const size_t samples_nb)
-        {
-            E  .reserve(samples_nb);
-            F  .reserve(samples_nb);
-            GG .reserve(samples_nb);
-            T  .reserve(samples_nb);
-            SSR.reserve(samples_nb);
-        }
+        //! Reserve memory for all members.
+        void reserve(const size_t samples_nb);
 
-        void clear()
-        {
-            CLUTCHLOG(debug, "Clear transcriptome cache");
-            E  .clear();
-            F  .clear();
-            GG .clear();
-            T  .clear();
-            SSR.clear();
-        }
+        //! Empty all cache.
+        void clear();
 
     public:
         /** @name Constants:
@@ -187,55 +138,26 @@ class CacheTranscriptome : public Serialize
 
 };
 
+/** Cache for Friedman score's intermediate results that are tied to a given signature size.
+ *
+ * That is vectors B and C.
+ */
 class CacheSize : public Serialize
 {
     public:
+        //! Serialize.
+        virtual void save(std::ostream& out) const override;
 
-        virtual void save(std::ostream& out) const override
-        {
-            CLUTCHLOG(info, "Save size cache...");
-            ASSERT(signature_size > 0);
-            ASSERT(B.size() > 0);
-            ASSERT(C.size() > 0);
-            ASSERT(B.size() == C.size());
-
-            Serialize::save(out, signature_size);
-            Serialize::save(out, B);
-            Serialize::save(out, C);
-            CLUTCHLOG(info, "OK");
-        }
-
-        virtual void load(std::istream& in) override
-        {
-            CLUTCHLOG(info, "Load size cache...");
-            clear();
-
-            signature_size = Serialize::load_scalar<size_t>(in);
-            B = Serialize::load_vector(in);
-            C = Serialize::load_vector(in);
-
-            ASSERT(signature_size > 0);
-            ASSERT(B.size() > 0);
-            ASSERT(C.size() > 0);
-            ASSERT(B.size() == C.size());
-            CLUTCHLOG(info, "OK");
-        }
+        //! Deserialize.
+        virtual void load(std::istream& in) override;
 
     public:
 
-        void reserve(const size_t samples_nb)
-        {
-            B.reserve(samples_nb);
-            C.reserve(samples_nb);
-        }
+        //! Reserve memory for all members.
+        void reserve(const size_t samples_nb);
 
-        void clear()
-        {
-            CLUTCHLOG(info, "Clear size cache.");
-            signature_size = 0;
-            B.clear();
-            C.clear();
-        }
+        //! Empty all cache.
+        void clear();
 
         /** @name Depending on signature size:
          * Remain constant if the number of genes does not change.
@@ -262,40 +184,31 @@ class CacheSize : public Serialize
 /** Cache data structure involved in swaping two genes.
  *
  *  It's purpose is to easily move/copy it around objects.
- * FIXME put code in lib.
  */
 class CacheSwap
 {
     public:
+        //! Copy constructor.
         CacheSwap( // copy
             const std::vector<double>& r,
             const std::vector<double>& a,
             const std::vector<double>& d
-            ) : R(r), A(a), D(d), _has_cache(true)
-        {}
+        );
 
+        //! Move constructor.
         CacheSwap( // move
             std::vector<double>&& r,
             std::vector<double>&& a,
             std::vector<double>&& d
-            ) : R(std::move(r)), A(std::move(a)), D(std::move(d)), _has_cache(true)
-        {}
+        );
 
-        CacheSwap() : _has_cache(false) {}
+        CacheSwap();
 
-        void reserve(const size_t samples_nb, const size_t cells_nb)
-        {
-            A.reserve(samples_nb);
-            D.reserve(samples_nb);
-            R.reserve(cells_nb);
-        }
+        //! Reserve memory for all members.
+        void reserve(const size_t samples_nb, const size_t cells_nb);
 
-        void clear()
-        {
-            R.clear();
-            A.clear();
-            D.clear();
-        }
+        //! Empty all cache.
+        void clear();
 
         /** Sum of ranks across genes, for each cell.
          *   FIXME: $c$ or $c_i$?
@@ -303,7 +216,6 @@ class CacheSwap
          *      R_c(G) = \sum_{t\in G} r_{c_i,t}
          * \f] */
         std::vector<double> R;
-        /** @} */
 
         /** Sum of squared ranks.
         * \f[
@@ -318,8 +230,8 @@ class CacheSwap
         std::vector<double> D;
 
     protected:
+        //! Cache guard.
         bool _has_cache;
 };
-
 
 }

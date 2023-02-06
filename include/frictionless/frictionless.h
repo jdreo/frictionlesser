@@ -9,7 +9,6 @@
 #include <exceptions/exceptions.h>
 
 #include "log.h"
-// #include "signature.h"
 
 // Make asserts (de)clutchable.
 #define ASSERT(EXPR) { CLUTCHFUNC(critical, assert, EXPR); }
@@ -21,7 +20,10 @@ EXCEPTION(Exception, DataError);
     EXCEPTION(DataError, DataRowFormat);
     EXCEPTION(DataError, DataSumRanks);
 
+//! Convenience function for sum of vector.
 double sum( const std::vector<double>& t);
+
+//! Convenience function for sum of vector.
 double sum( const std::vector<size_t>& t);
 
 /** Compute the rank of the given vector.

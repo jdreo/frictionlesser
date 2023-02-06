@@ -6,7 +6,7 @@
 
 namespace frictionless {
 
-//! Ridiculously complex separator management for parsing files with istreams.
+//! (Ridiculously complex) separator management for parsing files with istreams.
 struct delimiter_ctype : std::ctype<char> {
 
     //! Add characters to the underlying table mask.

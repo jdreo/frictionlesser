@@ -1,0 +1,12 @@
+*.bak
+*.log
+*.txt
+*.dat
+*.tsv
+*.csv
+*.pdf
+*.tar
+build/
+debug/
+release/
+
