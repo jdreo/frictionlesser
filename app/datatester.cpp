@@ -169,7 +169,8 @@ int main(int argc, char* argv[])
     CLUTCHLOG(debug, "OK");
 
     CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
-        frictionless::FriedmanScore frs(tr,2,true);
+        frictionless::FriedmanScore frs(tr,2);
+        frs.new_transcriptome(true);
         const size_t geneset_nb = geneset.selected.size();
         CLUTCHLOG(debug, "Signature of size " << geneset_nb);
         frs.new_signature_size(geneset_nb);

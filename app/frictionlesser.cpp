@@ -20,9 +20,8 @@
 
 int main(int argc, char* argv[])
 {
-    // /*
     eoParser argparser(argc, argv);
-    // eoState state;
+    // eoState state; // TODO
 
     const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
         "File of the expressions table to be ranked", 'x', "Data").value();
@@ -30,26 +29,36 @@ int main(int argc, char* argv[])
     const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
         "File of the input ranks table", 'r', "Data").value();
 
-    const std::string signatures = argparser.createParam<std::string>("", "signatures",
-        "Name of a file containing candidate/starting signatures", 'i', "Data").value();
+
+    const std::string cachetransfile = argparser.createParam<std::string>("", "cache-transcriptome",
+        "File storing the transcriptome-dependant cache", 'T', "Cache").value();
+
+    const std::string cachesizefile = argparser.createParam<std::string>("", "cache-size",
+        "File storing the geneset-size-dependant cache", 'S', "Cache").value();
+
+    const bool cacheonly = argparser.createParam<bool>(false, "cache-only",
+        "Exit after creating transcriptome and size cache files", 'O', "Cache").value();
+
+
+    // const std::string signatures = argparser.createParam<std::string>("", "signatures",
+        // "Name of a file containing candidate/starting signatures", 'i', "Data").value(); // TODO
 
     // const bool permute = argparser.createParam<bool>(false, "permute",
-    //     "Randomly permute the data to get rid of the signal", 'R', "Data").value();
+    //     "Randomly permute the data to get rid of the signal", 'R', "Data").value(); // TODO
 
     const size_t genesetsize = argparser.createParam<size_t>(10, "ngenes",
         "Number of genes in the signatures", 'g', "Parameters").value();
 
-    // const double alpha = argparser.createParam<double>(1, "alpha",
-    //     "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
+    const double alpha = argparser.createParam<double>(1, "alpha",
+        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
 
     // const double beta = argparser.createParam<double>(2, "beta",
-    //     "Exponent on the log of p-values", 'b', "Parameters").value();
+    //     "Exponent on the log of p-values", 'b', "Parameters").value(); // TODO?
 
-    // const bool optimum = argparser.createParam<bool>(true, "optimum",
-    //     "Stop search only when having reach a local optimum", 'o', "Stopping Criterion").value();
 
     unsigned long long seed = argparser.createParam<long>(0, "seed",
         "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
+
 
     const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
         "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
@@ -66,20 +75,17 @@ int main(int argc, char* argv[])
     const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
         "Maximum number of errors reported for each check", 'm', "Misc").value();
 
+
     const double epsilon = argparser.createParam<double>(1e-10, "epsilon",
         "Precision for floating-point numbers comparison", 'e', "Misc").value();
 
+
+    /**************************************************************************
+     * Messages management.
+     *************************************************************************/
+
     make_verbose(argparser);
     make_help(argparser);
-// */
-    /*
-    std::string exprsfile="../tests/neftel_small_OK.csv";
-    std::string ranksfile="";
-    std::string signatures="";
-    // size_t seed=0;
-    std::string log_level="Debug";
-    size_t max_errors=30;
-    */
 
     frictionless::clutchlog_config(); // common config
     auto& log = clutchlog::logger();
@@ -89,10 +95,19 @@ int main(int argc, char* argv[])
     log.file(log_file);
     log.func(log_func);
 
+
+    if(cacheonly and cachetransfile == "") {
+        EXIT_ON_ERROR(Invalid_Argument, "You asked for computing cache file(s) but did not indicate which transcriptome cache you want, configure at least --cache-transcriptome.");
+    }
+
     if(seed == 0) {
         seed = std::time(nullptr); // Epoch
     }
 
+
+    /**************************************************************************
+     * Input data management.
+     *************************************************************************/
 
     frictionless::Transcriptome tr(max_errors);
 
@@ -160,13 +175,94 @@ int main(int argc, char* argv[])
     } catch(const frictionless::DataSumRanks& e) {
         EXIT_ON_ERROR(DataSumRanks, e.what());
     }
+    ASSERT(tr.genes_nb() >= genesetsize);
     CLUTCHLOG(note, "OK -- checks passed.");
 
-    CLUTCHLOG(progress, "Pre-compute Friedman score cache...");
-        frictionless::FriedmanScore frs(tr,2, /*print_progress=*/true);
-        frs.new_signature_size(genesetsize);
-        ASSERT(tr.genes_nb() >= genesetsize);
+
+    /**************************************************************************
+     * Cache(s) management.
+     *************************************************************************/
+
+    frictionless::FriedmanScore frs(tr, alpha);
+
+    // TRANSCRIPTOME CACHE.
+
+    if(cachetransfile != "" and std::filesystem::exists(cachetransfile)) {
+        CLUTCHLOG(progress, "Load Friedman score transcriptome cache...");
+        CLUTCHLOG(note,"From file: " << cachetransfile);
+        // Mandatory binary, or shit will happen.
+        std::ifstream ifs(cachetransfile, std::ios::binary);
+        if(ifs.fail()) {
+            EXIT_ON_ERROR(Unreadable, "Input transcriptome cache file cannot be read."); }
+        ASSERT(ifs.is_open());
+        frs.load_transcriptome_cache(ifs);
+        ifs.close();
+    } else {
+        CLUTCHLOG(progress, "Compute Friedman score transcriptome cache...");
+        frs.new_transcriptome(/*print_progress=*/true);
+        if(cachetransfile != "") {
+            CLUTCHLOG(note, "Save cache to file: " << cachetransfile);
+            // Mandatory binary, or shit will happen.
+            std::ofstream ofs(cachetransfile, std::ios::binary | std::ios::trunc);
+            if(ofs.fail()) {
+                EXIT_ON_ERROR(Unreadable, "Output transcriptome cache file cannot be wrote."); }
+            ASSERT(ofs.is_open());
+            frs.save_transcriptome_cache(ofs);
+        } else {
+            CLUTCHLOG(note, "I will not save the transcriptome cache.");
+        }
+    }
+    ASSERT(frs.has_transcriptome_cache());
     CLUTCHLOG(note, "OK");
+
+    if(cacheonly and cachesizefile == "") {
+        CLUTCHLOG(progress, "Asked for transcriptome file cache only, stop here.");
+        ASSERT(std::filesystem::exists(cachetransfile));
+        EXIT_ON_ERROR(No_Error,"Done");
+    }
+
+
+    // SIZE CACHE.
+
+    if(cachesizefile != "" and std::filesystem::exists(cachesizefile)) {
+        CLUTCHLOG(progress, "Load Friedman score size cache...");
+        CLUTCHLOG(note,"From file: " << cachesizefile);
+        // Mandatory binary, or shit will happen.
+        std::ifstream ifs(cachesizefile, std::ios::binary);
+        if(ifs.fail()) {
+            EXIT_ON_ERROR(Unreadable, "Input transcriptome cache file cannot be read."); }
+        ASSERT(ifs.is_open());
+        frs.load_size_cache(ifs);
+        ifs.close();
+    } else {
+        CLUTCHLOG(progress, "Compute Friedman score size cache...");
+        frs.new_signature_size(genesetsize);
+        if(cachesizefile != "") {
+            CLUTCHLOG(note, "Save size cache to file: " << cachesizefile);
+            // Mandatory binary, or shit will happen.
+            std::ofstream ofs(cachesizefile, std::ios::binary | std::ios::trunc);
+            if(ofs.fail()) {
+                EXIT_ON_ERROR(Unreadable, "Output size cache file cannot be wrote."); }
+            ASSERT(ofs.is_open());
+            frs.save_size_cache(ofs);
+        } else {
+            CLUTCHLOG(note, "I will not save the size cache.");
+        }
+    }
+    ASSERT(frs.has_size_cache());
+    CLUTCHLOG(note, "OK");
+
+    if(cacheonly) {
+        CLUTCHLOG(progress, "Asked for file caches only, stop here.");
+        ASSERT(std::filesystem::exists(cachetransfile));
+        ASSERT(std::filesystem::exists(cachesizefile));
+        EXIT_ON_ERROR(No_Error,"Done");
+    }
+
+
+    /**************************************************************************
+     * Search Algorithm.
+     *************************************************************************/
 
     CLUTCHLOG(progress, "Pick a random signature...");
         frictionless::Signature signature(tr.genes_nb());
@@ -182,9 +278,13 @@ int main(int argc, char* argv[])
         }
         CLUTCHLOG(debug, "Signature of size: " << genesetsize);
         ASSERT(signature.selected.size() == genesetsize);
+
+        // Actually compute the init cache.
+        frs.init_signature(signature);
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Instantiate solver...");
+        eo::rng.reseed(seed);
         frictionless::EvalFull feval(frs);
         frictionless::EvalSwap peval(frs);
 

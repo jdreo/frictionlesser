@@ -7,10 +7,12 @@
 
 namespace frictionless {
 
-FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a, const bool print_progress) :
+FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
     _transcriptome(rt),
     alpha(a),
-    _has_init_signature(false)
+    _has_init_signature(false),
+    _has_size_cache(false),
+    _has_transcriptome_cache(false)
 {
     ASSERT(_transcriptome.ranks( ).size() > 0);
     ASSERT(_transcriptome.ranks(0).size() > 0);
@@ -25,31 +27,17 @@ FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a, const boo
     _size_cache.reserve(samples_nb); // B, C
     _size_cache.signature_size = 0;
     _swap_cache.reserve(samples_nb, _transcriptome.cells_nb()); // R, A, D
-
-    new_transcriptome(print_progress);
-
-#ifndef NDEBUG
-    // Basic size checks.
-    ASSERT(_transcriptome_cache.E  .size() == samples_nb);
-    ASSERT(_transcriptome_cache.F  .size() == samples_nb);
-    ASSERT(_transcriptome_cache.GG .size() == samples_nb);
-    ASSERT(_transcriptome_cache.SSR.size() == samples_nb);
-    ASSERT(_transcriptome_cache.T  .size() == samples_nb);
-    for(auto row : _transcriptome_cache.SSR) {
-        ASSERT(row.size() == _transcriptome.genes_nb()); }
-    for(auto row : _transcriptome_cache.T) {
-        ASSERT(row.size() == _transcriptome.genes_nb()); }
-
-#endif
 }
 
 void FriedmanScore::clear_cache()
 {
     CLUTCHLOG(debug, "Clear cache");
     _transcriptome_cache.clear(); // E, F, GG, T, SSR
+    _has_transcriptome_cache = false;
     _swap_cache.clear(); // R, A, D
     _size_cache.clear();
     _size_cache.signature_size = 0;
+    _has_size_cache = false;
 
     _cached_gene_in = 0;
     _cached_gene_out = 0;
@@ -125,19 +113,34 @@ void FriedmanScore::new_transcriptome(const bool print_progress)
 
     } // for i in samples
     if(print_progress) {std::clog << std::endl;}
+
+#ifndef NDEBUG
+    // Basic size checks.
+    ASSERT(_transcriptome_cache.E  .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.F  .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.GG .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.SSR.size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.T  .size() == _transcriptome.samples_nb());
+    for(auto row : _transcriptome_cache.SSR) {
+        ASSERT(row.size() == _transcriptome.genes_nb()); }
+    for(auto row : _transcriptome_cache.T) {
+        ASSERT(row.size() == _transcriptome.genes_nb()); }
+#endif
+    _has_transcriptome_cache = true;
     CLUTCHLOG(note, "OK");
 }
 
 /******************************************
- * _size_cache.B, _size_cache.C
+ * B, C
  ******************************************/
 void FriedmanScore::new_signature_size(const size_t signature_size)
 {
     CLUTCHLOG(progress, "New signature size: " << signature_size << "...");
+    ASSERT(_has_transcriptome_cache);
     CLUTCHLOG(xdebug, "Cached signature size: " << _size_cache.signature_size);
-    _size_cache.B.clear();
-    _size_cache.C.clear();
+    _size_cache.clear();
     ASSERT(signature_size > 0);
+    _size_cache.signature_size = signature_size;
 
     for(size_t i : _transcriptome.samples()) {
         ASSERT(_transcriptome.cells_nb(i) > 0);
@@ -152,7 +155,7 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
         CLUTCHLOGD(xdebug, "_size_cache.B=" << _size_cache.B.back() << ",    _size_cache.C=" << _size_cache.C.back(), 2);
     } // for i in samples
 
-    _size_cache.signature_size = signature_size;
+    _has_size_cache = true;
     CLUTCHLOG(note, "OK");
 }
 
@@ -203,7 +206,9 @@ void FriedmanScore::new_signature_size(const size_t signature_size)
 // }
 void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
 {
-    CLUTCHLOG(debug, "New swap: in=" << gene_in << ", out=" << gene_out);
+    CLUTCHLOG(xdebug, "New swap: in=" << gene_in << ", out=" << gene_out);
+    ASSERT(_has_transcriptome_cache);
+    ASSERT(_has_size_cache);
     ASSERT(_has_init_signature);
     ASSERT(gene_in != gene_out);
     ASSERT(not (gene_in == _cached_gene_in and gene_out == _cached_gene_out));
@@ -235,7 +240,9 @@ void FriedmanScore::new_swap(const size_t gene_in, const size_t gene_out)
  ******************************************/
 void FriedmanScore::init_signature(const Signature& geneset)
 {
-    CLUTCHLOG(debug, "Initialize signature: " << geneset);
+    CLUTCHLOG(debug, "Initialize signature: " << geneset.str());
+    ASSERT(_has_transcriptome_cache);
+    ASSERT(_has_size_cache);
     ASSERT(geneset.selected.size()+geneset.rejected.size() == _transcriptome.genes_nb());
     ASSERT(_size_cache.signature_size == geneset.selected.size());
 
@@ -295,15 +302,19 @@ void FriedmanScore::init_signature(const Signature& geneset)
 
 double FriedmanScore::score(const Signature& geneset)
 {
-    CLUTCHLOG(debug, "Compute score of: " << geneset);
-    const size_t current_signature_size = geneset.selected.size();
-    ASSERT(current_signature_size > 0);
-    if(_size_cache.signature_size != current_signature_size) {
-        CLUTCHLOG(warning, "Current signature size " << current_signature_size
-            << " does not match cached signature size of " << _size_cache.signature_size
-            << ", I will silently call for a new_signature_size");
-        new_signature_size(current_signature_size);
-    }
+    CLUTCHLOG(xdebug, "Compute score of: " << geneset);
+    ASSERT(_has_transcriptome_cache);
+    ASSERT(_has_size_cache);
+    ASSERT(_has_init_signature);
+
+    // const size_t current_signature_size = geneset.selected.size();
+    // ASSERT(current_signature_size > 0);
+    // if(_size_cache.signature_size != current_signature_size) {
+    //     CLUTCHLOG(warning, "Current signature size " << current_signature_size
+    //         << " does not match cached signature size of " << _size_cache.signature_size
+    //         << ", I will silently call for a new_signature_size");
+    //     new_signature_size(current_signature_size);
+    // }
 
     double score = 0;
     for(size_t i : _transcriptome.samples()) {
@@ -320,7 +331,7 @@ double FriedmanScore::score(const Signature& geneset)
             #else
                 s_hat = ( (_swap_cache.A.at(i)-_size_cache.B.at(i)) / CD )
             #endif
-                  / std::pow(current_signature_size, this->alpha);
+                  / std::pow(geneset.selected.size(), this->alpha);
         } else {
             s_hat = 0;
         }
@@ -332,7 +343,7 @@ double FriedmanScore::score(const Signature& geneset)
         score += sqrt_logchisq(s_hat, _transcriptome.cells_nb(i)-1);
     }
 
-    CLUTCHLOGD(debug, "Score: " << score, 1);
+    CLUTCHLOGD(xdebug, "Score: " << score, 1);
     ASSERT(not std::isnan(score));
     ASSERT(score >= 0);
     ASSERT(not std::isinf(score));
@@ -349,6 +360,16 @@ bool FriedmanScore::has_init_signature()
     return _has_init_signature;
 }
 
+bool FriedmanScore::has_transcriptome_cache()
+{
+    return _has_transcriptome_cache;
+}
+
+bool FriedmanScore::has_size_cache()
+{
+    return _has_size_cache;
+}
+
 CacheSwap& FriedmanScore::swap_cache()
 {
     return _swap_cache;
@@ -362,6 +383,66 @@ void FriedmanScore::swap_cache( const CacheSwap& cache)
 void FriedmanScore::swap_cache( CacheSwap&& cache)
 {
     _swap_cache = std::move(cache);
+}
+
+void FriedmanScore::load_transcriptome_cache(std::istream& in)
+{
+    this->_transcriptome_cache.load(in);
+
+    // Basic size checks.
+    ASSERT(_transcriptome_cache.E  .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.F  .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.GG .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.SSR.size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.T  .size() == _transcriptome.samples_nb());
+    for(auto row : _transcriptome_cache.SSR) {
+        ASSERT(row.size() == _transcriptome.genes_nb()); }
+    for(auto row : _transcriptome_cache.T) {
+        ASSERT(row.size() == _transcriptome.genes_nb()); }
+
+    _has_transcriptome_cache = true;
+}
+
+
+void FriedmanScore::load_size_cache(std::istream& in)
+{
+    this->_size_cache.load(in);
+
+    // Basic size checks.
+    ASSERT(_size_cache.B.size() == _transcriptome.samples_nb());
+    ASSERT(_size_cache.C.size() == _transcriptome.samples_nb());
+    ASSERT(_size_cache.signature_size > 0);
+
+    _has_size_cache = true;
+}
+
+void FriedmanScore::save_transcriptome_cache(std::ostream& out)
+{
+    // Basic size checks.
+    ASSERT(_transcriptome.samples_nb() > 0);
+    ASSERT(_transcriptome.genes_nb() > 0);
+    ASSERT(_transcriptome_cache.E  .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.F  .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.GG .size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.SSR.size() == _transcriptome.samples_nb());
+    ASSERT(_transcriptome_cache.T  .size() == _transcriptome.samples_nb());
+    for(auto row : _transcriptome_cache.SSR) {
+        ASSERT(row.size() == _transcriptome.genes_nb()); }
+    for(auto row : _transcriptome_cache.T) {
+        ASSERT(row.size() == _transcriptome.genes_nb()); }
+
+    this->_transcriptome_cache.save(out);
+}
+
+void FriedmanScore::save_size_cache(std::ostream& out)
+{
+    // Basic size checks.
+    ASSERT(_transcriptome.samples_nb() > 0);
+    ASSERT(_size_cache.B.size() == _transcriptome.samples_nb());
+    ASSERT(_size_cache.C.size() == _transcriptome.samples_nb());
+    ASSERT(_size_cache.signature_size > 0);
+
+    this->_size_cache.save(out);
 }
 
 } // frictionless

@@ -27,7 +27,7 @@ class FriedmanScore {
          * @param rt Ranked expression table.
          * @param alpha The alpha parameter of the score function.
          */
-        FriedmanScore( const Transcriptome& rt, const double alpha=2, const bool print_progress = false);
+        FriedmanScore( const Transcriptome& rt, const double alpha=2);
 
 #ifndef NDEBUG
     public: // Needs to be public for testing.
@@ -68,9 +68,11 @@ class FriedmanScore {
          * Remain constant if the number of genes does not change.
          */
         CacheSize _size_cache;
+        bool _has_size_cache;
 
         //! Cache data structure that are stable for a given transcritpome: E, F, GG, T, SSR
         CacheTranscriptome _transcriptome_cache;
+        bool _has_transcriptome_cache;
 
         // TODO
         // std::vector<double> logpvals;
@@ -82,7 +84,26 @@ class FriedmanScore {
         protected:
      #endif
 
+        /** Computes squared root of the log chi-squared. */
+        double sqrt_logchisq(const double s, const double m) const;
+
+     public:
+
         void clear_cache();
+        void load_transcriptome_cache(std::istream& in);
+        void load_size_cache(std::istream& in);
+        void save_transcriptome_cache(std::ostream& out);
+        void save_size_cache(std::ostream& out);
+
+        /** Returns true if a first signature has been evaluated.
+         *
+         * Useful to check whether you have to call init_signature.
+         */
+        bool has_init_signature();
+
+        bool has_transcriptome_cache();
+
+        bool has_size_cache();
 
         /** Pre-compute constants for a given transcriptome: E, F, GG, T, SSR.
          *
@@ -91,22 +112,11 @@ class FriedmanScore {
          */
         void new_transcriptome(const bool print_progress = false);
 
-        /** Computes squared root of the log chi-squared. */
-        double sqrt_logchisq(const double s, const double m) const;
-
-     public:
-
         /** Pre-compute constants for a given signature size: B, C.
          *
          * To be called again if the signature size changed.
          */
         void new_signature_size(const size_t signature_size);
-
-        /** Returns true if a first signature has been evaluated.
-         *
-         * Useful to check whether you have to call init_signature.
-         */
-        bool has_init_signature();
 
         /** Compute constants from scratch. */
         void init_signature(const Signature& genes);

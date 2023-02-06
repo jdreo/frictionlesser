@@ -18,9 +18,13 @@ SCENARIO( "Evaluators are consistent" ) {
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
         frictionless::FriedmanScore ffrs(rk, /*alpha*/2);
+        ffrs.new_transcriptome(false);
         frictionless::FriedmanScore pfrs(rk, /*alpha*/2);
+        pfrs.new_transcriptome(false);
         frictionless::EvalFull feval(ffrs);
         frictionless::EvalSwap peval(pfrs);
+        ffrs.new_signature_size(2);
+        pfrs.new_signature_size(2);
 
         WHEN( "Computing a full evaluation" ) {
             frictionless::Signature geneset(rk.genes_nb());
@@ -45,6 +49,7 @@ SCENARIO( "Evaluators are consistent" ) {
             frictionless::Neighborhood phood;
             frictionless::Neighbor part;
             phood.init(geneset, part); // Make `part` be the first possible swap.
+            pfrs.init_signature(geneset); // Partial evals need to start from a signature.
 
             frictionless::Neighborhood fhood;
             frictionless::Neighbor full;

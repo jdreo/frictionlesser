@@ -8,9 +8,20 @@ EvalFull::EvalFull(FriedmanScore& frs) :
 
 void EvalFull::operator()(Signature& solution)
 {
-    CLUTCHLOG(debug, "Full Eval of: " << solution);
-    _frs.new_signature_size(solution.selected.size());
+    CLUTCHLOG(debug, "Full Eval of: " << solution.str());
+
+    ASSERT(_frs.has_transcriptome_cache());
+    ASSERT(_frs.has_size_cache());
+
     _frs.init_signature(solution);
+
+    // // We should have a valid state to swap from.
+    // if(not _frs.has_init_signature()) {
+    //     CLUTCHLOG(warning, "First initialization of the EvalFull's FriedmanScore");
+    //     // _frs.new_signature_size(solution.selected.size());
+    //     _frs.init_signature(solution);
+    // }
+
     solution.fitness(Fitness(_frs.score(solution), _frs.swap_cache()));
     // This actually have reset _frs on the given solution.
     ASSERT(not solution.invalid());
@@ -56,12 +67,16 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
 {
     CLUTCHLOG(xdebug, "Partial eval of: " << solution << " to be moved by: " << neighbor);
 
-    // We should have a valid state to swap from.
-    if(not _frs.has_init_signature()) {
-        CLUTCHLOG(note, "First initialization of the EvalSwap's FriedmanScore");
-        _frs.new_signature_size(solution.selected.size());
-        _frs.init_signature(solution);
-    }
+    ASSERT(_frs.has_transcriptome_cache());
+    ASSERT(_frs.has_size_cache());
+    ASSERT(_frs.has_init_signature());
+
+    // // We should have a valid state to swap from.
+    // if(not _frs.has_init_signature()) {
+    //     CLUTCHLOG(warning, "First initialization of the EvalSwap's FriedmanScore");
+    //     // _frs.new_signature_size(solution.selected.size());
+    //     _frs.init_signature(solution);
+    // }
     ASSERT(not solution.invalid()); // TODO: necessary?
     CLUTCHLOG(xdebug, "Load cache from solution");
     _frs.swap_cache( solution.fitness().cache() );

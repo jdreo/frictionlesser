@@ -5,6 +5,11 @@
 
 namespace frictionless {
 
+/**
+ * 
+ * @warning EXPECT STREAMS IN BINARY MODE.
+ *          If saved cache fails to reload, you probably saved/opened in the default text mode.
+ */
 struct Serialize
 {
     virtual void save(std::ostream& out) const = 0;
@@ -79,22 +84,48 @@ class CacheTranscriptome : public Serialize
     public:
         virtual void save(std::ostream& out) const override
         {
+            CLUTCHLOG(info, "Save transcriptome cache...");
+            ASSERT(E  .size() > 0);
+            ASSERT(F  .size() > 0);
+            ASSERT(GG .size() > 0);
+            ASSERT(T  .size() > 0);
+            ASSERT(SSR.size() > 0);
+            ASSERT(E  .size() == F  .size());
+            ASSERT(F  .size() == GG .size());
+            ASSERT(GG .size() == T  .size());
+            ASSERT(T  .size() == SSR.size());
+
             Serialize::save(out, E);
             Serialize::save(out, F);
             Serialize::save(out, GG);
 
             Serialize::save(out, T);
             Serialize::save(out, SSR);
+            CLUTCHLOG(info, "OK");
         }
 
         virtual void load(std::istream& in) override
         {
+            CLUTCHLOG(info, "Load transcriptome cache...");
+            clear();
+
             E   = Serialize::load_vector(in);
             F   = Serialize::load_vector(in);
             GG  = Serialize::load_vector(in);
 
             T   = Serialize::load_table(in);
             SSR = Serialize::load_table(in);
+
+            ASSERT(E  .size() > 0);
+            ASSERT(F  .size() > 0);
+            ASSERT(GG .size() > 0);
+            ASSERT(T  .size() > 0);
+            ASSERT(SSR.size() > 0);
+            ASSERT(E  .size() == F  .size());
+            ASSERT(F  .size() == GG .size());
+            ASSERT(GG .size() == T  .size());
+            ASSERT(T  .size() == SSR.size());
+            CLUTCHLOG(info, "OK");
         }
 
     public:
@@ -110,6 +141,7 @@ class CacheTranscriptome : public Serialize
 
         void clear()
         {
+            CLUTCHLOG(debug, "Clear transcriptome cache");
             E  .clear();
             F  .clear();
             GG .clear();
@@ -161,14 +193,32 @@ class CacheSize : public Serialize
 
         virtual void save(std::ostream& out) const override
         {
+            CLUTCHLOG(info, "Save size cache...");
+            ASSERT(signature_size > 0);
+            ASSERT(B.size() > 0);
+            ASSERT(C.size() > 0);
+            ASSERT(B.size() == C.size());
+
+            Serialize::save(out, signature_size);
             Serialize::save(out, B);
             Serialize::save(out, C);
+            CLUTCHLOG(info, "OK");
         }
 
         virtual void load(std::istream& in) override
         {
+            CLUTCHLOG(info, "Load size cache...");
+            clear();
+
+            signature_size = Serialize::load_scalar<size_t>(in);
             B = Serialize::load_vector(in);
             C = Serialize::load_vector(in);
+
+            ASSERT(signature_size > 0);
+            ASSERT(B.size() > 0);
+            ASSERT(C.size() > 0);
+            ASSERT(B.size() == C.size());
+            CLUTCHLOG(info, "OK");
         }
 
     public:
@@ -181,6 +231,8 @@ class CacheSize : public Serialize
 
         void clear()
         {
+            CLUTCHLOG(info, "Clear size cache.");
+            signature_size = 0;
             B.clear();
             C.clear();
         }
