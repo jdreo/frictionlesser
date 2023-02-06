@@ -1,0 +1,91 @@
+frictionlesser="../../release/app/frictionlesser --ngenes=3"
+
+SIZES=[5,10,20,50,100]
+
+rule all:
+    input:
+        expand("signature_{size}.txt", size=SIZES)
+
+rule download:
+    output:
+        "GSE131928_RAW.tar"
+    shell:
+        "wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE131nnn/GSE131928/suppl/GSE131928_RAW.tar"
+
+rule extract:
+    input:
+        "GSE131928_RAW.tar"
+    output:
+        ["GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv.gz",
+        "GSM3828673_10X_GBM_IDHwt_processed_TPM.tsv.gz"]
+    shell:
+        "tar xf {input}"
+
+rule uncompress_smallest:
+    input:
+        "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv.gz"
+    output:
+        "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv"
+    shell:
+        "gunzip {input}"
+
+rule shorten_data:
+    input:
+        "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv"
+    output:
+        "exprs_{size}.csv"
+    shell:
+        # set +o pipefail: disable failing on pipe error, to bypass a qsv bug.
+        # qsv transpose: transpose AND CONVERT TO CSV
+        # head: shorten columns
+        # qsv transpose: untranspose
+        # head: shorten lines
+        "set +o pipefail ; qsv transpose {input} | head -n {wildcards.size} | qsv transpose | head -n {wildcards.size} > {output}"
+
+rule rank:
+    input:
+        "exprs_{size}.csv"
+    output:
+        "ranks_{size}.tsv"
+    shell:
+        "../../release/app/frictionlesser"
+        "  --exprs={input}"
+        "  > ranks_{wildcards.size}.tsv"
+
+rule save_cache_transcriptome:
+    input:
+        "ranks_{size}.tsv"
+    output:
+        "trans_{size}.cache.dat"
+    shell:
+        "{frictionlesser}"
+        "  --ranks=ranks_{wildcards.size}.tsv"
+        "  --cache-transcriptome=trans_{wildcards.size}.cache.dat"
+        "  --cache-only"
+
+rule save_cache_size:
+    input:
+        ["ranks_{size}.tsv",
+        "trans_{size}.cache.dat"]
+    output:
+        "size_{size}.cache.dat"
+    shell:
+        "{frictionlesser}"
+        "  --ranks=ranks_{wildcards.size}.tsv"
+        "  --cache-transcriptome=trans_{wildcards.size}.cache.dat"
+        "  --cache-size=size_{wildcards.size}.cache.dat"
+        "  --cache-only"
+
+rule load_cache_run:
+    input:
+        ["ranks_{size}.tsv",
+        "trans_{size}.cache.dat",
+        "size_{size}.cache.dat"]
+    output:
+        "signature_{size}.txt"
+    shell:
+        "{frictionlesser}"
+        "  --ranks=ranks_{wildcards.size}.tsv"
+        "  --cache-transcriptome=trans_{wildcards.size}.cache.dat"
+        "  --cache-size=size_{wildcards.size}.cache.dat"
+        "  > {output}"
