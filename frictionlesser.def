@@ -1,0 +1,62 @@
+Bootstrap: library
+From: ubuntu:20.04
+%post
+    BUILD_REQUIREMENTS="git build-essential clang-9 cmake"
+
+    mkdir -p /usr/local/bin
+    mkdir /usr/local/pasteur
+    cd /usr/local/pasteur
+
+    # Update the available packages list.
+    apt -y update
+    # And add the "universe" repository (allow to install many more software).
+    apt -y install software-properties-common
+    add-apt-repository universe
+    apt -y update
+    # Update the operating systems (install last versions with bugfixes).
+    apt -y dist-upgrade
+
+    # Install dependencies for your project.
+    apt -y install $BUILD_REQUIREMENTS
+
+    # BUild ParadisEO.
+    git clone --branch master --single-branch --recurse-submodules https://github.com/nojhan/paradiseo
+    cd paradiseo
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
+    make
+    cd ../..
+
+    # Build frictionlesser.
+    git clone --branch main --single-branch --recurse-submodules https://github.com/jdreo/frictionlesser
+    cd frictionlesser
+    mkdir build
+    cd build
+    cmake -DBUILD_DOCS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DPARADISEO_ROOT=../../paradiseo -DPARADISEO_BUILD=../../paradiseo/build ..
+    make
+    # Install.
+    cp app/frictionlesser /usr/local/bin/
+    cd ../..
+
+    # Clean-up of the APT cache (will lighten the container).
+    apt -y purge software-properties-common $BUILD_REQUIREMENTS
+    apt -y --purge autoremove
+    apt -y autoclean
+    apt clean
+
+    # Delete builts remains.
+    rm -rf paradiseo/build
+    rm -rf frictionlesser/build
+    # Keep the source code in the container, for reproducibility.
+
+%environment
+
+%runscript
+    # When executing the container, this will be called,
+    # and pass all the command line arguments.
+    /usr/local/bin/frictionlesser $*
+
+%labels
+    Author Johann Dreo
+

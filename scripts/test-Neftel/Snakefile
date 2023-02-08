@@ -1,27 +1,27 @@
 import datetime
 
-EXPE="test"
-SIZES=[5,10]
-SEEDS=[1,2]
+configfile: "config.yaml"
+
+SEEDS=list(range(0,config["runs"]))
 
 # From workdir: one more dir up.
-FRICTIONLESSER="../../../release/app/frictionlesser"
+# FRICTIONLESSER="../../../release/app/frictionlesser"
+FRICTIONLESSER="singularity run ../../../frictionlesser.sif"
 
-NOW=datetime.datetime.now().replace(microsecond=0).isoformat()
-
-workdir: "expe_{name}_{date}".format(name=EXPE, date=NOW)
+NOW=datetime.date.today().isoformat()
+workdir: "expe_{name}_{date}".format(name=config["expe-name"], date=NOW)
 
 rule all:
     input:
-        expand("size_{size}-genes/signature_{seed}.txt", size=SIZES, seed=SEEDS)
+        expand("signatures_of_{size}-genes/signature_{seed}.txt", size=config["sizes"], seed=SEEDS)
 
-rule download:
+rule download_neftel:
     output:
         "GSE131928_RAW.tar"
     shell:
         "wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE131nnn/GSE131928/suppl/GSE131928_RAW.tar"
 
-rule extract:
+rule extract_neftel:
     input:
         "GSE131928_RAW.tar"
     output:
@@ -38,7 +38,8 @@ rule uncompress:
     shell:
         "gunzip {input}"
 
-rule shorten_data:
+# Make the data smaller, so as to speed-up testings.
+rule shorten_neftel:
     input:
         "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv"
     output:
@@ -88,13 +89,13 @@ rule save_cache_size:
         "  --cache-size={output}"
         "  --cache-only"
 
-rule load_cache_run:
+rule load_and_run:
     input:
         ranks="ranks.tsv",
         transcache="cache/trans.cache.dat",
         sizecache="cache/size_{size}.cache.dat"
     output:
-        "size_{size}-genes/signature_{seed}.txt"
+        "signatures_of_{size}-genes/signature_{seed}.txt"
     wildcard_constraints:
         # Wildcards should be numeric.
         seed="\d+",

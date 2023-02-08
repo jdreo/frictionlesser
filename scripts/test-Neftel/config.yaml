@@ -1,0 +1,7 @@
+snakefile: Snakefile
+
+expe-name: test
+sizes:
+    - 5
+    - 10
+runs: 2
