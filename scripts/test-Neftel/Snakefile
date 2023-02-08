@@ -1,10 +1,19 @@
-frictionlesser="../../release/app/frictionlesser --ngenes=3"
+import datetime
 
-SIZES=[5,10,20,50,100]
+EXPE="test"
+SIZES=[5,10]
+SEEDS=[1,2]
+
+# From workdir: one more dir up.
+FRICTIONLESSER="../../../release/app/frictionlesser"
+
+NOW=datetime.datetime.now().replace(microsecond=0).isoformat()
+
+workdir: "expe_{name}_{date}".format(name=EXPE, date=NOW)
 
 rule all:
     input:
-        expand("signature_{size}.txt", size=SIZES)
+        expand("size_{size}-genes/signature_{seed}.txt", size=SIZES, seed=SEEDS)
 
 rule download:
     output:
@@ -16,16 +25,16 @@ rule extract:
     input:
         "GSE131928_RAW.tar"
     output:
-        ["GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv.gz",
-        "GSM3828673_10X_GBM_IDHwt_processed_TPM.tsv.gz"]
+        "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv.gz",
+        "GSM3828673_10X_GBM_IDHwt_processed_TPM.tsv.gz"
     shell:
         "tar xf {input}"
 
-rule uncompress_smallest:
+rule uncompress:
     input:
-        "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv.gz"
+        "{file}.tsv.gz"
     output:
-        "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv"
+        "{file}.tsv"
     shell:
         "gunzip {input}"
 
@@ -33,59 +42,68 @@ rule shorten_data:
     input:
         "GSM3828672_Smartseq2_GBM_IDHwt_processed_TPM.tsv"
     output:
-        "exprs_{size}.csv"
+        "exprs.csv"
     shell:
         # set +o pipefail: disable failing on pipe error, to bypass a qsv bug.
         # qsv transpose: transpose AND CONVERT TO CSV
         # head: shorten columns
         # qsv transpose: untranspose
         # head: shorten lines
-        "set +o pipefail ; qsv transpose {input} | head -n {wildcards.size} | qsv transpose | head -n {wildcards.size} > {output}"
+        "set +o pipefail ; qsv transpose {input} | head -n 20 | qsv transpose | head -n 20 > {output}"
 
 rule rank:
     input:
-        "exprs_{size}.csv"
+        "exprs.csv"
     output:
-        "ranks_{size}.tsv"
+        "ranks.tsv"
     shell:
-        "../../release/app/frictionlesser"
+        "{FRICTIONLESSER}"
         "  --exprs={input}"
-        "  > ranks_{wildcards.size}.tsv"
+        "  > {output}"
 
 rule save_cache_transcriptome:
     input:
-        "ranks_{size}.tsv"
+        "ranks.tsv"
     output:
-        "trans_{size}.cache.dat"
+        protected("cache/trans.cache.dat")
     shell:
-        "{frictionlesser}"
-        "  --ranks=ranks_{wildcards.size}.tsv"
-        "  --cache-transcriptome=trans_{wildcards.size}.cache.dat"
+        "{FRICTIONLESSER}"
+        "  --ranks={input}"
+        "  --cache-transcriptome={output}"
         "  --cache-only"
 
 rule save_cache_size:
     input:
-        ["ranks_{size}.tsv",
-        "trans_{size}.cache.dat"]
+        ranks="ranks.tsv",
+        transcache="cache/trans.cache.dat"
     output:
-        "size_{size}.cache.dat"
+        protected("cache/size_{size}.cache.dat")
+    wildcard_constraints:
+        # Wildcard {size} should be numeric.
+        size="\d+"
     shell:
-        "{frictionlesser}"
-        "  --ranks=ranks_{wildcards.size}.tsv"
-        "  --cache-transcriptome=trans_{wildcards.size}.cache.dat"
-        "  --cache-size=size_{wildcards.size}.cache.dat"
+        "{FRICTIONLESSER}"
+        "  --ranks={input.ranks}"
+        "  --cache-transcriptome={input.transcache}"
+        "  --cache-size={output}"
         "  --cache-only"
 
 rule load_cache_run:
     input:
-        ["ranks_{size}.tsv",
-        "trans_{size}.cache.dat",
-        "size_{size}.cache.dat"]
+        ranks="ranks.tsv",
+        transcache="cache/trans.cache.dat",
+        sizecache="cache/size_{size}.cache.dat"
     output:
-        "signature_{size}.txt"
+        "size_{size}-genes/signature_{seed}.txt"
+    wildcard_constraints:
+        # Wildcards should be numeric.
+        seed="\d+",
+        size="\d+"
     shell:
-        "{frictionlesser}"
-        "  --ranks=ranks_{wildcards.size}.tsv"
-        "  --cache-transcriptome=trans_{wildcards.size}.cache.dat"
-        "  --cache-size=size_{wildcards.size}.cache.dat"
+        "{FRICTIONLESSER}"
+        "  --ranks={input.ranks}"
+        "  --cache-transcriptome={input.transcache}"
+        "  --cache-size={input.sizecache}"
+        "  --ngenes={wildcards.size}"
+        "  --seed={wildcards.seed}"
         "  > {output}"
