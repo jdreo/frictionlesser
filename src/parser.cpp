@@ -124,8 +124,8 @@ size_t TranscriptomeParser::load_row(const std::string& line, size_t& igene)
     } else if(not isdigit(line[0])) {
         return load_gene(ss, igene);
 
-    } else {
-        RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
+    // } else {
+        // RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
     }
 }
 
