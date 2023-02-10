@@ -29,11 +29,16 @@ rule save_cache_transcriptome:
         "ranks.tsv"
     output:
         protected("cache/trans.cache.dat")
+    log: "logs/save_cache_transcriptome.log"
+    benchmark: "logs/save_cache_transcriptome.bench"
+    resources:
+        job_name="cache_trans"
     shell:
         "{FRICTIONLESSER}"
         "  --ranks={input}"
         "  --cache-transcriptome={output}"
         "  --cache-only"
+        "  2> {log}"
 
 rule save_cache_size:
     input:
@@ -44,12 +49,17 @@ rule save_cache_size:
     wildcard_constraints:
         # Wildcard {size} should be numeric.
         size="\d+"
+    log: "logs/save_cache_size-{size}.log"
+    benchmark: "logs/save_cache_size-{size}.bench"
+    resources:
+        job_name=lambda wildcards: f"cache_z{wildcards.size}"
     shell:
         "{FRICTIONLESSER}"
         "  --ranks={input.ranks}"
         "  --cache-transcriptome={input.transcache}"
         "  --cache-size={output}"
         "  --cache-only"
+        "  2> {log}"
 
 rule load_and_run:
     input:
@@ -62,6 +72,10 @@ rule load_and_run:
         # Wildcards should be numeric.
         seed="\d+",
         size="\d+"
+    log: "logs/load_and_run_size-{size}_seed-{seed}.log"
+    benchmark: "logs/load_and_run_size-{size}_seed-{seed}.bench"
+    resources:
+        job_name=lambda wildcards: f"run_z{wildcards.size}_s{wildcards.seed}"
     shell:
         "{FRICTIONLESSER}"
         "  --ranks={input.ranks}"
@@ -70,4 +84,5 @@ rule load_and_run:
         "  --ngenes={wildcards.size}"
         "  --seed={wildcards.seed}"
         "  > {output}"
+        "  2> {log}"
 

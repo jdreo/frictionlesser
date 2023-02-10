@@ -3,7 +3,7 @@ snakefile: Snakefile
 # executable: "singularity run ../frictionlesser.sif"
 executable: "../../release/app/frictionlesser"
 
-expe-name: test
+expe-name: 20230210_PARIS
 
 sizes:
     - 10
@@ -11,5 +11,5 @@ sizes:
     - 30
 
 # Number of runs = number of (possibly duplicated) signatures.
-runs: 100
+runs: 5000
 
