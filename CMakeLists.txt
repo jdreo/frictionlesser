@@ -26,6 +26,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 option(BUILD_DOCS "Enable building of documentation" OFF)
 option(BUILD_TESTING "Enable building of tests" OFF)
 option(BUILD_FOR_LOCAL "Whether to make the executables dependant on the environment of the building computer (enables CMake's build with RPATH), may be necessary on HPC clusters" OFF)
+option(USE_LOCAL_PARADISEO "Use a local version of Paradiseo rather than the one installed on the system" OFF)
 
 # Common
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
@@ -47,13 +48,19 @@ endif()
 include_directories(include)
 
 # ParadisEO
-set(PARADISEO_ROOT "PARADISEO_NOT_FOUND" CACHE PATH "Where to find ParadisEO")
-set(PARADISEO_BUILD "${PARADISEO_ROOT}/build" CACHE PATH "Build dir of ParadisEO")
+if(USE_LOCAL_PARADISEO)
+    set(PARADISEO_ROOT "PARADISEO_NOT_FOUND" CACHE PATH "Where to find ParadisEO")
+    set(PARADISEO_BUILD "${PARADISEO_ROOT}/build" CACHE PATH "Build dir of ParadisEO")
 
-include_directories(${PARADISEO_ROOT})
-include_directories(${PARADISEO_ROOT}/eo/src)
-include_directories(${PARADISEO_ROOT}/mo/src)
-link_directories(${PARADISEO_BUILD}/lib)
+    include_directories(${PARADISEO_ROOT})
+    include_directories(${PARADISEO_ROOT}/eo/src)
+    include_directories(${PARADISEO_ROOT}/mo/src)
+    link_directories(${PARADISEO_BUILD}/lib)
+else()
+    include_directories(${PARADISEO_ROOT}/include/paradiseo/eo)
+    include_directories(${PARADISEO_ROOT}/include/paradiseo/mo)
+    link_directories(${PARADISEO_ROOT}/lib64)
+endif()
 set(PARADISEO_LIBRARIES ga eoutils eo)
 
 # Single-header dependencies.
