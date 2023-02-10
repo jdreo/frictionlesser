@@ -1,0 +1,73 @@
+import datetime
+
+configfile: "config.yaml"
+
+# NOW=datetime.date.today().isoformat()
+# workdir: "expe_{name}_{date}".format(name=config["expe-name"], date=NOW)
+
+SEEDS=list(range(0,config["runs"]))
+
+FRICTIONLESSER=config["executable"]
+
+rule all:
+    input:
+        expand("signatures_of_{size}-genes/signature_{seed}.txt", size=config["sizes"], seed=SEEDS)
+
+
+# rule rank:
+#     input:
+#         "exprs.csv"
+#     output:
+#         "ranks.tsv"
+#     shell:
+#         "{FRICTIONLESSER}"
+#         "  --exprs={input}"
+#         "  > {output}"
+
+rule save_cache_transcriptome:
+    input:
+        "ranks.tsv"
+    output:
+        protected("cache/trans.cache.dat")
+    shell:
+        "{FRICTIONLESSER}"
+        "  --ranks={input}"
+        "  --cache-transcriptome={output}"
+        "  --cache-only"
+
+rule save_cache_size:
+    input:
+        ranks="ranks.tsv",
+        transcache="cache/trans.cache.dat"
+    output:
+        protected("cache/size_{size}.cache.dat")
+    wildcard_constraints:
+        # Wildcard {size} should be numeric.
+        size="\d+"
+    shell:
+        "{FRICTIONLESSER}"
+        "  --ranks={input.ranks}"
+        "  --cache-transcriptome={input.transcache}"
+        "  --cache-size={output}"
+        "  --cache-only"
+
+rule load_and_run:
+    input:
+        ranks="ranks.tsv",
+        transcache="cache/trans.cache.dat",
+        sizecache="cache/size_{size}.cache.dat"
+    output:
+        "signatures_of_{size}-genes/signature_{seed}.txt"
+    wildcard_constraints:
+        # Wildcards should be numeric.
+        seed="\d+",
+        size="\d+"
+    shell:
+        "{FRICTIONLESSER}"
+        "  --ranks={input.ranks}"
+        "  --cache-transcriptome={input.transcache}"
+        "  --cache-size={input.sizecache}"
+        "  --ngenes={wildcards.size}"
+        "  --seed={wildcards.seed}"
+        "  > {output}"
+
