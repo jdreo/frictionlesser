@@ -23,7 +23,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 ######################################################################################
 
 # Compilation options
-option(BUILD_DOCS   "Enable building of documentation"   ON)
+option(BUILD_DOCS "Enable building of documentation" OFF)
+option(BUILD_TESTING "Enable building of tests" OFF)
 
 # Common
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
