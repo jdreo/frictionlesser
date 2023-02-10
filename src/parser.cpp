@@ -121,11 +121,11 @@ size_t TranscriptomeParser::load_row(const std::string& line, size_t& igene)
         // Catch empty lines or commented lines.
         return 0;
 
-    } else if(not isdigit(line[0])) {
+    } else if(not std::isspace(line[0])) {
         return load_gene(ss, igene);
 
-    // } else {
-        // RAISE(DataRowFormat, "Line " << igene+1 << " is neither EOF, starting with #, empty, or not starting with a digit.");
+    } else {
+        RAISE(DataRowFormat, "Line " << igene+1 << " starts with space (is neither EOF, starting with # or empty).");
     }
 }
 
