@@ -60,6 +60,23 @@ Transcriptome TranscriptomeParser::operator()( std::istream& input )
         }
     }
 
+    #ifndef NDEBUG
+        std::vector<std::string> errors;
+        for(size_t i=0; i < _rt._ranks.size(); ++i) {
+            if(_rt._ranks[i].size() != _rt.cells_nb()) {
+                std::ostringstream msg;
+                msg << "\tGene " << _rt._gene_names[i] << "\tat line " << i+1 << "\tdoes not have " << _rt.cells_nb() << " cells/columns,\tbut " << _rt._ranks[i].size() << ".\n";
+                errors.push_back(msg.str());
+            }
+        }
+        if(errors.size() > 0) {
+            std::ostringstream err;
+            err << errors.size() << " errors:\n";
+            for(auto m : errors) {err << m;}
+            RAISE(DataRowFormat, err.str());
+        }
+    #endif
+
     return _rt;
 }
 
@@ -119,13 +136,16 @@ size_t TranscriptomeParser::load_row(const std::string& line, size_t& igene)
 
     if(line[0] == '#' or line.empty()) {
         // Catch empty lines or commented lines.
+        // No need to warn the user, this is expected.
         return 0;
 
     } else if(not std::isspace(line[0])) {
         return load_gene(ss, igene);
 
     } else {
-        RAISE(DataRowFormat, "Line " << igene+1 << " starts with space (is neither EOF, starting with # or empty).");
+        // RAISE(DataRowFormat, "Line " << igene+1 << " starts with space (is neither EOF, starting with # or empty).");
+        CLUTCHLOG(warning, "Line " << igene+1 << " starts with space (is neither EOF, starting with # or empty). I will ignore it.");
+        return 0;
     }
 }
 
