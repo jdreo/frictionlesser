@@ -75,7 +75,8 @@ rule load_and_run:
     log: "logs/load_and_run_size-{size}_seed-{seed}.log"
     benchmark: "logs/load_and_run_size-{size}_seed-{seed}.bench"
     resources:
-        job_name=lambda wildcards: f"run_z{wildcards.size}_s{wildcards.seed}"
+        mem_mb=16000,
+        job_name=lambda wildcards: f"z{wildcards.size}_s{wildcards.seed}"
     shell:
         "{FRICTIONLESSER}"
         "  --ranks={input.ranks}"
