@@ -1,13 +1,42 @@
 import scipy
 import numpy
 from sortedcollections import OrderedSet
-from scipy.spatial.distance import squareform, pdist, jaccard
+from scipy.spatial.distance import squareform, pdist, cdist, jaccard
 from fastcluster import linkage
 
 # geneset = set of genes.
 # e.g. {"A","B"}
 # signature = dictionary of all seen genes ("genome"), with value being true if the gene is in the signature.
 # e.g. {"A":1, "B":1, "C": 0, "D":0}
+
+def load_genome(filenames, filter_size=None):
+    assert(len(filenames) > 0)
+
+    genome = OrderedSet()
+
+    for filename in filenames:
+        with open(filename) as fd:
+            lines = fd.readlines()
+            for line in lines:
+                #print(line)
+                fields = line.strip().split()
+                if len(fields) == 1:
+                    fields = line.strip().split(",")
+                assert(len(fields)>1)
+                i = 0
+                if fields[1].isdigit():
+                    # Johann’ format: <score> <ngenes> <genes>…
+                    score = float(fields[0])
+                    n = int(fields[1])
+                    i = 2
+                if filter_size:
+                    if len(fields[i:]) != filter_size:
+                        continue
+                genes = frozenset(fields[i:])
+                genome |= genes # Merge genes into all genes.
+
+    return genome
+
 
 def load(filenames, filter_size=None):
     assert(len(filenames) > 0)
@@ -25,9 +54,9 @@ def load(filenames, filter_size=None):
             file_genesets = OrderedSet()
             for line in lines:
                 #print(line)
-                fields = line.split()
+                fields = line.strip().split()
                 if len(fields) == 1:
-                    fields = line.split(",")
+                    fields = line.strip().split(",")
                 assert(len(fields)>1)
                 i = 0
                 if fields[1].isdigit():
@@ -127,11 +156,11 @@ def compute_serial_matrix(dist_mat,method="ward"):
 
     return seriated_dist, res_order, res_linkage
 
-def colormesh(mat, ax):
-    cmap = cm.get_cmap("Blues")
+def colormesh(mat, ax, cmap, norm):
+    # cmap = cm.get_cmap("Blues")
     cmap.set_bad("white")
 
-    pcm = ax.pcolormesh(mat, cmap=cmap)#, edgecolors="#eeeeee", linewidth=0.01)
+    pcm = ax.pcolormesh(mat, cmap=cmap, norm=norm)#, edgecolors="#eeeeee", linewidth=0.01)
     #plt.imshow(mat, cmap=cmap)
 
     # ax.set_aspect("equal")
@@ -158,6 +187,7 @@ if __name__=="__main__":
     from matplotlib import gridspec
     import matplotlib.pyplot as plt
     from matplotlib import cm
+    from matplotlib.colors import Normalize
 
     size = int(sys.argv[1])
     if size == 0:
@@ -181,70 +211,3 @@ if __name__=="__main__":
     if not all(s == len(genesets[0]) for s in sizes):
         print("Statistics or sizes:",scipy.stats.describe(sizes), flush=True)
 
-    signatures = genesets_to_signatures(genesets,genome)
-    # with numpy.printoptions(threshold=numpy.inf):
-        # print(signatures)
-    raw_distance_matrix = self_similarity_matrix(signatures)
-
-    # full_distance_matrix, res_order, res_linkage = compute_serial_matrix(raw_distance_matrix, "ward")
-    full_distance_matrix = raw_distance_matrix
-
-    # PLOT
-    fig = plt.figure(figsize=(10,10))
-    fig.tight_layout()
-    gs = gridspec.GridSpec(4, 3, width_ratios=[20,1,1], height_ratios=[10,10,1,1])
-    ax1 = fig.add_subplot(gs[0])
-    ax2 = fig.add_subplot(gs[3])
-    ax2r = fig.add_subplot(gs[4],sharey=ax2)
-    ax2rr = fig.add_subplot(gs[5],sharey=ax2)
-    ax2b = fig.add_subplot(gs[6],sharex=ax2)
-    ax2bb = fig.add_subplot(gs[9],sharex=ax2)
-
-    # Full distance matrx
-    mask = numpy.tri(full_distance_matrix.shape[0], k=-1).transpose() # k>0 = above
-    mat = numpy.ma.array(full_distance_matrix, mask=mask)
-    pcm = colormesh(mat, ax1)
-    fig.colorbar(pcm, ax=ax1)
-    ax1.set_title("Jaccard similarities of all {} signatures of size {} on {} genes".format(len(genesets),len(next(iter(genesets))),len(genome)))
-
-    # Dual distance matrix
-    sub_distance_matrix = raw_distance_matrix[breaks[1]:,:breaks[1]]
-    dual_distance_matrix = sub_distance_matrix[:, (sub_distance_matrix.sum(axis=0)*-1).argsort()]
-
-    colormesh(dual_distance_matrix, ax2)
-    ax2.set_ylabel(filenames[0])
-    # ax2.xaxis.tick_top()
-
-    # Sum over rows
-    sum_rows = dual_distance_matrix.sum(1)
-    colormesh(sum_rows.reshape(-1,1), ax2r)
-    ax2r.set_ylabel("Sum of similarities for {} signatures in `{}`".format(len(sum_rows),filenames[0]))
-    ax2r.yaxis.set_label_position("right")
-    ax2r.yaxis.tick_right()
-
-    # Sum over columns
-    sum_cols = dual_distance_matrix.sum(0)
-    colormesh(sum_cols.reshape(1,-1), ax2b)
-    # ax2b.set_xlabel(filenames[1])
-    ax2b.set_xlabel("Sum of similarities for {} signatures in `{}`".format(len(sum_cols),filenames[1]))
-
-    def thresh(slice):
-        return any([s > sim_thresh for s in slice])
-
-    # Threshold count over rows
-    match_rows = numpy.apply_along_axis(thresh, axis=1, arr=dual_distance_matrix)
-    colormesh(match_rows.reshape(-1,1), ax2rr)
-    sm = sum(match_rows)
-    n = len(match_rows)
-    ax2rr.set_ylabel("{:.0%} of signatures in `{}` are similar enough (>{}) to at least another one in `{}`".format(sm/n, filenames[0], sim_thresh, filenames[1]))
-    ax2rr.yaxis.set_label_position("right")
-    ax2rr.yaxis.tick_right()
-
-    # Threshold count over columns
-    match_cols = numpy.apply_along_axis(thresh, axis=0, arr=dual_distance_matrix)
-    colormesh(match_cols.reshape(1,-1), ax2bb)
-    sm = sum(match_cols)
-    n = len(match_cols)
-    ax2bb.set_xlabel("{:.0%} of signatures in `{}` are similar enough (>{}) to at least another one in `{}`".format(sm/n, filenames[1], sim_thresh, filenames[0]))
-
-    plt.show()
