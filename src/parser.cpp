@@ -125,6 +125,11 @@ size_t TranscriptomeParser::load_header(const std::string& line)
     }
     ASSERT(loaded.size() == i);
     ASSERT(_rt._samples.size() == i);
+    if( _rt.samples_nb() / _rt.cells_nb() > 0.0005) {
+        CLUTCHLOG(warning, "Suspiciously many samples (" << _rt.samples_nb()
+            << ") regarding the number of cells (" << _rt.cells_nb() << ")");
+    }
+
     return loaded.size();
 }
 
