@@ -24,6 +24,32 @@ rule all:
 #         "  --exprs={input}"
 #         "  > {output}"
 
+rule preprocessing:
+    input:
+        counts="2022_02_18_version_2_EOC_counts.npz",
+        features="2022_02_18_version_2_EOC_features.csv",
+        meta="2022_02_18_version_2_EOC_meta.csv"
+    output:
+        "2022_02_18_version_2_EOC_counts.mara.hdf5"
+    shell:
+        "python3 paris_preproc-mara_hdf5.py {input.counts} {input.features} {input.meta}"
+
+rule counts:
+    input:
+        "2022_02_18_version_2_EOC_counts.mara.hdf5"
+    output:
+        "counts.csv"
+    shell:
+        "python3 hdf5_to_csv.py {input} > {output}"
+
+rule ranks:
+    input:
+        "counts.csv"
+    output:
+        "ranks.tsv"
+    shell:
+        "{FRICTIONLESSER} --exprs={input} > {output}"
+
 rule save_cache_transcriptome:
     input:
         "ranks.tsv"
@@ -31,8 +57,6 @@ rule save_cache_transcriptome:
         protected("cache/trans.cache.dat")
     log: "logs/save_cache_transcriptome.log"
     benchmark: "logs/save_cache_transcriptome.bench"
-    resources:
-        job_name="cache_trans"
     shell:
         "{FRICTIONLESSER}"
         "  --ranks={input}"

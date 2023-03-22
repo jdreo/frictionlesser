@@ -3,16 +3,18 @@ from scipy.sparse import load_npz
 import scanpy as sc
 import pandas as pd
 import anndata as ad
+import pathlib
 # from sklearn.preprocessing import normalize
 # from itertools import zip_longest
 # import numpy
 # import scipy
 
-def check(counts, meta, genes):
+def check(counts, cells, genes):
     assert(counts.shape[0] > 0)
     assert(counts.shape[1] > 0)
-    assert(counts.shape[0] == len(meta))
+    assert(counts.shape[0] == len(cells))
     assert(counts.shape[1] == len(genes))
+    print(len(genes),"genes",len(cells),"cells")
     print("OK", file=sys.stderr, flush=True)
 
 if __name__ == "__main__":
@@ -31,17 +33,15 @@ if __name__ == "__main__":
             counts = load_npz(fcounts)
 
         # Those are pandas' dataframes.
-        meta  = pd.read_csv(fmeta)
+        cells  = pd.read_csv(fmeta)
         genes = pd.read_csv(ffeatures)
 
-        print("Loaded",len(genes["id"]),"genes and",len(meta["cell_types_v2"]),"cells", file=sys.stderr, flush=True)
-        check(counts, meta["cell_types_v2"], genes["id"])
-
+        print("Loaded",len(genes["id"]),"genes and",len(cells["cell_types_v2"]),"cells", file=sys.stderr, flush=True)
+        check(counts, cells["cell_types_v2"], genes["id"])
 
         print("Build annotated data...", file=sys.stderr, flush=True)
-        adata = ad.AnnData(counts.tocsr(), meta, genes, dtype=counts.dtype)
+        adata = ad.AnnData(counts.tocsr(), cells, genes, dtype=counts.dtype)
         check(adata.X, adata.obs_names, adata.var_names)
-
 
         # print("Save raw annotated data...", file=sys.stderr, flush=True)
         # adata.write(fcounts+".hdf5")
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         assert(len(sys.argv) == 2 or len(sys.argv) == 4)
 
     # https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html
-    print("3k-PBMCs preprocessing...", file=sys.stderr, flush=True)
+    print("Mara's preprocessing...", file=sys.stderr, flush=True)
 
     # sc.pl.highest_expr_genes(adata, n_top=20, ) # TODO checkpoint
 
@@ -74,6 +74,10 @@ if __name__ == "__main__":
     # print("Actually do the basic filtering...", file=sys.stderr, flush=True)
     # adata = adata[adata.obs.n_genes_by_counts < 2500, :]
     # adata = adata[adata.obs.pct_counts_mt < 5, :]
+
+    print("Filter out non-cancer...", file=sys.stderr, flush=True)
+    adata = adata[adata.obs.cell_types_v2 == "cancer", :]
+    check(adata.X, adata.obs_names, adata.var_names)
 
     print("Total-count normalize...", file=sys.stderr, flush=True)
     # (library-size correct) the data matrix X to 10,000 reads per cell, so that counts become comparable among cells.
@@ -93,8 +97,9 @@ if __name__ == "__main__":
 
     check(adata.X, adata.obs_names, adata.var_names)
 
-    print("Write data to", fcounts+".pbmc3k.hdf5", file=sys.stderr, flush=True)
-    adata.write(fcounts+".pbmc3k.hdf5")
+    fname = str(pathlib.Path(fcounts).with_suffix(".mara.hdf5"))
+    print("Write data to", fname, file=sys.stderr, flush=True)
+    adata.write(fname)
 
     adata.file.close() # In case it was backed.
     print("Done", file=sys.stderr, flush=True)

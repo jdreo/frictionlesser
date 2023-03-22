@@ -1,3 +1,4 @@
+import sys
 import scipy
 import numpy
 from sortedcollections import OrderedSet
@@ -39,6 +40,8 @@ def load_genome(filenames, filter_size=None):
 
 
 def load(filenames, filter_size=None):
+    if filter_size == 0:
+        filter_size = None
     assert(len(filenames) > 0)
 
     genesets = OrderedSet()
@@ -48,13 +51,13 @@ def load(filenames, filter_size=None):
     breaks = []
 
     for filename in filenames:
+        kept_lines = 0
         with open(filename) as fd:
             lines = fd.readlines()
-            kept_lines = 0
             file_genesets = OrderedSet()
             for line in lines:
-                #print(line)
                 fields = line.strip().split()
+                # print(len(fields),fields)
                 if len(fields) == 1:
                     fields = line.strip().split(",")
                 assert(len(fields)>1)
@@ -79,11 +82,12 @@ def load(filenames, filter_size=None):
                 # current_id += 1
                 file_genesets |= OrderedSet([genes]) # Add a genes as a geneset if not already here.
                 #print(genes)
-        if kept_lines > 1:
-            if filter_size:
-                print("File `",filename,"` had",len(file_genesets),"unique signatures among",kept_lines,"signatures of size",filter_size, flush=True)
-            else:
-                print("File `",filename,"` had",len(file_genesets),"unique signatures among",kept_lines,"signatures of all size", flush=True)
+        # if kept_lines > 1:
+        if filter_size:
+            print("File `",filename,"` had",len(file_genesets),"unique signatures among",kept_lines,"signatures of size",filter_size, file=sys.stderr, flush=True)
+        else:
+            print("File `",filename,"` had",len(file_genesets),"unique signatures among",kept_lines,"signatures of all size", file=sys.stderr, flush=True)
+
         breaks.append(len(file_genesets))
 
         genesets |= file_genesets
@@ -165,8 +169,8 @@ def colormesh(mat, ax, cmap, norm):
 
     # ax.set_aspect("equal")
 
-    xticks=numpy.arange(0,mat.shape[1],max(1,int(mat.shape[1]/100)))
-    yticks=numpy.arange(0,mat.shape[0],max(1,int(mat.shape[0]/50)))
+    xticks=numpy.arange(0,mat.shape[1],max(1,int(mat.shape[1]/40)))
+    yticks=numpy.arange(0,mat.shape[0],max(1,int(mat.shape[0]/30)))
 
     # Major ticks
     ax.set_xticks(xticks+0.5)

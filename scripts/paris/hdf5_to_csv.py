@@ -22,8 +22,9 @@ if __name__ == "__main__":
     print("Output as CSV...", file=sys.stderr, flush=True)
     counts_full = numpy.asarray(adata.X.todense())
 
-    print("GENE,", ",".join(adata.obs_names), sep="")
-    i = 0
+    # Column names are sample, not cells IDs.
+    print("GENE,", ",".join(adata.obs["sample"]), sep="")
+    i = 1
     for row in counts_full.T:
         print("\r",i, end="", flush=True, file=sys.stderr)
         # assert(len(row) == len(meta_cancer["cell_types_v2"]))
@@ -31,4 +32,4 @@ if __name__ == "__main__":
         i += 1
     assert( i == len(adata.var_names))
 
-    print("Done", file=sys.stderr, flush=True)
+    print("\nDone", file=sys.stderr, flush=True)
