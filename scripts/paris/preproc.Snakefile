@@ -14,7 +14,7 @@ rule preprocessing:
     input:
         counts="data/input/counts.npz",
         features="data/input/features.csv",
-        meta="data/input/eta.csv"
+        meta="data/input/meta.csv"
     output:
         "data/inter/counts.mara.hdf5"
     shell:
