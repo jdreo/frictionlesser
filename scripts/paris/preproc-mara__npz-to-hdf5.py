@@ -24,6 +24,7 @@ if __name__ == "__main__":
         fcounts = sys.argv[1]
         ffeatures = sys.argv[2]
         fmeta = sys.argv[3]
+        foutput = sys.argv[4]
 
 
         print("Load data files...", file=sys.stderr, flush=True)
@@ -97,9 +98,9 @@ if __name__ == "__main__":
 
     check(adata.X, adata.obs_names, adata.var_names)
 
-    fname = str(pathlib.Path(fcounts).with_suffix(".mara.hdf5"))
-    print("Write data to", fname, file=sys.stderr, flush=True)
-    adata.write(fname)
+    # fname = str(pathlib.Path(fcounts).with_suffix(".mara.hdf5"))
+    print("Write data to", foutput, file=sys.stderr, flush=True)
+    adata.write(foutput)
 
     adata.file.close() # In case it was backed.
     print("Done", file=sys.stderr, flush=True)

@@ -18,7 +18,7 @@ rule preprocessing:
     output:
         "data/inter/counts.mara.hdf5"
     shell:
-        "python3 preproc-mara__npz-to-hdf5.py {input.counts} {input.features} {input.meta}"
+        "python3 preproc-mara__npz-to-hdf5.py {input.counts} {input.features} {input.meta} {output}"
 
 rule counts:
     input:
