@@ -3,7 +3,7 @@
 size=${1}
 seed=${2}
 
-FRICTIONLESSER="../../release/app/frictionlesser"
+FRICTIONLESSER="../../build/app/frictionlesser"
 
-${FRICTIONLESSER} --ranks=ranks.tsv --cache-transcriptome=cache/trans.cache.dat --cache-size=cache/size_${size}.cache.dat --ngenes=${size} --seed=${seed} > signature_of_${size}-genes/signature_${seed} 2> logs/z${size}_s${seed}.log
+${FRICTIONLESSER} --ranks=data/inter/ranks.tsv --cache-transcriptome=cache/trans.cache.dat --cache-size=cache/size_${size}.cache.dat --ngenes=${size} --seed=${seed} > data/output/signature_of_${size}-genes/signature_${seed} 2> data/inter/logs/frictionlesser_z${size}_s${seed}.log
 

@@ -292,17 +292,19 @@ int main(int argc, char* argv[])
         eoOStreamMonitor logger(std::clog);
             moBestFitnessStat<frictionless::Signature> best;
             logger.add(best);
-            moCounterStat<frictionless::Signature> counter;
-            logger.add(counter);
+            // moCounterStat<frictionless::Signature> counter;
+            // logger.add(counter);
         // Print stuff every 10 seconds.
         eoTimedMonitor every(10);
             every.add(logger);
         // Continue search until exhaustion of the neighborhood.
         moTrueContinuator<frictionless::Neighbor> until_end;
         moCheckpoint<frictionless::Neighbor> check(until_end);
-            check.add(best);    // Update this stat.
-            check.add(counter); // Update this state.
+            // check.add(counter); // Update the counter state.
+            check.add(best);    // Update the best state.
             check.add(every);   // Call this monitor.
+
+        // Save every solutions in a file.
 
         // The actual algorithm.
         frictionless::Neighborhood neighborhood;
