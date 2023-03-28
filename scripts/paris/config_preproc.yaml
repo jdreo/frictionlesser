@@ -1,9 +1,9 @@
 snakefile: Snakefile
 
 # executable: "singularity run ../../frictionlesser.sif"
-executable: "../../release/app/frictionlesser"
+executable: "../../build/app/frictionlesser"
 
-cluster: "sbatch --job-name {resources.job_name} --mem 16G --cpus-per-task=1 --partition common,dedicated --qos fast --output logs/%j.out --error logs/%j.err"
+cluster: "sbatch --job-name {resources.job_name} --mem 16G --cpus-per-task=1 --partition common,dedicated --qos fast --output data/inter/logs/%j.out --error data/inter/logs/%j.err"
 
 sizes:
     - 10

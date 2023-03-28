@@ -1,11 +1,6 @@
 import datetime
 
-configfile: "config.yaml"
-
-# NOW=datetime.date.today().isoformat()
-# workdir: "expe_{name}_{date}".format(name=config["expe-name"], date=NOW)
-
-SEEDS=list(range(0,config["runs"]))
+configfile: "config_preproc.yaml"
 
 FRICTIONLESSER=config["executable"]
 
@@ -17,17 +12,17 @@ rule all:
 
 rule preprocessing:
     input:
-        counts="data/input/2022_02_18_version_2_EOC_counts.npz",
-        features="data/input/2022_02_18_version_2_EOC_features.csv",
-        meta="data/input/2022_02_18_version_2_EOC_meta.csv"
+        counts="data/input/counts.npz",
+        features="data/input/features.csv",
+        meta="data/input/eta.csv"
     output:
-        "data/inter/2022_02_18_version_2_EOC_counts.mara.hdf5"
+        "data/inter/counts.mara.hdf5"
     shell:
         "python3 preproc-mara__npz-to-hdf5.py {input.counts} {input.features} {input.meta}"
 
 rule counts:
     input:
-        "data/inter/2022_02_18_version_2_EOC_counts.mara.hdf5"
+        "data/inter/counts.mara.hdf5"
     output:
         "data/inter/counts.csv"
     shell:
@@ -46,8 +41,8 @@ rule save_cache_transcriptome:
         "data/inter/ranks.tsv"
     output:
         protected("cache/trans.cache.dat")
-    log: "logs/save_cache_transcriptome.log"
-    benchmark: "logs/save_cache_transcriptome.bench"
+    log: "data/inter/logs/save_cache_transcriptome.log"
+    benchmark: "data/inter/logs/save_cache_transcriptome.bench"
     shell:
         "{FRICTIONLESSER}"
         "  --ranks={input}"
@@ -64,8 +59,8 @@ rule save_cache_size:
     wildcard_constraints:
         # Wildcard {size} should be numeric.
         size="\d+"
-    log: "logs/save_cache_size-{size}.log"
-    benchmark: "logs/save_cache_size-{size}.bench"
+    log: "data/inter/logs/save_cache_size-{size}.log"
+    benchmark: "data/inter/logs/save_cache_size-{size}.bench"
     resources:
         job_name=lambda wildcards: f"cache_z{wildcards.size}"
     shell:
