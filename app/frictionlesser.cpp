@@ -80,6 +80,9 @@ int main(int argc, char* argv[])
         "Precision for floating-point numbers comparison", 'e', "Misc").value();
 
 
+    const std::string save_sol = argparser.createParam<std::string>("", "save-sol",
+        "File to which save every solution encountered (default='', do not save)", 'o', "Misc").value();
+
     /**************************************************************************
      * Messages management.
      *************************************************************************/
@@ -305,6 +308,15 @@ int main(int argc, char* argv[])
             check.add(every);   // Call this monitor.
 
         // Save every solutions in a file.
+        // Declare here for keeping the scope, but will only be added if asked.
+        eoFileMonitor save(save_sol,
+            /*delimiter*/" ", /*keep_existing*/true, /*header*/true, /*overwrite*/false;
+            moSolutionStat<frictionless::Signature> every_sol;
+        if(save_sol != "") {
+            save.add(every_sol);  // Output the solution to the file.
+            check.add(every_sol); // Update the solution state.
+            check.add(save);      // Call the saver.
+        }
 
         // The actual algorithm.
         frictionless::Neighborhood neighborhood;
