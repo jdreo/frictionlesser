@@ -310,7 +310,7 @@ int main(int argc, char* argv[])
         // Save every solutions in a file.
         // Declare here for keeping the scope, but will only be added if asked.
         eoFileMonitor save(save_sol,
-            /*delimiter*/" ", /*keep_existing*/true, /*header*/true, /*overwrite*/false;
+            /*delimiter*/" ", /*keep_existing*/true, /*header*/true, /*overwrite*/false);
             moSolutionStat<frictionless::Signature> every_sol;
         if(save_sol != "") {
             save.add(every_sol);  // Output the solution to the file.
