@@ -27,8 +27,7 @@ if __name__ == "__main__":
     i = 1
     for row in counts_full.T:
         print("\r",i, end="", flush=True, file=sys.stderr)
-        # assert(len(row) == len(meta_cancer["cell_types_v2"]))
-        print(adata.var_names[i], ",".join(str(x) for x in row))
+        print(adata.var["id"][i], ",".join(str(x) for x in row))
         i += 1
     assert( i == len(adata.var_names))
 
