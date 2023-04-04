@@ -27,7 +27,7 @@ if __name__=="__main__":
     correlations = numpy.load(fcorrs)
 
     print("Compute p-values from correlations...", file=sys.stderr, flush=True)
-    dist = scipy.stats.beta( ncells/2 -1, ncells/2 - 1, loc=-1, scale=2)
+    dist = scipy.stats.beta(ncells/2 -1, ncells/2 - 1, loc=-1, scale=2)
     pvalues = 2 * dist.cdf(-numpy.abs(correlations))
 
     print("Save p-values...", correlations.shape, "to `", fout, "`...", file=sys.stderr, flush=True)

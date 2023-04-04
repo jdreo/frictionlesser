@@ -2,7 +2,9 @@
 rule all:
     input:
         "clustermap_correlations.png",
-        "clustermap_pvalues.png"
+        "clustermap_pvalues.png",
+        "data/qc/observed_genes.txt",
+        "data/qc/observed_genes_distribution.png"
 
 rule aggregate:
     input:
@@ -11,6 +13,18 @@ rule aggregate:
         "data/output/signatures_z10.tsv"
     shell:
         "cat {input}/signature_* > {output}"
+
+rule qc_observed_genes:
+    input:
+        task="qc-observed-genes.py",
+        ranks="data/inter/ranks.tsv",
+        A="data/output/emil_all.csv",
+        B="data/output/signatures_z10.tsv"
+    output:
+        text="data/qc/observed_genes.txt",
+        plot="data/qc/observed_genes_distribution.png"
+    shell:
+        "python3 {input.task} 10 {input.ranks} {output.plot} {input.A} {input.B} > {output.text}"
 
 rule genes_standardized_scores:
     input:
@@ -34,7 +48,7 @@ rule signatures_correlations:
         B="data/output/signatures_z10.tsv"
     output:
         corr="data/inter/signatures-average-correlations.npy",
-        orig="data/inter/signatures-average-correlations_origins.npy"
+        orig="data/inter/signatures-average-correlations_origins.csv"
     shell:
         "python3 {input.task} {input.ranks} {input.scores} {input.indices} 10 {output.corr} {output.orig} {input.A} {input.B}"
 
