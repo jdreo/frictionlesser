@@ -23,62 +23,41 @@ int main(int argc, char* argv[])
     eoParser argparser(argc, argv);
     // eoState state; // TODO
 
-    const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
-        "File of the expressions table to be ranked", 'x', "Data").value();
+    // Add common options.
 
-    const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
-        "File of the input ranks table", 'r', "Data").value();
+    std::string exprsfile;
+    std::string ranksfile;
+    std::string cachetransfile;
+    std::string cachesizefile;
+    bool cacheonly;
+    double alpha;
+    std::string log_level;
+    std::string log_file;
+    std::string log_func;
+    size_t log_depth;
+    size_t max_errors;
+    double epsilon;
 
-
-    const std::string cachetransfile = argparser.createParam<std::string>("", "cache-transcriptome",
-        "File storing the transcriptome-dependant cache", 'T', "Cache").value();
-
-    const std::string cachesizefile = argparser.createParam<std::string>("", "cache-size",
-        "File storing the geneset-size-dependant cache", 'S', "Cache").value();
-
-    const bool cacheonly = argparser.createParam<bool>(false, "cache-only",
-        "Exit after creating transcriptome and size cache files", 'O', "Cache").value();
-
-
-    // const std::string signatures = argparser.createParam<std::string>("", "signatures",
-        // "Name of a file containing candidate/starting signatures", 'i', "Data").value(); // TODO
-
-    // const bool permute = argparser.createParam<bool>(false, "permute",
-    //     "Randomly permute the data to get rid of the signal", 'R', "Data").value(); // TODO
+    std::tie(
+        exprsfile,
+        ranksfile,
+        cachetransfile,
+        cachesizefile,
+        cacheonly,
+        alpha,
+        log_level,
+        log_file,
+        log_func,
+        log_depth,
+        max_errors,
+        epsilon
+    ) = frictionless::make_parser(argparser);
 
     const size_t genesetsize = argparser.createParam<size_t>(10, "ngenes",
         "Number of genes in the signatures", 'g', "Parameters").value();
 
-    const double alpha = argparser.createParam<double>(1, "alpha",
-        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
-
-    // const double beta = argparser.createParam<double>(2, "beta",
-    //     "Exponent on the log of p-values", 'b', "Parameters").value(); // TODO?
-
-
     unsigned long long seed = argparser.createParam<long>(0, "seed",
         "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
-
-
-    const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
-        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
-
-    const std::string log_file = argparser.createParam<std::string>(".*", "log-file",
-        "Regexp indicating which source file is allowed logging (default=all)", 'f', "Misc").value();
-
-    const std::string log_func = argparser.createParam<std::string>(".*", "log-func",
-        "Regexp indicating which function is allowed logging (default=all)", 'F', "Misc").value();
-
-   const size_t log_depth = argparser.createParam<size_t>(9999, "log-depth",
-        "Maximum stack depth above which logging is not allowed (default=no limit)", 'D', "Misc").value();
-
-    const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
-        "Maximum number of errors reported for each check", 'm', "Misc").value();
-
-
-    const double epsilon = argparser.createParam<double>(1e-10, "epsilon",
-        "Precision for floating-point numbers comparison", 'e', "Misc").value();
-
 
     const std::string save_sol = argparser.createParam<std::string>("", "save-sol",
         "File to which save every solution encountered (default='', do not save)", 'o', "Misc").value();
@@ -142,7 +121,7 @@ int main(int argc, char* argv[])
         EXIT_ON_ERROR(Invalid_Argument, "You have to load either a rank file or an expression file.");
     }
 
-    check_consistency(tr);
+    frictionless::check_consistency(tr);
     CLUTCHLOG(note, "OK");
 
     if(have_exprs) {

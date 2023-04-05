@@ -66,6 +66,8 @@ static frictionless::Transcriptome load_file(
     return tr;
 }
 
+namespace frictionless {
+
 static void check_consistency(const frictionless::Transcriptome& tr)
 {
     CLUTCHCODE(debug,
@@ -87,3 +89,68 @@ static void check_consistency(const frictionless::Transcriptome& tr)
     CLUTCHLOG(note, "OK -- checks passed.");
 }
 
+std::tuple<
+    std::string,
+    std::string,
+    std::string,
+    std::string,
+    bool,
+    double,
+    std::string,
+    std::string,
+    std::string,
+    size_t,
+    size_t,
+    double
+> make_parser(eoParser& argparser)
+{
+
+    const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
+        "File of the expressions table to be ranked", 'x', "Data").value();
+
+    const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
+        "File of the input ranks table", 'r', "Data").value();
+
+
+    const std::string cachetransfile = argparser.createParam<std::string>("", "cache-transcriptome",
+        "File storing the transcriptome-dependant cache", 'T', "Cache").value();
+
+    const std::string cachesizefile = argparser.createParam<std::string>("", "cache-size",
+        "File storing the geneset-size-dependant cache", 'S', "Cache").value();
+
+    const bool cacheonly = argparser.createParam<bool>(false, "cache-only",
+        "Exit after creating transcriptome and size cache files", 'O', "Cache").value();
+
+    // const std::string signatures = argparser.createParam<std::string>("", "signatures",
+        // "Name of a file containing candidate/starting signatures", 'i', "Data").value(); // TODO
+
+    // const bool permute = argparser.createParam<bool>(false, "permute",
+    //     "Randomly permute the data to get rid of the signal", 'R', "Data").value(); // TODO
+
+    const double alpha = argparser.createParam<double>(1, "alpha",
+        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
+
+    // const double beta = argparser.createParam<double>(2, "beta",
+    //     "Exponent on the log of p-values", 'b', "Parameters").value(); // TODO?
+
+    const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
+        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
+
+    const std::string log_file = argparser.createParam<std::string>(".*", "log-file",
+        "Regexp indicating which source file is allowed logging (default=all)", 'f', "Misc").value();
+
+    const std::string log_func = argparser.createParam<std::string>(".*", "log-func",
+        "Regexp indicating which function is allowed logging (default=all)", 'F', "Misc").value();
+
+   const size_t log_depth = argparser.createParam<size_t>(9999, "log-depth",
+        "Maximum stack depth above which logging is not allowed (default=no limit)", 'D', "Misc").value();
+
+    const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
+        "Maximum number of errors reported for each check", 'm', "Misc").value();
+
+
+    const double epsilon = argparser.createParam<double>(1e-10, "epsilon",
+        "Precision for floating-point numbers comparison", 'e', "Misc").value();
+}
+
+} // frictionless
