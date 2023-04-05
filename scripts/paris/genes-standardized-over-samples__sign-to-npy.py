@@ -12,7 +12,7 @@ if __name__=="__main__":
     import sys
     import csv
 
-    assert(len(sys.argv) == 7)
+    assert(len(sys.argv) >= 6)
 
     rankfile = sys.argv[1]
 
@@ -20,11 +20,10 @@ if __name__=="__main__":
     if size == 0:
         size = None
 
-    signatures_files = sys.argv[3:5] # Only two files
+    fout = sys.argv[3]
+    fgenes = sys.argv[4]
 
-    fout = sys.argv[5]
-    # fgenes = fout+".genes.csv"
-    fgenes = sys.argv[6]
+    signatures_files = sys.argv[5:]
 
     genome = load_genome(signatures_files, filter_size=size)
     assert(len(genome) > 0)
