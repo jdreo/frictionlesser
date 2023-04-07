@@ -5,8 +5,36 @@
 #include "frictionless/transcriptome.h"
 #include "frictionless/parser.h"
 #include "frictionless/score.h"
+#include "R/pgamma.h"
 
 #include <catch2/catch_all.hpp>
+
+
+SCENARIO("Test pgamma ~ chi^2") {
+    GIVEN("m=10") {
+        const double m = 10;
+
+        WHEN("computing sqrt(-log p-value of gamma distribution)") {
+            const double f = std::sqrt(-1 * R::pgamma(/*x*/5, /*alph*/(m-1)/2,
+                                                      /*scale*/2, /*lower_tail*/0, /*log_p*/1));
+            THEN("should be equal to manually computed p-value of chi^2") {
+                // Correct way to do floating point comparison in Catch2.
+                REQUIRE_THAT(f, Catch::Matchers::WithinAbs(0.4256199342, 1e-9));
+            }
+        }
+    }
+    GIVEN("m=20") {
+        const double m = 20;
+
+        WHEN("computing sqrt(-log p-value of gamma distribution)") {
+            const double f = std::sqrt(-1 * R::pgamma(/*x*/5, /*alph*/(m-1)/2,
+                                                      /*scale*/2, /*lower_tail*/0, /*log_p*/1));
+            THEN("should be equal to manually computed p-value of chi^2") {
+                REQUIRE_THAT(f, Catch::Matchers::WithinAbs(0.023857898, 1e-9));
+            }
+        }
+    }
+}
 
 SCENARIO( "Ranked transcriptome data can be loaded", "[data]") {
 

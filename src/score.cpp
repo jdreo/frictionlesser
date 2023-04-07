@@ -352,6 +352,7 @@ double FriedmanScore::score(const Signature& geneset)
 
 double FriedmanScore::sqrt_logchisq(const double s, const double m) const
 {
+    // Should be equivalent to sqrt(-log(p-value)), p-value of s against its null distribution (chi^2, with n-1 degrees of freedom).
     return std::sqrt(-1 * R::pgamma(/*x*/s, /*alph*/m/2, /*scale*/2, /*lower_tail*/0, /*log_p*/1));
 }
 
