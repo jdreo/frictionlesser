@@ -9,4 +9,6 @@
 build/
 debug/
 release/
-
+scripts/paris/data/
+scripts/paris/.snakemake/
+__pycache__
