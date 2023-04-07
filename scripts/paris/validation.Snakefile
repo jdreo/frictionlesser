@@ -1,11 +1,12 @@
 
 rule all:
     input:
-        "clustermap_correlations.png",
-        "clustermap_pvalues.png",
+        "data/qc/clustermap_correlations.png",
+        # "data/qc/clustermap_pvalues.png",
         "data/qc/observed_genes.txt",
         "data/qc/observed_genes_distribution.png",
-        "data/qc/selfcorr-score_local.png"
+        "data/qc/selfcorr-score_local.png",
+        "data/qc/jaccard-distances.png"
 
 rule aggregate:
     input:
@@ -96,8 +97,17 @@ rule clustering_corr:
         pval="data/inter/signatures-pvalues.npy",
         orig="data/inter/signatures-average-correlations_origins.npy"
     output:
-        plot="clustermap_correlations.png",
+        plot="data/qc/clustermap_correlations.png",
         membership="data/inter/cluster_membership.csv"
     shell:
         "python3 {input.task} {input.corr} {input.orig} {input.pval} 0.01 1.5 {output.plot} {output.membership}"
 
+rule qc_jaccard:
+    input:
+        task="signatures_jaccard-distances_plot.py",
+        A="data/output/emil_all.csv",
+        B="data/output/signatures_z10.tsv"
+    output:
+        "data/qc/jaccard-distances.png"
+    shell:
+        "python3 {input.task} 10 0.5 {output} {input.A} {input.B}"
