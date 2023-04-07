@@ -25,33 +25,80 @@ int main(int argc, char* argv[])
 
     // Add common options.
 
-    std::string exprsfile;
-    std::string ranksfile;
-    std::string cachetransfile;
-    std::string cachesizefile;
-    bool cacheonly;
-    double alpha;
-    std::string log_level;
-    std::string log_file;
-    std::string log_func;
-    size_t log_depth;
-    size_t max_errors;
-    double epsilon;
+    // std::string exprsfile;
+    // std::string ranksfile;
+    // std::string cachetransfile;
+    // std::string cachesizefile;
+    // bool cacheonly;
+    // double alpha;
+    // std::string log_level;
+    // std::string log_file;
+    // std::string log_func;
+    // size_t log_depth;
+    // size_t max_errors;
+    // double epsilon;
 
-    std::tie(
-        exprsfile,
-        ranksfile,
-        cachetransfile,
-        cachesizefile,
-        cacheonly,
-        alpha,
-        log_level,
-        log_file,
-        log_func,
-        log_depth,
-        max_errors,
-        epsilon
-    ) = frictionless::make_parser(argparser);
+    // std::tie(
+    //     exprsfile,
+    //     ranksfile,
+    //     cachetransfile,
+    //     cachesizefile,
+    //     cacheonly,
+    //     alpha,
+    //     log_level,
+    //     log_file,
+    //     log_func,
+    //     log_depth,
+    //     max_errors,
+    //     epsilon
+    // ) = frictionless::make_parser(argparser);
+
+    const std::string exprsfile = argparser.createParam<std::string>("", "exprs",
+        "File of the expressions table to be ranked", 'x', "Data").value();
+
+    const std::string ranksfile = argparser.createParam<std::string>("", "ranks",
+        "File of the input ranks table", 'r', "Data").value();
+
+
+    const std::string cachetransfile = argparser.createParam<std::string>("", "cache-transcriptome",
+        "File storing the transcriptome-dependant cache", 'T', "Cache").value();
+
+    const std::string cachesizefile = argparser.createParam<std::string>("", "cache-size",
+        "File storing the geneset-size-dependant cache", 'S', "Cache").value();
+
+    const bool cacheonly = argparser.createParam<bool>(false, "cache-only",
+        "Exit after creating transcriptome and size cache files", 'O', "Cache").value();
+
+    // const std::string signatures = argparser.createParam<std::string>("", "signatures",
+        // "Name of a file containing candidate/starting signatures", 'i', "Data").value(); // TODO
+
+    // const bool permute = argparser.createParam<bool>(false, "permute",
+    //     "Randomly permute the data to get rid of the signal", 'R', "Data").value(); // TODO
+
+    const double alpha = argparser.createParam<double>(1, "alpha",
+        "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
+
+    // const double beta = argparser.createParam<double>(2, "beta",
+    //     "Exponent on the log of p-values", 'b', "Parameters").value(); // TODO?
+
+    const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
+        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
+
+    const std::string log_file = argparser.createParam<std::string>(".*", "log-file",
+        "Regexp indicating which source file is allowed logging (default=all)", 'f', "Misc").value();
+
+    const std::string log_func = argparser.createParam<std::string>(".*", "log-func",
+        "Regexp indicating which function is allowed logging (default=all)", 'F', "Misc").value();
+
+   const size_t log_depth = argparser.createParam<size_t>(9999, "log-depth",
+        "Maximum stack depth above which logging is not allowed (default=no limit)", 'D', "Misc").value();
+
+    const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
+        "Maximum number of errors reported for each check", 'm', "Misc").value();
+
+
+    const double epsilon = argparser.createParam<double>(1e-10, "epsilon",
+        "Precision for floating-point numbers comparison", 'e', "Misc").value();
 
     const size_t genesetsize = argparser.createParam<size_t>(10, "ngenes",
         "Number of genes in the signatures", 'g', "Parameters").value();
@@ -61,6 +108,9 @@ int main(int argc, char* argv[])
 
     const std::string save_sol = argparser.createParam<std::string>("", "save-sol",
         "File to which save every solution encountered (default='', do not save)", 'o', "Misc").value();
+
+    const bool randsign = argparser.createParam<bool>(false, "random-signature",
+        "Do not run the search algorithm but stop after evaluating the first random signature", '1', "Parameters").value();
 
     /**************************************************************************
      * Messages management.
@@ -304,12 +354,16 @@ int main(int argc, char* argv[])
             search(neighborhood, feval, peval, check);
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Solver run...");
-        feval(signature);
+    CLUTCHLOG(progress, "Evaluate first random signature...");
+    feval(signature);
         CLUTCHLOG(note, "Initial signature: " << signature.str());
-
-        search(signature);
     CLUTCHLOG(note, "OK");
+
+    if(not randsign) {
+        CLUTCHLOG(progress, "Solver run...");
+            search(signature);
+        CLUTCHLOG(note, "OK");
+    }
 
     CLUTCHLOG(progress, "Found signature:");
     CLUTCHLOG(note, signature.str() );
