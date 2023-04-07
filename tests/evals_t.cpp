@@ -17,9 +17,9 @@ SCENARIO( "Evaluators are consistent" ) {
         std::istringstream iss(ssv);
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
-        frictionless::FriedmanScore ffrs(rk, /*alpha*/2);
+        frictionless::FriedmanScore ffrs(rk, /*alpha*/0);
         ffrs.new_transcriptome(false);
-        frictionless::FriedmanScore pfrs(rk, /*alpha*/2);
+        frictionless::FriedmanScore pfrs(rk, /*alpha*/0);
         pfrs.new_transcriptome(false);
         frictionless::EvalFull feval(ffrs);
         frictionless::EvalSwap peval(pfrs);

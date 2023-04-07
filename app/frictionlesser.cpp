@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     // const bool permute = argparser.createParam<bool>(false, "permute",
     //     "Randomly permute the data to get rid of the signal", 'R', "Data").value(); // TODO
 
-    const double alpha = argparser.createParam<double>(1, "alpha",
+    const double alpha = argparser.createParam<double>(0, "alpha",
         "Score adjustment exponent on the number of genes", 'a', "Parameters").value();
 
     // const double beta = argparser.createParam<double>(2, "beta",

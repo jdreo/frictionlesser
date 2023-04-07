@@ -18,7 +18,7 @@ SCENARIO("Test pgamma ~ chi^2") {
             const double f = std::sqrt(-1 * R::pgamma(/*x*/5, /*alph*/(m-1)/2,
                                                       /*scale*/2, /*lower_tail*/0, /*log_p*/1));
             THEN("should be equal to manually computed p-value of chi^2") {
-                // Correct way to do floating point comparison in Catch2.
+                // Correct way to do floating point comparison in recent Catch2.
                 REQUIRE_THAT(f, Catch::Matchers::WithinAbs(0.4256199342, 1e-9));
             }
         }
@@ -257,7 +257,7 @@ SCENARIO( "Friedman cache" ) {
         frictionless::Transcriptome rk = parser(iss);
 
         WHEN( "Computing transcriptome cache" ) {
-            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frictionless::FriedmanScore frs(rk, /*alpha*/0);
             frs.new_transcriptome(false);
 
             THEN( "Transcriptome cache for cells number is consistent" ) {
@@ -293,7 +293,7 @@ SCENARIO( "Friedman cache" ) {
             }
         }
         WHEN( "Computing a two-geneset cache" ) {
-            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frictionless::FriedmanScore frs(rk, /*alpha*/0);
             frs.new_transcriptome(false);
             frs.new_signature_size(2);
 
@@ -305,7 +305,7 @@ SCENARIO( "Friedman cache" ) {
             }
         }
         WHEN( "Computing a three-geneset cache" ) {
-            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frictionless::FriedmanScore frs(rk, /*alpha*/0);
             frs.new_transcriptome(false);
             frs.new_signature_size(3);
 
@@ -317,7 +317,7 @@ SCENARIO( "Friedman cache" ) {
             }
         }
         WHEN( "Computing two-geneset signature cache from scratch") {
-            frictionless::FriedmanScore frs(rk, /*alpha*/2);
+            frictionless::FriedmanScore frs(rk, /*alpha*/0);
             frs.new_transcriptome(false);
             frictionless::Signature geneset(4); // 4 genes.
             // Selects two geneset.
@@ -361,7 +361,7 @@ SCENARIO( "Friedman score" ) {
         std::istringstream iss(ssv);
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
-        frictionless::FriedmanScore frs(rk, /*alpha*/2);
+        frictionless::FriedmanScore frs(rk, /*alpha*/0);
         frs.new_transcriptome(false);
 
         WHEN( "Considering a new signature" ) {
@@ -428,8 +428,8 @@ SCENARIO("Score cache save/reload is consistent on fake data and low-level API")
         std::istringstream iss(ssv.str());
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
-        frictionless::FriedmanScore frs1(rk, /*alpha*/2);
-        frictionless::FriedmanScore frs2(rk, /*alpha*/2);
+        frictionless::FriedmanScore frs1(rk, /*alpha*/0);
+        frictionless::FriedmanScore frs2(rk, /*alpha*/0);
         frs1.new_transcriptome(false);
 
         WHEN("Saving and reload transcriptome cache") {
@@ -530,8 +530,8 @@ SCENARIO("Score cache save/reload is consistent on realistic data and high-level
         std::istringstream iss(ssv.str());
         frictionless::CommonRankParser parser(/*max_errors*/0);
         frictionless::Transcriptome rk = parser(iss);
-        frictionless::FriedmanScore frs1(rk, /*alpha*/2);
-        frictionless::FriedmanScore frs2(rk, /*alpha*/2);
+        frictionless::FriedmanScore frs1(rk, /*alpha*/0);
+        frictionless::FriedmanScore frs2(rk, /*alpha*/0);
         frs1.new_transcriptome(false);
 
         WHEN("Saving and reload transcriptome cache") {
