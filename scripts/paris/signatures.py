@@ -272,6 +272,7 @@ def load_ranks_csv(rankfile):
             print("\r", n, end=" ", file=sys.stderr, flush=True)
             ranks_row = numpy.array([float(r) for r in row[1:]])
             ranks_l.append(ranks_row)
+
     assert(len(ranks_l) > 0)
     assert(len(ranks_l) == len(genes))
     ngenes = len(genes)
