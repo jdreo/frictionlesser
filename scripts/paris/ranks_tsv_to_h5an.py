@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     ranks = signatures.load_ranks_csv(sys.argv[1])
     adata = ad.read(sys.argv[2])
-    adata.layers["ranks"] = ranks
-    adata.write(sys.argv[3], compressed="gzip")
+    adata.layers["ranks"] = ranks.T
+    adata.write(sys.argv[3], compression="gzip")
 
-    print(adata, out=sys.stderr, flush=True)
+    print(adata, file=sys.stderr, flush=True)
