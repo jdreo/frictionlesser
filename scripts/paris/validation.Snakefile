@@ -4,7 +4,8 @@ rule all:
         "clustermap_correlations.png",
         "clustermap_pvalues.png",
         "data/qc/observed_genes.txt",
-        "data/qc/observed_genes_distribution.png"
+        "data/qc/observed_genes_distribution.png",
+        "data/qc/selfcorr-score_local.png"
 
 rule aggregate:
     input:
@@ -27,6 +28,7 @@ rule qc_observed_genes:
         "python3 {input.task} 10 {input.ranks} {output.plot} {input.A} {input.B} > {output.text}"
 
 rule genes_standardized_scores:
+# Two signatures sets.
     input:
         task="genes-standardized-over-samples__sign-to-npy.py",
         ranks="data/inter/ranks.tsv",
@@ -36,7 +38,32 @@ rule genes_standardized_scores:
         scores="data/inter/genes-standardized-scores.npy",
         indices="data/inter/genes-standardized-scores_genes.csv"
     shell:
-        "python3 {input.task} {input.ranks} 10 {input.A} {input.B} {output.scores} {output.indices}"
+        "python3 {input.task} {input.ranks} 10 {output.scores} {output.indices} {input.A} {input.B}"
+
+rule genes_standardized_scores_local:
+# Single signature set.
+    input:
+        task="genes-standardized-over-samples__sign-to-npy.py",
+        ranks="data/inter/ranks.tsv",
+        signs="data/output/signatures_z10.tsv"
+    output:
+        scores="data/inter/genes-standardized-scores_local.npy",
+        indices="data/inter/genes-standardized-scores_genes_local.csv"
+    shell:
+        "python3 {input.task} {input.ranks} 10 {output.scores} {output.indices} {input.signs}"
+
+rule qc_selfcorr_score_local:
+    input:
+        task="qc_selfcorr-score.py",
+        ranks="data/inter/ranks.tsv",
+        scores="data/inter/genes-standardized-scores_local.npy",
+        indices="data/inter/genes-standardized-scores_genes_local.csv",
+        signs="data/output/signatures_z10.tsv"
+    output:
+        corr="data/inter/signatures-average-selfcorrelations_local.npy",
+        plot="data/qc/selfcorr-score_local.png"
+    shell:
+        "python3 {input.task} {input.ranks} {input.scores} {input.indices} 10 {output.corr} {output.plot} {input.signs}"
 
 rule signatures_correlations:
     input:
