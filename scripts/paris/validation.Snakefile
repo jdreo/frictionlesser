@@ -3,13 +3,15 @@ rule all:
     input:
         "data/qc/self-corr_objf.png",
         "data/output/correlations_signatures-genes.csv",
-        "data/output/scores_signatures-samples.csv"
+        "data/output/scores_signatures-samples.csv",
+        "data/qc/gcpval_clustering.png",
+        "data/qc/gcpval_membership.csv",
 
 rule aggregate:
     input:
-        "data/output/signature_of_10-genes"
+        "data/output/signature_of_10-genes",
     output:
-        "data/output/signatures_z10.tsv"
+        "data/output/signatures_z10.tsv",
     shell:
         "cat {input}/signature_* | sort | uniq > {output}"
 
@@ -17,7 +19,7 @@ rule correlations_genes_samples:
     input:
         task="correlations_genes-samples.py",
         ranks="data/inter/paris+ranks.h5an.gz",
-        sign="data/output/signatures_z10.tsv"
+        sign="data/output/signatures_z10.tsv",
     output:
         gccorr="data/inter/gccorr.h5an.gz",
     shell:
@@ -28,7 +30,7 @@ rule correlations_signatures:
         task="correlations_signatures.py",
         ranks="data/inter/paris+ranks.h5an.gz",
         gccorr="data/inter/gccorr.h5an.gz",
-        sign="data/output/signatures_z10.tsv"
+        sign="data/output/signatures_z10.tsv",
     output:
         sccorr="data/inter/sccorr.h5an.gz",
     shell:
@@ -38,7 +40,7 @@ rule qc_selfcorr_score:
     input:
         task="qc_selfcorr-score.py",
         sccorr="data/inter/sccorr.h5an.gz",
-        sign="data/output/signatures_z10.tsv"
+        sign="data/output/signatures_z10.tsv",
     output:
         plot_selfcorr="data/qc/self-corr_objf.png",
     shell:
@@ -60,6 +62,16 @@ rule scores_signatures_samples:
         task="scores_signatures-samples.py",
         sign="data/output/signatures_z10.tsv",
     output:
-        ssscores="data/output/scores_signatures-samples.csv"
+        ssscores="data/output/scores_signatures-samples.csv",
     shell:
         "python3 {input.task} 10 {output.ssscores} {input.sign}"
+
+rule qc_genes_corr_clustering:
+    input:
+        task="qc_genes-corr_clustering.py",
+        gccorr="data/inter/gccorr.h5an.gz",
+    output:
+        plot_cluster="data/qc/gcpval_clustering.png",
+        gcpval_members="data/qc/gcpval_membership.csv",
+    shell:
+        "python3 {input.task} {input.gccorr} {output.plot_cluster} {output.gcpval_members}"
