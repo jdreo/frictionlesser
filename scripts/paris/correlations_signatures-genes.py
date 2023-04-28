@@ -1,4 +1,5 @@
 import sys
+import scipy
 import numpy as np
 import anndata as ad
 

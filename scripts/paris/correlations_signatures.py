@@ -1,4 +1,5 @@
 import sys
+import scipy
 import numpy as np
 import anndata as ad
 
@@ -71,11 +72,13 @@ if __name__ == "__main__":
     # ┗━━━━━━━━━━━━━━━━━┛  └────────────────┘
     # ┌─────────────────┐
     # │ varp:           │
-    # │ "correlations"  │  ↑
-    # │                 │ signatures
-    # │                 │  ↓
-    # │                 │
-    # └─────────────────┘
+    # │ "correlations"  │┐  ↑
+    # │                 ││ signatures
+    # │                 ││  ↓
+    # │                 ││
+    # └─────────────────┘│
+    #  │ "p-values"      │
+    #  └─────────────────┘
     #   ← signatures →
     #
 
@@ -133,6 +136,11 @@ if __name__ == "__main__":
 
     print(cells_signs, file=sys.stderr, flush=True)
     # print(cells_signs.varp["correlations"], file=sys.stderr, flush=True)
+
+    print("Compute p-values for all genes over samples...", file=sys.stderr, flush=True)
+    dist = scipy.stats.beta(ncells/2 -1, ncells/2 - 1, loc=-1, scale=2)
+    cells_signs.varp["p-values"] = 2 * dist.cdf(-np.abs(cells_signs.varp["correlations"]))
+
 
     print("Save cell-signatures correlations...", file=sys.stderr, flush=True)
     # AnnData cannot implicitely convert signature's OrderedSet to strings,

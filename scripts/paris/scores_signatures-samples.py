@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     joined = {}
     for sign in genesets_samplescores:
-        j = " ".join(sorted([g for g in sign]))
+        j = " ".join(sorted(sign))
         print(j, file=sys.stderr, flush=True)
         joined[j] = genesets_samplescores[sign]
 

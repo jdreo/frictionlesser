@@ -1,5 +1,5 @@
 import sys
-import pathlib
+import scipy
 import numpy as np
 import anndata as ad
 import pandas as pd
@@ -92,12 +92,14 @@ if __name__ == "__main__":
     #   ┗━━━━━━━━━━━━━━━━┛
     #    ←  all genes  →
     # ┌────────────────┐
-    # │ varp:          │
-    # │ "correlations" │  ↑
-    # │                │ all genes
-    # │                │  ↓
-    # │                │
-    # └────────────────┘
+    # │ varp:          │┐
+    # │ "correlations" ││  ↑
+    # │                ││ all genes
+    # │                ││  ↓
+    # │                ││
+    # └────────────────┘│
+    #  │ "p-values"     │
+    #  └────────────────┘
     #  ←  all genes  →
 
     ranks = cells_allgenes.layers["ranks"]
@@ -275,8 +277,13 @@ if __name__ == "__main__":
     #         if not -1 <= c <= 1:
     #             print(i,c, file=sys.stderr, flush=True)
     #             assert(1-np.abs(c) <= epsilon)
+    #
 
-    print("Update genes-cells z-score into",franks, file=sys.stderr, flush=True)
+    print("Compute p-values for all genes over samples...", file=sys.stderr, flush=True)
+    dist = scipy.stats.beta(ncells/2 -1, ncells/2 - 1, loc=-1, scale=2)
+    cells_allgenes.varp["p-values"] = 2 * dist.cdf(-np.abs(cells_allgenes.varp["correlations"]))
+
+    print("Update data into",franks, file=sys.stderr, flush=True)
     cells_allgenes.write(franks, compression="gzip")
     print(cells_allgenes, file=sys.stderr, flush=True)
 
