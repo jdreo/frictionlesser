@@ -94,7 +94,38 @@ if __name__ == "__main__":
     nsamples = len(samples)
     assert(len(samples) > 0)
 
+    ###########################################################################
+    # GENES CORRELATIONS
+    # > All genes
+    ###########################################################################
+
     print("Compute cell-allgenes z-scores sample fractions...", file=sys.stderr, flush=True)
+
+    # cells_allgenes structure:
+    #
+    #   ←  all genes  →
+    # ┌────────────────┐
+    # │ var:"id",[…]   │
+    # └────────────────┘
+    # ┏━━━━━━━━━━━━━━━━┓  ┌────────────────┐
+    # ┃ X:             ┃  │ obs:           │  ↑
+    # ┃ counts         ┃┓ │ "sample",[…]   │ cells
+    # ┃                ┃┃ │                │  ↓
+    # ┗━━━━━━━━━━━━━━━━┛┃┓└────────────────┘
+    #  ┃layers["ranks"] ┃┃
+    #  ┗━━━━━━━━━━━━━━━━┛┃
+    #   ┃layers["zscore"]┃
+    #   ┗━━━━━━━━━━━━━━━━┛
+    #    ←  all genes  →
+    # ┌────────────────┐
+    # │ varp:          │
+    # │ "correlations" │  ↑
+    # │                │ all genes
+    # │                │  ↓
+    # │                │
+    # └────────────────┘
+    #  ←  all genes  →
+
     ranks = cells_allgenes.layers["ranks"]
     cells_allgenes.layers["zscore"] = np.zeros(ranks.shape)
     for i,s in enumerate(samples):
@@ -232,6 +263,7 @@ if __name__ == "__main__":
         assert(sample_uplifted_genes.shape == zs.shape)
         # If a cell is from an uplifted gene column, get its z-score,
         # else set it to zero (non uplifted columns should hold NaNs).
+        # FIXME test if an in-place np.nan_to_num may be faster.
         szscores = np.where(sample_uplifted_genes, zs, np.zeros(zs.shape))
         assert(szscores.shape == zs.shape)
         # Assign the result back to the full array.
@@ -248,7 +280,7 @@ if __name__ == "__main__":
             # assert(all(  np.mean(szscores * np.sqrt(nsamples), axis=1) <= epsilon ))
             # assert(all( 1-np.std(szscores * np.sqrt(nsamples), axis=1) <= epsilon ))
 
-            print(np.sqrt(np.sum(np.power(szscores[:,uplifted_genes], 2) * nsamples, axis=0)))
+            # print(np.sqrt(np.sum(np.power(szscores[:,uplifted_genes], 2) * nsamples, axis=0)))
             # FIXME this should pass:
             assert(all( 1-np.sqrt(np.sum(np.power(szscores[:,uplifted_genes], 2) * nsamples, axis=0)) <= epsilon ))
 
@@ -256,7 +288,7 @@ if __name__ == "__main__":
     if __debug__:
         for g in genome:
             cgene = cells_allgenes.layers["zscore"][:,(cells_allgenes.var["id"] == g)]
-            print(np.sum(cgene, axis=1), file=sys.stderr, flush=True)
+            # print(np.sum(cgene, axis=1), file=sys.stderr, flush=True)
             assert(all(0 <= s <= 1 for s in np.sum(np.power(cgene,2), axis=1)))
 
     print("Compute pairwise average correlation matrix for all genes over samples...", file=sys.stderr, flush=True)
@@ -272,15 +304,30 @@ if __name__ == "__main__":
 
     # FIXME genes frequency distribution
 
+
     ###########################################################################
     # GENES CORRELATIONS
+    # > Signatures' genes
     ###########################################################################
 
     print("Compute cell-gene z-scores sample fractions...", file=sys.stderr, flush=True)
-    cells_sgenes = ad.AnnData(
-        np.zeros((ncells,ngenes)),
-        cells_allgenes.obs, {"gene":np.asarray(genome)},
-        dtype=cells_allgenes.layers["ranks"].dtype )
+
+    # No genes selected.
+    genome_ids = np.zeros(len(cells_allgenes.var["id"]), dtype=bool)
+    for g in genome:
+        # Add this gene.
+        genome_ids |= (cells_allgenes.var["id"] == g) # FIXME try with "in genome"?
+    # cells_sgenes.X = cells_allgenes.layers["zscore"][ :, genome_ids ]
+    assert(np.sum(genome_ids) == len(genome))
+
+    cells_sgenes = cells_allgenes[:,genome_ids]
+    assert("zscore" in cells_allgenes.layers)
+    assert("correlations" in cells_allgenes.varp)
+
+    # cells_sgenes = ad.AnnData(
+    #     np.zeros((ncells,ngenes)),
+    #     cells_allgenes.obs, {"gene":np.asarray(genome)},
+    #     dtype=cells_allgenes.layers["ranks"].dtype )
 
     # cells_sgenes structure:
     #
@@ -303,58 +350,26 @@ if __name__ == "__main__":
     #  ← genes in sign →
     #
 
-    # FIXME just extract this from the matrix with all genes.
-    genome_ids = np.bool(np.zeros(len(cells_allgenes.var["id"])))
-    for g in genome:
-        genome_ids |= (cells_allgenes.var["id"] == g)
-    cells_sgenes = cells_allgenes[ :, genome_ids ]
-    assert(len(cells_sgenes.var["id"]) == len(genome))
-
-    # ranks = cells_allgenes.layers["ranks"]
-    # # print(ranks.shape, file=sys.stderr, flush=True)
-    # assert(ranks.shape == cells_allgenes.X.shape)
-    # for i,s in enumerate(samples):
-    #     cells = (cells_allgenes.obs["sample"] == s)
-    #     assert(np.sum(cells) > 1)
-    #     # We cannot avoid this loop because the standard deviation may be zero in some cases,
-    #     # hence requiring a conditional branching.
-    #     for j,g in enumerate(genome):
-    #         cranks = ranks[ cells, cells_allgenes.var["id"] == g ]
-    #         # print("cells ranks:",cranks, file=sys.stderr, flush=True)
-    #         assert(len(cranks.shape) == 1) # only one gene should match.
-    #         sn = cranks.shape[0]
-    #         assert(sn > 0)
-    #         # print("sn:",sn, file=sys.stderr, flush=True)
-    #         smean = np.mean(cranks) # Numpy uses the population mean.
-    #         assert(smean == (sn+1)/2)
-    #         # Derivate standard-deviation from the computed mean,
-    #         # to ensure we do not mess with pop VS sample statistics.
-    #         sdev = np.sqrt(np.sum(np.power(cranks-smean,2)))
-    #         if sdev != 0:
-    #             # Standardized z-score across cells,
-    #             # and pre-division for preparing the incoming dot product.
-    #             cells_sgenes[cells,j] = (cranks-smean)/sdev * 1/np.sqrt(nsamples)
-
-    #             # print("corr:",cells_sgenes[cells,j].X, file=sys.stderr, flush=True)
-
-    #             ssp2 = np.sum(np.power(cells_sgenes[cells,j].X, 2)) * nsamples
-    #             # print("ssp2:", ssp2, file=sys.stderr, flush=True)
-    #             assert(np.abs(1-ssp2) <= epsilon)
-    #         else:
-    #             cells_sgenes[cells,j] = np.zeros(cranks.shape)
-    #             assert(np.sum(np.power(cells_sgenes[cells,j].X, 2)) * nsamples == 0)
-
-    # # Assert sum of scores for each gene.
+    # # FIXME just extract this from the matrix with all genes.
+    # genome_ids = np.zeros(len(cells_allgenes.var["id"]), dtype=bool)
     # for g in genome:
-    #     cgene = cells_sgenes[ :, cells_sgenes.var["gene"] == g ]
-    #     # print(np.sum(cgene.X, axis=1), file=sys.stderr, flush=True)
-    #     assert(all(0 <= s <= 1 for s in np.sum(np.power(cgene.X,2), axis=1)))
+    #     genome_ids |= (cells_allgenes.var["id"] == g)
+    # # cells_sgenes = cells_allgenes[ :, genome_ids ]
+    # cells_sgenes.X = cells_allgenes.layers["zscore"][ :, genome_ids ]
+    # assert(np.sum(genome_ids) == len(genome))
 
-    print("Compute pairwise average correlation matrix for genes over samples...", file=sys.stderr, flush=True)
-    # Correlation is the average of the sum of the product of z-scores.
-    # We already prepared for the division by the number of samples, hence only the sum of products remains.
-    cells_sgenes.varp["correlations"] = cells_sgenes.X.T @ cells_sgenes.X
-    assert(all(-1 <= c <= 1 for c in np.nditer(cells_sgenes.varp["correlations"])))
+    # print("Compute pairwise average correlation matrix for signatures' genes over samples...", file=sys.stderr, flush=True)
+    # # Correlation is the average of the sum of the product of z-scores.
+    # # We already prepared for the division by the number of samples, hence only the sum of products remains.
+    # # cells_sgenes.varp["correlations"] = np.clip(cells_sgenes.X.T @ cells_sgenes.X, -1,1)
+    # cells_sgenes.varp["correlations"] = cells_sgenes.X.T @ cells_sgenes.X
+    # if __debug__:
+    #     for i in range(cells_sgenes.varp["correlations"].shape[0]):
+    #         for j in range(cells_sgenes.varp["correlations"].shape[1]):
+    #             # if not (-1 <= cells_sgenes.varp["correlations"][i,j] <= 1):
+    #                 # print(i,j,cells_sgenes.varp["correlations"][i,j], file=sys.stderr, flush=True)
+    #             assert(np.abs(cells_sgenes.varp["correlations"][i,j]) <= 1+epsilon)
+
 
     print("Save cell-gene z-score and gene correlations...", file=sys.stderr, flush=True)
     print(cells_sgenes, file=sys.stderr, flush=True)
@@ -368,6 +383,7 @@ if __name__ == "__main__":
 
     ###########################################################################
     # SIGNATURES CORRELATIONS
+    # (Average correlation across genes in each signatures)
     ###########################################################################
 
     # for s in unique_signatures:
@@ -386,6 +402,7 @@ if __name__ == "__main__":
         cells_allgenes.obs,
         var,
         dtype=cells_allgenes.X.dtype )
+    cells_signs.varp["av.correlations"] = np.zeros((nsignatures,nsignatures))
 
     # cells_signs structure:
     #
@@ -409,33 +426,62 @@ if __name__ == "__main__":
     #   ← signatures →
     #
 
-    for signature in unique_signatures:
-        sgenes = np.zeros(ngenes, dtype=bool)
-        for g in signature:
+    def genes_of(s):
+        s_genes = np.zeros(ngenes, dtype=bool)
+        for g in s:
             # Logical "and" on locations of each genes.
-            sgenes |= (cells_sgenes.var["gene"] == g)
+            s_genes |= (cells_sgenes.var["id"] == g)
+        return s_genes
+
+    print("Compute pairwise correlation matrix for signatures...", file=sys.stderr, flush=True)
+
+    for s0 in unique_signatures:
+        s0_genes = genes_of(s0)
+        s0_size = len(s0)
+        c0_sum = np.sum(cells_sgenes.varp["correlations"][s0_genes,:], axis=0)
+        is0 = cells_signs.var["signature"] == s0
+        for s1 in unique_signatures:
+            s1_genes = genes_of(s1)
+            s1_size = len(s1)
+            c_sum = np.sum(c0_sum[s1_genes]) # on axis=1
+            is1 = cells_signs.var["signature"] == s0
+            size2 = s0_size * s1_size
+            corr = c_sum / size2
+            assert(-1-epsilon <= corr <= 1+epsilon)
+            cells_signs.varp["av.correlations"][is1,is0] = corr
+            cells_signs.varp["av.correlations"][is0,is1] = corr
+
+    assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["av.correlations"])))
+
+
+    for signature in unique_signatures:
+        sgenes = genes_of(signature)
 
         # Correlations for those genes.
         # Use the data array to avoid useless filtering.
-        zscores = cells_sgenes.X[:, sgenes]
+        # zscores = cells_sgenes.X[:, sgenes]
+        zscores = cells_sgenes.layers["zscore"][:, sgenes]
 
         # Keepdims avoid collapsing dimension.
         zsum = np.sum(zscores, axis=1, keepdims=True)
+        assert(zsum.shape == (ncells,1))
 
         # Average z-score.
-        sngenes = len([i for i in sgenes if i])
+        sngenes = np.sum(sgenes)
         if size:
             assert(sngenes == size)
         cells_signs[:, cells_signs.var["signature"] == signature] = zsum / sngenes
+        # cells_signs[:, cells_signs.var["signature"] == signature] = zsum / np.sqrt(sngenes) # HERE
 
-    print("Compute pairwise correlation matrix for signatures...", file=sys.stderr, flush=True)
-    # varp is a dictionary holding (var × var) arrays.
-    # We want the dot product of all columns.
-    # smean = np.mean(cells_signs.X, axis=1, keepdims=True)
-    # cells_signs.layers["zscore"] = (cells_signs.X - smean) / np.sqrt(np.sum(np.power(cells_signs.X - smean, 2), axis=1, keepdims=True))
-    # Average of z-scores is already standardized.
+    # # varp is a dictionary holding (var × var) arrays.
+    # # We want the dot product of all columns.
+    # # smean = np.mean(cells_signs.X, axis=1, keepdims=True)
+    # # cells_signs.layers["zscore"] = (cells_signs.X - smean) / np.sqrt(np.sum(np.power(cells_signs.X - smean, 2), axis=1, keepdims=True))
+    # # Average of z-scores is already standardized.
+    # # cells_signs.varp["correlations"] = np.clip(cells_signs.X.T @ cells_signs.X, -1,1)
     cells_signs.varp["correlations"] = cells_signs.X.T @ cells_signs.X
-    assert(all(-1 <= c <= 1 for c in np.nditer(cells_signs.varp["correlations"])))
+    # # assert(all(-1 <= c <= 1 for c in np.nditer(cells_signs.varp["correlations"])))
+    assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["correlations"])))
 
     print(cells_signs, file=sys.stderr, flush=True)
     # print(cells_signs.varp["correlations"], file=sys.stderr, flush=True)
@@ -504,7 +550,7 @@ if __name__ == "__main__":
         cells_allgenes.var,         # Metadata about all genes
         dtype=cells_signs.X.dtype )
 
-    assert(all(-1 <= c <= 1 for c in np.nditer(signs_allgenes.X)))
+    assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(signs_allgenes.X)))
 
     # signs_allgenes structure:
     #
