@@ -1,9 +1,9 @@
 import scipy
 import numpy
 from sortedcollections import OrderedSet
-from scipy.spatial.distance import squareform, pdist, cdist, jaccard
-from fastcluster import linkage
-from scipy.stats import spearmanr
+# from scipy.spatial.distance import squareform, pdist, cdist, jaccard
+# from fastcluster import linkage
+# from scipy.stats import spearmanr
 
 from signatures import *
 

@@ -11,6 +11,7 @@ from fastcluster import linkage
 # e.g. {"A":1, "B":1, "C": 0, "D":0}
 
 def load_genome(filenames, filter_size=None):
+    """Return the set of genes encountered in all the given signature files."""
     assert(len(filenames) > 0)
 
     genome = OrderedSet()
@@ -80,7 +81,7 @@ def load(filenames, filter_size=None):
                 # if geneset not in geneset:
                     # geneset.append( geneset )
                 # current_id += 1
-                file_genesets |= OrderedSet([genes]) # Add a genes as a geneset if not already here.
+                file_genesets |= OrderedSet([genes]) # Add a signature as a geneset if not already here.
                 #print(genes)
         # if kept_lines > 1:
         if filter_size:
