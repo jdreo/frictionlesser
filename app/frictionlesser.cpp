@@ -399,8 +399,8 @@ int main(int argc, char* argv[])
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Evaluate first signature...");
-    feval(signature);
-    CLUTCHLOG(note, "Initial signature: " << signature.str());
+        feval(signature);
+        CLUTCHLOG(note, "Initial signature: " << signature.str());
     CLUTCHLOG(note, "OK");
 
     if(not singlesign) {
@@ -413,7 +413,7 @@ int main(int argc, char* argv[])
     CLUTCHLOG(note, signature.str() );
 
     // Real output.
-    std::clog << "# score size genes..." << std::endl;
+    std::clog << "# <score_sum> <sample_nb> <sample_scores...> <genes_nb> <gene_names...>" << std::endl;
     std::cout << signature.fitness() << " " << signature.selected.size();
     for(auto i : signature.selected) {
         std::cout << " " << tr.gene_name(i);

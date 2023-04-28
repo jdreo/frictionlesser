@@ -46,7 +46,7 @@ void EvalTest::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
     neighbor.move(newsol);
     // Full evaluation.
     _full_eval(newsol);
-    neighbor.fitness(Fitness(newsol.fitness(), _full_eval.frs().swap_cache()));
+    neighbor.fitness( Fitness(newsol.fitness().score_details(), _full_eval.frs().swap_cache()) );
     ASSERT(not neighbor.invalid());
     // No need to reset _frs, as EvalFull will do it at each call anyway.
 }
@@ -82,7 +82,7 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
     _frs.swap_cache( solution.fitness().cache() );
 
     CLUTCHLOG(xdebug, "Double check that fitness equals the score...");
-    ASSERT(solution.fitness() == _frs.score(solution));
+    ASSERT(solution.fitness().score_details() == _frs.score(solution));
     CLUTCHLOG(xdebug, "OK");
 
     // Apply the neighbor move on a temp solution.
@@ -108,7 +108,7 @@ void EvalSwap::operator()(Signature& solution, moBinaryPartitionSwapNeighbor<Sig
 
     CLUTCHLOG(xdebug, "Previous solution: " << solution << " / score: " << _frs.score(solution));
     CLUTCHLOG(xdebug, "Neighbor solution: " << newsol << " has (neighbor) fitness: " << neighbor.fitness());
-    ASSERT(_frs.score(solution) == solution.fitness());
+    ASSERT(_frs.score(solution) == solution.fitness().score_details());
 
     ASSERT(not neighbor.invalid());
 }

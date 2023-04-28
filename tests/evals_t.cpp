@@ -35,7 +35,7 @@ SCENARIO( "Evaluators are consistent" ) {
             THEN( "Score is consistent" ) {
                 REQUIRE( geneset.selected.size() == 2);
                 REQUIRE( not geneset.invalid() );
-                REQUIRE( geneset.fitness() == Catch::Approx(0.5) );
+                REQUIRE( geneset.fitness().score_details().value == Catch::Approx(1.0) );
             }
         }
         WHEN( "Computing partial evaluations of known signatures" ) {

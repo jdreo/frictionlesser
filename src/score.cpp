@@ -300,7 +300,7 @@ void FriedmanScore::init_signature(const Signature& geneset)
 }
 
 
-double FriedmanScore::score(const Signature& geneset)
+Fitness::Type FriedmanScore::score(const Signature& geneset)
 {
     CLUTCHLOG(xdebug, "Compute score of: " << geneset);
     ASSERT(_has_transcriptome_cache);
@@ -316,7 +316,9 @@ double FriedmanScore::score(const Signature& geneset)
     //     new_signature_size(current_signature_size);
     // }
 
-    double score = 0;
+    ScoreDetails::ValueType score = 0;
+    ScoreDetails::VectorType scores; scores.reserve(_transcriptome.samples_nb());
+
     for(size_t i : _transcriptome.samples()) {
         CLUTCHLOGD(xdebug, "Sample: " << i, 1);
         double s_hat;
@@ -340,14 +342,18 @@ double FriedmanScore::score(const Signature& geneset)
         ASSERT(s_hat >= 0);
         ASSERT(not std::isinf(s_hat));
 
-        score += sqrt_logchisq(s_hat, _transcriptome.cells_nb(i)-1);
+        double s = sqrt_logchisq(s_hat, _transcriptome.cells_nb(i)-1);
+        scores.push_back(s);
+        score += s;
     }
 
     CLUTCHLOGD(xdebug, "Score: " << score, 1);
     ASSERT(not std::isnan(score));
     ASSERT(score >= 0);
     ASSERT(not std::isinf(score));
-    return score;
+    ASSERT(scores.size() == _transcriptome.samples_nb());
+
+    return ScoreDetails(score, scores);
 }
 
 double FriedmanScore::sqrt_logchisq(const double s, const double m) const

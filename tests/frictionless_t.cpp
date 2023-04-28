@@ -375,7 +375,7 @@ SCENARIO( "Friedman score" ) {
                 // Two selected genes among 4 available.
                 CHECK_NOTHROW(frs.new_signature_size(2));
                 CHECK_NOTHROW(frs.init_signature(geneset));
-                CHECK_NOTHROW(s = frs.score(geneset));
+                CHECK_NOTHROW(s = frs.score(geneset).value);
             }
         }
         WHEN( "Comparing raw and partial evaluation" ) {
@@ -387,21 +387,21 @@ SCENARIO( "Friedman score" ) {
             A.select(0);
             A.select(1);
             frs.init_signature(A);
-            s_A  = frs.score(A);
+            s_A  = frs.score(A).value;
 
             // First and last gene.
             frictionless::Signature B(4); // 4 genes.
             B.select(0);
             B.select(3);
             frs.init_signature(B);
-            s_B = frs.score(B);
+            s_B = frs.score(B).value;
 
             // Remove last gene, select second gene,
             // making the same than signature A.
             B.reject(3);
             B.select(1);
             frs.new_swap(/*in*/1, /*out*/3);
-            s_Bp = frs.score(B);
+            s_Bp = frs.score(B).value;
 
             THEN( "Scores should be the same" ) {
                 REQUIRE( s_A  != Catch::Approx(s_B) );

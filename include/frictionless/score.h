@@ -170,7 +170,7 @@ class FriedmanScore {
         void new_swap(const size_t gene_in, const size_t gene_out);
 
         /** Global score. */
-        double score(const Signature& genes);
+        Fitness::Type score(const Signature& genes);
 };
 
 } // frictionless

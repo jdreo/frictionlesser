@@ -2,6 +2,7 @@
 
 #include <numeric>
 #include <vector>
+#include <utility>
 
 #include <eo>
 
@@ -15,6 +16,58 @@
 
 namespace frictionless {
 
+struct ScoreDetails
+{
+    using ValueType = double;
+    using VectorType = std::vector<ValueType>;
+    ValueType value;
+    VectorType values_by_samples;
+
+    ScoreDetails(const ValueType& v, const VectorType& vs) : value(v), values_by_samples(vs)
+    { }
+
+    bool operator==(const ScoreDetails& other)
+    {
+        if(this->value != other.value) {return false;}
+        if(this->values_by_samples.size() != other.values_by_samples.size()) {return false;}
+        for(size_t i=0; i < this->values_by_samples.size(); ++i) {
+            if(this->values_by_samples[i] != other.values_by_samples[i]) {return false;}
+        }
+        return true;
+    }
+
+    //! Serialize the score.
+    friend std::ostream& operator<<(std::ostream& out, const ScoreDetails& s)
+    {
+        out << s.value;
+        out << " " << s.values_by_samples.size();
+        for(auto v : s.values_by_samples) {
+            out << " " << v;
+        }
+        return out;
+    }
+
+    //! Deserialize the score.
+    friend std::istream& operator>>(std::istream& in, ScoreDetails& score)
+    {
+        double value;
+        size_t size;
+        std::vector<double> values_by_samples;
+        in >> value;
+
+        in >> size;
+        values_by_samples.reserve(size);
+        for(size_t i=0; i<size; ++i) {
+            double v;
+            in >> v;
+            values_by_samples.push_back(v);
+        }
+        ASSERT(values_by_samples.size() == size);
+        score = ScoreDetails(value, values_by_samples);
+        return in;
+    }
+};
+
 /** The score used to define the fitness (quality) of a signature
  *  is a floating point number along with a cache.
  *
@@ -27,7 +80,13 @@ class Score
 {
     public:
         //! Scalar type of the score.
-        using Type = double;
+        // using Type = double;
+
+        /** Type returned by the "global score" function.
+         *
+         * Holds both the global score and the Friedman scores by samples.
+         */
+        using Type = ScoreDetails;
 
         //! Attached cache type.
         using Cache = C;
@@ -44,7 +103,7 @@ class Score
 
     public:
         //! Empty constructor.
-        Score() : _score(std::numeric_limits<Type>::signaling_NaN()), _has_cache(false) {}
+        Score() : _score(std::numeric_limits<Type::ValueType>::signaling_NaN(), Type::VectorType()), _has_cache(false) {}
 
         //! Constructor without cache.
         Score(const Type& score) : _score(score), _has_cache(false) {}
@@ -59,11 +118,19 @@ class Score
             _score(std::move(score)), _cache(std::move(cache)), _has_cache(true)
         {}
 
+        //! Copy constructor.
+        // Score( const Score& s ) :
+        //     _score(s._score.value, s._score.values_by_samples), _cache(s._cache), _has_cache(s._has_cache)
+        // {}
+
         //! Operator used for silent casting to double.
-        operator double() const {return _score;}
+        operator double() const {return _score.value;}
 
         //! Accessor to the actual score.
-        Type score() const {return _score;}
+        Type::ValueType score() const {return _score.value;}
+
+        //! Accessor to the actual score.
+        Type score_details() const {return _score;}
 
         //! Accessor to the cache guard.
         bool has_cache() const {return _has_cache;}
@@ -95,11 +162,10 @@ class Score
         //! Deserialize the score (not the cache).
         friend std::istream& operator>>(std::istream& in, Score<C>& score)
         {
-            Type value;
             // bool has_cache;
             // in >> has_cache;
-            in >> value;
-            score._score = value;
+            in >> score._score;
+
             score._has_cache = false; // Cache is not serialized.
             // score._has_cache = has_cache;
             return in;
