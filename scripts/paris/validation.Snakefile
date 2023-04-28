@@ -14,7 +14,7 @@ rule aggregate:
     output:
         "data/output/signatures_z10.tsv"
     shell:
-        "cat {input}/signature_* > {output}"
+        "cat {input}/signature_* | sort | uniq > {output}"
 
 rule qc_observed_genes:
     input:
