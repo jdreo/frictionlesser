@@ -1,4 +1,5 @@
 import sys
+import csv
 import scipy
 import numpy
 from sortedcollections import OrderedSet
@@ -186,6 +187,43 @@ def colormesh(mat, ax, cmap, norm):
     # ax.grid(True, which="minor", axis="both", color="white", linestyle="-", linewidth=1)
     return pcm
 
+def load_ranks_csv(rankfile):
+    """Load the given CSV file and return its numpy array counterpart."""
+    print("Load ranks...", file=sys.stderr, flush=True)
+    genes = []
+    ranks_l = []
+    with open(rankfile) as fd:
+        data = csv.reader(fd, delimiter="\t")
+        header = next(data)
+        # Indices of each sample's cells. 
+        samples = {}
+        for i,s in enumerate(header[1:]):
+            samples.setdefault(s, []).append(i)
+        assert(len(samples) > 0)
+        n=0
+        for row in data:
+            i = 0
+            gene = row[0]
+            assert(len(gene) > 0)
+            if gene in genome:
+                # [Index of gene, gene name].
+                genes.append([n,gene])
+                n += 1
+                print("\r", n, end=" ", file=sys.stderr, flush=True)
+                ranks_row = numpy.array([float(r) for r in row[1:]])
+                ranks_l.append(ranks_row)
+    assert(len(ranks_l) > 0)
+    assert(len(ranks_l) == len(genes))
+    ngenes = len(genes)
+    ncells = len(ranks_l[0])
+    print("\rLoaded ranks for",ngenes,"genes,",ncells,"cells in", len(samples), "samples.", file=sys.stderr, flush=True)
+    # Convert to array.
+    print("Convert to array...", file=sys.stderr, flush=True)
+    ranks = numpy.array(ranks_l)
+    print(ranks, file=sys.stderr, flush=True)
+    assert(ranks.shape == (ngenes,ncells))
+
+    return ranks
 
 if __name__=="__main__":
     import sys

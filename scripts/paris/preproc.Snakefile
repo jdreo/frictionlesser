@@ -8,33 +8,46 @@ rule all:
     input:
         "data/inter/ranks.tsv",
         "cache/trans.cache.dat",
-        expand("cache/size_{size}.cache.dat", size=config["sizes"])
+        expand("cache/size_{size}.cache.dat", size=config["sizes"]),
+        "data/inter/paris+ranks.h5an.gz"
 
-rule preprocessing:
+rule preproc_mara:
     input:
+        task="preproc_mara.py",
         counts="data/input/counts.npz",
         features="data/input/features.csv",
         meta="data/input/meta.csv"
     output:
-        "data/inter/counts.mara.hdf5"
+        "data/inter/paris.h5an"
     shell:
-        "python3 preproc-mara__npz-to-hdf5.py {input.counts} {input.features} {input.meta} {output}"
+        "python3 {input.task} {input.counts} {input.features} {input.meta} {output}"
 
-rule counts:
+rule counts_csv:
     input:
-        "data/inter/counts.mara.hdf5"
+        task="counts_to_csv.py",
+        data="data/inter/paris.h5an"
     output:
-        "data/inter/counts.csv"
+        protected("data/inter/counts.csv")
     shell:
-        "python3 counts__hdf5-to-csv.py {input} > {output}"
+        "python3 {input.task} {input.data} > {output}"
+
+rule ranks_tsv:
+    input:
+        "data/inter/counts.csv"
+    output:
+        protected("data/inter/ranks.tsv")
+    shell:
+        "{FRICTIONLESSER} --exprs={input} > {output}"
 
 rule ranks:
     input:
-        "data/inter/counts.csv"
+        task="ranks_tsv_to_h5an.py",
+        csv="data/inter/ranks.tsv",
+        h5an="data/inter/paris.h5an"
     output:
-        "data/inter/ranks.tsv"
+        "data/inter/paris+ranks.h5an.gz"
     shell:
-        "{FRICTIONLESSER} --exprs={input} > {output}"
+        "{input.task} {input.csv} {input.h5an} {output}"
 
 rule save_cache_transcriptome:
     input:

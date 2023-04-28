@@ -19,7 +19,7 @@ def check(counts, cells, genes):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) == 4:
+    if len(sys.argv) == 5:
 
         fcounts = sys.argv[1]
         ffeatures = sys.argv[2]
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         check(adata.X, adata.obs_names, adata.var_names)
 
         # print("Save raw annotated data...", file=sys.stderr, flush=True)
-        # adata.write(fcounts+".hdf5")
+        # adata.write(fcounts+".h5an")
         # print("OK", file=sys.stderr, flush=True)
 
     elif len(sys.argv) == 2:
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         check(adata.X, adata.obs_names, adata.var_names)
 
     else:
-        assert(len(sys.argv) == 2 or len(sys.argv) == 4)
+        assert(len(sys.argv) == 2 or len(sys.argv) == 5)
 
     # https://scanpy-tutorials.readthedocs.io/en/latest/pbmc3k.html
     print("Mara's preprocessing...", file=sys.stderr, flush=True)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     check(adata.X, adata.obs_names, adata.var_names)
 
-    # fname = str(pathlib.Path(fcounts).with_suffix(".mara.hdf5"))
+    # fname = str(pathlib.Path(fcounts).with_suffix(".mara.h5an"))
     print("Write data to", foutput, file=sys.stderr, flush=True)
     adata.write(foutput)
 
