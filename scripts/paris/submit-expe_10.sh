@@ -11,6 +11,7 @@ size=10
 #for size in 10; do
 mkdir -p data/output/signature_of_${size}-genes
 mkdir -p data/inter/trajs/
+mkdir -p data/inter/logs/
 #done
 
 for r in $(seq $runs); do
