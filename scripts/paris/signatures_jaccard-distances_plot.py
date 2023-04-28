@@ -18,13 +18,17 @@ if __name__=="__main__":
     from matplotlib import cm
     from matplotlib.colors import Normalize
 
+    assert(len(sys.argv) >= 5)
+
     size = int(sys.argv[1])
     if size == 0:
         size = None
 
     sim_thresh = float(sys.argv[2])
 
-    filenames = sys.argv[3:5] # Only two files
+    fplot = sys.argv[3]
+
+    filenames = sys.argv[4:]
 
     genesets,genome,breaks = load(filenames, filter_size=size)
     assert(len(genesets) > 0)
@@ -49,8 +53,8 @@ if __name__=="__main__":
     full_distance_matrix = raw_distance_matrix
 
     # PLOT
-    fig = plt.figure(figsize=(10,10))
-    fig.tight_layout()
+    fig = plt.figure(figsize=(13,13))
+    # fig.tight_layout()
     gs = gridspec.GridSpec(4, 3, width_ratios=[40,1,1], height_ratios=[20,20,1,1])
     ax1 = fig.add_subplot(gs[0])
     ax2 = fig.add_subplot(gs[3])
@@ -135,4 +139,5 @@ if __name__=="__main__":
     n = len(match_cols)
     ax2bb.set_xlabel("{:.0%} of signatures in `{}` are similar enough (>{}) to at least another one in `{}`".format(sm/n, filenames[1], sim_thresh, filenames[0]))
 
-    plt.show()
+    plt.rcParams["font.size"]=4
+    plt.savefig(fplot, dpi=600)

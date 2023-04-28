@@ -112,7 +112,10 @@ if __name__=="__main__":
     objf = []
     for i,s in enumerate(signatures):
         selfcorr.append(correlations[i])
+        assert(-1 <= correlations[i] <= 1)
         objf.append(sign_scores[s])
+        assert(sign_scores[s] is not None)
+        assert(sign_scores[s] > 0)
 
     plot = seaborn.scatterplot(x=objf, y=selfcorr, s=5)
     plot.set(xlabel="objective function", ylabel="self-correlation",
