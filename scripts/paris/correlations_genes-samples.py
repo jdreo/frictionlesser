@@ -31,6 +31,22 @@ if __name__ == "__main__":
     print(adata, file=sys.stderr, flush=True)
     ncells = adata.shape[0]
     ngenes_all = adata.shape[1]
+
+    # adata structure:
+    #
+    #   ← all genes  →
+    # ┌───────────────┐
+    # │ var:"id",[…]  │
+    # └───────────────┘
+    # ┏━━━━━━━━━━━━━━━━┓  ┌────────────────┐
+    # ┃ X:             ┃  │ obs:           │  ↑
+    # ┃ counts         ┃┓ │ "sample",[…]   │ cells
+    # ┃                ┃┃ │                │  ↓
+    # ┗━━━━━━━━━━━━━━━━┛┃ └────────────────┘
+    #  ┃layers["ranks"] ┃
+    #  ┗━━━━━━━━━━━━━━━━┛
+    #   ← all genes  →
+
     print("Loaded", ncells,"cells and", ngenes_all,"genes", file=sys.stderr, flush=True)
 
     print("Load signatures from: ", fsignatures, file=sys.stderr, flush=True)
@@ -81,13 +97,13 @@ if __name__ == "__main__":
 
     print("Compute cell-gene z-scores sample fractions...", file=sys.stderr, flush=True)
     corr_cellgene = ad.AnnData(
-        np.zeros((ncells,len(genome))),
+        np.zeros((ncells,ngenes)),
         adata.obs, {"gene":np.asarray(genome)},
         dtype=adata.layers["ranks"].dtype )
 
     # corr_cellgene structure:
     #
-    #   ←   genes   →
+    #  ← genes in sign →
     # ┌───────────────┐
     # │ var:"gene"    │
     # └───────────────┘
@@ -99,10 +115,10 @@ if __name__ == "__main__":
     # ┌───────────────┐
     # │ varp:         │
     # │ "correlations"│  ↑
-    # │               │ genes
+    # │               │ genes in sign
     # │               │  ↓
     # └───────────────┘
-    #   ←   genes   →
+    #  ← genes in sign →
     #
 
     ranks = adata.layers["ranks"]
@@ -111,16 +127,19 @@ if __name__ == "__main__":
     for i,s in enumerate(samples):
         cells = (adata.obs["sample"] == s)
         assert(np.sum(cells) > 1)
-        for j,g in enumerate(genome): # FIXME bitand merge truth tables for all genes to avoid this loop
+        # We cannot avoid this loop because the standard deviation may be zero in some cases,
+        # hence requiring a conditional branching.
+        for j,g in enumerate(genome):
             cranks = ranks[ cells, adata.var["id"] == g ]
             # print("cells ranks:",cranks, file=sys.stderr, flush=True)
             assert(len(cranks.shape) == 1) # only one gene should match.
             sn = cranks.shape[0]
             assert(sn > 0)
             # print("sn:",sn, file=sys.stderr, flush=True)
-            smean = np.mean(cranks)
+            smean = np.mean(cranks) # Numpy uses the population mean.
             assert(smean == (sn+1)/2)
-            # sdev  = np.std (cranks) # sample mean
+            # Derivate standard-deviation from the computed mean,
+            # to ensure we do not mess with pop VS sample statistics.
             sdev = np.sqrt(np.sum(np.power(cranks-smean,2)))
             if sdev != 0:
                 # Standardized z-score across cells,
@@ -129,8 +148,6 @@ if __name__ == "__main__":
 
                 # print("corr:",corr_cellgene[cells,j].X, file=sys.stderr, flush=True)
 
-                # FIXME why the sqrt?
-                # ssp2 = np.sqrt(np.sum(np.power(corr_cellgene[cells,j].X,2)))
                 ssp2 = np.sum(np.power(corr_cellgene[cells,j].X, 2)) * nsamples
                 # print("ssp2:", ssp2, file=sys.stderr, flush=True)
                 assert(np.abs(1-ssp2) <= epsilon)
@@ -142,10 +159,11 @@ if __name__ == "__main__":
     for g in genome:
         cgene = corr_cellgene[ :, corr_cellgene.var["gene"] == g ]
         # print(np.sum(cgene.X, axis=1), file=sys.stderr, flush=True)
-        # assert(all([0 <= s <= 1 for s in np.sqrt(np.sum(np.power(cgene.X,2), axis=1))]))
         assert(all(0 <= s <= 1 for s in np.sum(np.power(cgene.X,2), axis=1)))
 
     print("Compute pairwise average correlation matrix for genes over samples...", file=sys.stderr, flush=True)
+    # Correlation is the average of the sum of the product of z-scores.
+    # We already prepared for the division by the number of samples, hence only the sum of products remains.
     corr_cellgene.varp["correlations"] = corr_cellgene.X.T @ corr_cellgene.X
     # print(np.diag(corr_cellgene.varp["correlations"]), file=sys.stderr, flush=True)
 
@@ -189,7 +207,7 @@ if __name__ == "__main__":
     # └────────────────┘
     # ┏━━━━━━━━━━━━━━━━┓  ┌────────────────┐
     # ┃ X:             ┃  │ obs:           │  ↑
-    # ┃ av.corr./genes ┃┓ │ "sample"       │ cells
+    # ┃ sum.corr/genes ┃┓ │ "sample"       │ cells
     # ┃                ┃┃ │                │  ↓
     # ┗━━━━━━━━━━━━━━━━┛┃ └────────────────┘
     #  ┃layers["zscore"]┃
@@ -227,7 +245,7 @@ if __name__ == "__main__":
     # varp is a dictionary holding (var × var) arrays.
     # We want the dot product of all columns.
     smean = np.mean(corr_cellsign.X, axis=1, keepdims=True)
-    corr_cellsign.layers["zscore"] = (corr_cellsign.X - smean) / np.sqrt(np.sum(np.power(corr_cellsign.X - smean,2), axis=1, keepdims=True))
+    corr_cellsign.layers["zscore"] = (corr_cellsign.X - smean) / np.sqrt(np.sum(np.power(corr_cellsign.X - smean, 2), axis=1, keepdims=True))
     corr_cellsign.varp["correlations"] = corr_cellsign.X.T @ corr_cellsign.X
 
     print(corr_cellsign, file=sys.stderr, flush=True)
@@ -246,6 +264,24 @@ if __name__ == "__main__":
     corr_cellsign.var["origin"] = origs
     print(corr_cellsign, file=sys.stderr, flush=True)
     corr_cellsign.write(fout_scorr, compression = "gzip")
+
+    ###########################################################################
+    # SIGNATURES-GENES CORRELATIONS
+    ###########################################################################
+
+    print("Compute signatures-genes correlations...", file=sys.stderr, flush=True)
+
+    corr_signgene = ad.AnnData(
+        np.zeros((nsignatures,ngenes_all)),
+        corr_cellsign.var, # Metadata about signatures
+        adata.var,         # Metadata about all genes
+        dtype=corr_cellsign.X.dtype )
+
+    rmean = np.mean(adata, axis=1, keepdims=True)
+    adata.layers["zscore"] = (adata - rmean) / np.sqrt(np.sum(np.power(adata - rmean, 2), axis=1, keepdims=True))
+    corr_signgene = corr_cellsign.X.T @ adata.layers["zscore"]
+
+    # print("Save signatures-genes correlations...", file=sys.stderr, flush=True)
 
     ###########################################################################
     # PLOT
