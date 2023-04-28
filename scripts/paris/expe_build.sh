@@ -59,7 +59,7 @@ cmake -DBUILD_DOCS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DUSE_LOCA
 make
 
 printf "Install scipy and scanpy...\n"
-pip3 install scipy scanpy
+pip3 install scipy scanpy sortedcollections fastcluster
 
 printf "Copy input data in working directory...\n"
 cd ../../

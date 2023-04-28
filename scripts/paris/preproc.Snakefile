@@ -47,7 +47,7 @@ rule ranks:
     output:
         "data/inter/paris+ranks.h5an.gz"
     shell:
-        "{input.task} {input.csv} {input.h5an} {output}"
+        "python3 {input.task} {input.csv} {input.h5an} {output}"
 
 rule save_cache_transcriptome:
     input:

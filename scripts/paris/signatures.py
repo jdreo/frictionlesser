@@ -205,13 +205,12 @@ def load_ranks_csv(rankfile):
             i = 0
             gene = row[0]
             assert(len(gene) > 0)
-            if gene in genome:
-                # [Index of gene, gene name].
-                genes.append([n,gene])
-                n += 1
-                print("\r", n, end=" ", file=sys.stderr, flush=True)
-                ranks_row = numpy.array([float(r) for r in row[1:]])
-                ranks_l.append(ranks_row)
+            # [Index of gene, gene name].
+            genes.append([n,gene])
+            n += 1
+            print("\r", n, end=" ", file=sys.stderr, flush=True)
+            ranks_row = numpy.array([float(r) for r in row[1:]])
+            ranks_l.append(ranks_row)
     assert(len(ranks_l) > 0)
     assert(len(ranks_l) == len(genes))
     ngenes = len(genes)
