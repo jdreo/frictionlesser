@@ -17,11 +17,12 @@ rule correlations_genes_samples:
         ranks="data/inter/paris+ranks.h5an.gz",
         sign="data/output/signatures_z10.tsv"
     output:
-        gcorr="data/inter/gcorr.h5an.gz",
-        scorr="data/inter/scorr.h5an.gz",
+        gccorr="data/inter/gccorr.h5an.gz",
+        sccorr="data/inter/sccorr.h5an.gz",
+        sgcorr="data/inter/sgcorr.h5an.gz",
         # plot_gcorr="data/qc/genes_corr.png",
         plot_selfcorr="data/qc/self-corr_objf.png",
     shell:
-        # "python3 {input.task} {input.ranks} 10 {output.gcorr} {output.scorr} {output.plot_gcorr} {output.plot_selfcorr} {input.sign}"
-        "python3 {input.task} {input.ranks} 10 {output.gcorr} {output.scorr} tmp.png {output.plot_selfcorr} {input.sign}"
+        # "python3 {input.task} {input.ranks} 10 {output.gccorr} {output.sccorr} {output.plot_gcorr} {output.plot_selfcorr} {input.sign}"
+        "python3 {input.task} {input.ranks} 10 {output.gccorr} {output.sccorr} {output.sgcorr} tmp.png {output.plot_selfcorr} {input.sign}"
 
