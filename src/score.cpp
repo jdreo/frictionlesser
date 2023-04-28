@@ -19,7 +19,7 @@ FriedmanScore::FriedmanScore( const Transcriptome& rt, const double a) :
     ASSERT(_transcriptome.genes_nb() > 0);
     ASSERT(_transcriptome.samples_nb() > 0);
     ASSERT(_transcriptome.cells_nb(0) > 0);
-    ASSERT(alpha > 0);
+    ASSERT(alpha >= 0);
 
     const size_t samples_nb = _transcriptome.samples_nb();
 
@@ -105,10 +105,10 @@ void FriedmanScore::new_transcriptome(const bool print_progress)
         CLUTCHCODE(xdebug,
             std::ostringstream ssr;
             for(double s : SSR_j) { ssr << " " << s; }
-            CLUTCHLOGD(xdebug, "SSR={" << ssr.str() << "}", 2);
+            // CLUTCHLOGD(xdebug, "SSR={" << ssr.str() << "}", 2);
             std::ostringstream ts;
             for(double t : T_j  ) {  ts << " " << t; }
-            CLUTCHLOGD(xdebug, "T={" << ts.str() << "}", 2);
+            // CLUTCHLOGD(xdebug, "T={" << ts.str() << "}", 2);
         );
 
     } // for i in samples
