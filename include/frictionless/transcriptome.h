@@ -79,6 +79,9 @@ class Transcriptome {
         /** Returns the name of the j-th gene. */
         const std::string& gene_name(const size_t j) const;
 
+        /** Returns the index of the given gene name. */
+        size_t gene_index( const std::string& ) const;
+
         /** @} */
         /** @name Accessors on samples.
          * @{ */

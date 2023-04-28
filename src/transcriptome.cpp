@@ -47,6 +47,15 @@ const std::vector<std::string>& Transcriptome::gene_names() const
     return _gene_names;
 }
 
+size_t Transcriptome::gene_index( const std::string& gene_name ) const
+{
+    auto it = std::find( std::begin(_gene_names), std::end(_gene_names), gene_name );
+    if(it == std::end(_gene_names) ) {
+        RAISE(DataInconsistent, "Gene " << gene_name << " not found in transcriptome.");
+    }
+    return std::distance(std::begin(_gene_names), it);
+}
+
 const std::vector<size_t>& Transcriptome::genes() const
 {
     return _genes;

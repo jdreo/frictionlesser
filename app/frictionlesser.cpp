@@ -69,9 +69,6 @@ int main(int argc, char* argv[])
     const bool cacheonly = argparser.createParam<bool>(false, "cache-only",
         "Exit after creating transcriptome and size cache files", 'O', "Cache").value();
 
-    // const std::string signatures = argparser.createParam<std::string>("", "signatures",
-        // "Name of a file containing candidate/starting signatures", 'i', "Data").value(); // TODO
-
     // const bool permute = argparser.createParam<bool>(false, "permute",
     //     "Randomly permute the data to get rid of the signal", 'R', "Data").value(); // TODO
 
@@ -82,35 +79,38 @@ int main(int argc, char* argv[])
     //     "Exponent on the log of p-values", 'b', "Parameters").value(); // TODO?
 
     const std::string log_level = argparser.createParam<std::string>("Progress", "log-level",
-        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Misc").value();
+        "Maximum depth level of logging (Critical<Error<Warning<Progress<Note<Info<Debug<XDebug, default=Progress)", 'l', "Logging").value();
 
     const std::string log_file = argparser.createParam<std::string>(".*", "log-file",
-        "Regexp indicating which source file is allowed logging (default=all)", 'f', "Misc").value();
+        "Regexp indicating which source file is allowed logging (default=all)", 'f', "Logging").value();
 
     const std::string log_func = argparser.createParam<std::string>(".*", "log-func",
-        "Regexp indicating which function is allowed logging (default=all)", 'F', "Misc").value();
+        "Regexp indicating which function is allowed logging (default=all)", 'F', "Logging").value();
 
    const size_t log_depth = argparser.createParam<size_t>(9999, "log-depth",
-        "Maximum stack depth above which logging is not allowed (default=no limit)", 'D', "Misc").value();
+        "Maximum stack depth above which logging is not allowed (default=no limit)", 'D', "Logging").value();
 
     const size_t max_errors = argparser.createParam<size_t>(30, "max-errors",
-        "Maximum number of errors reported for each check", 'm', "Misc").value();
+        "Maximum number of errors reported for each check", 'm', "Logging").value();
 
 
     const double epsilon = argparser.createParam<double>(1e-10, "epsilon",
-        "Precision for floating-point numbers comparison", 'e', "Misc").value();
+        "Precision for floating-point numbers comparison", 'e', "Parameters").value();
 
     const size_t genesetsize = argparser.createParam<size_t>(10, "ngenes",
         "Number of genes in the signatures", 'g', "Parameters").value();
 
     unsigned long long seed = argparser.createParam<long>(0, "seed",
-        "Seed of the pseudo-random generator (0 = Epoch)", 's', "Misc").value();
+        "Seed of the pseudo-random generator (0 = Epoch)", 's', "Parameters").value();
 
     const std::string save_sol = argparser.createParam<std::string>("", "save-sol",
         "File to which save every solution encountered (default='', do not save)", 'o', "Misc").value();
 
-    const bool randsign = argparser.createParam<bool>(false, "random-signature",
-        "Do not run the search algorithm but stop after evaluating the first random signature", '1', "Parameters").value();
+    const bool singlesign = argparser.createParam<bool>(false, "single-signature",
+        "Do not run the search algorithm but stop after evaluating the first random signature", '1', "Misc").value();
+
+    const bool inputsign = argparser.createParam<bool>(false, "input-signature",
+        "Read the initial signature from standard input", 'i', "Data").value();
 
     /**************************************************************************
      * Messages management.
@@ -296,23 +296,67 @@ int main(int argc, char* argv[])
      * Search Algorithm.
      *************************************************************************/
 
-    CLUTCHLOG(progress, "Pick a random signature...");
-        frictionless::Signature signature(tr.genes_nb());
+    frictionless::Signature signature(tr.genes_nb());
 
-        std::vector<size_t> indices(tr.genes_nb());
-        std::iota(indices.begin(), indices.end(), 0);
-        std::mt19937 rg(seed);
-        std::shuffle(indices.begin(), indices.end(), rg);
-        for(size_t i=0; i<genesetsize; ++i) {
-            ASSERT( std::find(tr.genes().begin(), tr.genes().end(), i) != tr.genes().end() );
-            signature.select(indices[i]);
-            CLUTCHLOGD(xdebug, tr.gene_name(i), 1);
-        }
-        CLUTCHLOG(debug, "Signature of size: " << genesetsize);
-        ASSERT(signature.selected.size() == genesetsize);
+    if(inputsign) {
+        CLUTCHLOG(progress, "Read signature from stdin...");
 
-        // Actually compute the init cache.
-        frs.init_signature(signature);
+            // Read genes from stdin.
+            std::string gene;
+            std::vector<std::string> genes;
+            while(std::cin >> gene) {
+                genes.push_back(gene);
+            }
+
+            // Check that signature size match --ngenes parameter..
+            if(genes.size() != genesetsize) {
+                EXIT_ON_ERROR(DataInconsistent,"Input signature have " << genes.size()
+                    << " genes, whereas you asked for --ngenes=" << genesetsize
+                    << " (try changing --ngenes to match the input?)");
+            }
+
+            // Check that genes exists in the transcriptome.
+            std::vector<std::string> unfound;
+            for(auto gene : genes) {
+                const std::vector<std::string>& available = tr.gene_names();
+                if( std::find(std::begin(available), std::end(available), gene) == std::end(available) ) {
+                    // Gene is not found.
+                    unfound.push_back(gene);
+                }
+            }
+            if(unfound.size() > 0) {
+                std::ostringstream missing;
+                for(auto gene : unfound) {
+                    missing << " " << gene;
+                }
+                EXIT_ON_ERROR(DataInconsistent, "The following genes from the input signatures cannot be found in the given transcriptome:" << missing.str());
+            }
+
+            // Forge the signature with indices from the transcriptome.
+            for(auto gene : genes) {
+                signature.select( tr.gene_index(gene) );
+            }
+        CLUTCHLOG(note, "OK");
+
+    } else {
+        CLUTCHLOG(progress, "Pick a random signature...");
+            std::vector<size_t> indices(tr.genes_nb());
+            std::iota(indices.begin(), indices.end(), 0);
+            std::mt19937 rg(seed);
+            std::shuffle(indices.begin(), indices.end(), rg);
+            for(size_t i=0; i<genesetsize; ++i) {
+                ASSERT( std::find(tr.genes().begin(), tr.genes().end(), i) != tr.genes().end() );
+                signature.select(indices[i]);
+                CLUTCHLOGD(xdebug, tr.gene_name(i), 1);
+            }
+        CLUTCHLOG(note, "OK");
+    }
+
+    CLUTCHLOG(progress, "Compute init cache...");
+    CLUTCHLOG(debug, "Signature of size: " << genesetsize);
+    ASSERT(signature.selected.size() == genesetsize);
+    // Actually compute the init cache.
+    frs.init_signature(signature);
     CLUTCHLOG(note, "OK");
 
     CLUTCHLOG(progress, "Instantiate solver...");
@@ -354,12 +398,12 @@ int main(int argc, char* argv[])
             search(neighborhood, feval, peval, check);
     CLUTCHLOG(note, "OK");
 
-    CLUTCHLOG(progress, "Evaluate first random signature...");
+    CLUTCHLOG(progress, "Evaluate first signature...");
     feval(signature);
-        CLUTCHLOG(note, "Initial signature: " << signature.str());
+    CLUTCHLOG(note, "Initial signature: " << signature.str());
     CLUTCHLOG(note, "OK");
 
-    if(not randsign) {
+    if(not singlesign) {
         CLUTCHLOG(progress, "Solver run...");
             search(signature);
         CLUTCHLOG(note, "OK");
