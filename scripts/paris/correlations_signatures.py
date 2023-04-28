@@ -139,7 +139,7 @@ if __name__ == "__main__":
     # so we do it manually.
     ssigns = []
     for oset in cells_signs.var["signature"]:
-        ssigns.append(" ".join(oset)) # Space-separated.
+        ssigns.append(" ".join(sorted(oset))) # Space-separated.
     cells_signs.var["signature"] = ssigns
     origs = []
     for orig in cells_signs.var["origin"]:

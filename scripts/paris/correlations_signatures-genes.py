@@ -79,3 +79,4 @@ if __name__ == "__main__":
     sdf.sort_values(by=["signature"], ascending=True, inplace=True)
     sdf.to_csv(fout_sgcorr_csv)
 
+    print("Done", file=sys.stderr, flush=True)

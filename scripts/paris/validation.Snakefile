@@ -2,7 +2,8 @@
 rule all:
     input:
         "data/qc/self-corr_objf.png",
-        "data/output/sgcorr.csv"
+        "data/output/correlations_signatures-genes.csv",
+        "data/output/scores_signatures-samples.csv"
 
 rule aggregate:
     input:
@@ -19,13 +20,7 @@ rule correlations_genes_samples:
         sign="data/output/signatures_z10.tsv"
     output:
         gccorr="data/inter/gccorr.h5an.gz",
-        # sccorr="data/inter/sccorr.h5an.gz",
-        # sgcorr="data/inter/sgcorr.h5an.gz",
-        # plot_gcorr="data/qc/genes_corr.png",
-        # plot_selfcorr="data/qc/self-corr_objf.png",
     shell:
-        # "python3 {input.task} {input.ranks} 10 {output.gccorr} {output.sccorr} {output.plot_gcorr} {output.plot_selfcorr} {input.sign}"
-        # "python3 {input.task} {input.ranks} 10 {output.gccorr} {output.sccorr} {output.sgcorr} tmp.png {output.plot_selfcorr} {input.sign}"
         "python3 {input.task} {input.ranks} 10 {output.gccorr} {input.sign}"
 
 rule correlations_signatures:
@@ -56,6 +51,15 @@ rule correlations_signatures_genes:
         sccorr="data/inter/sccorr.h5an.gz",
     output:
         sgcorr="data/inter/sgcorr.h5an.gz",
-        sgcorr_csv="data/output/sgcorr.csv",
+        sgcorr_csv="data/output/correlations_signatures-genes.csv",
     shell:
         "python3 {input.task} {input.ranks} 10 {input.sccorr} {output.sgcorr} {output.sgcorr_csv}"
+
+rule scores_signatures_samples:
+    input:
+        task="scores_signatures-samples.py",
+        sign="data/output/signatures_z10.tsv",
+    output:
+        ssscores="data/output/scores_signatures-samples.csv"
+    shell:
+        "python3 {input.task} 10 {output.ssscores} {input.sign}"

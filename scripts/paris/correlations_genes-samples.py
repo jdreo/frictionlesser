@@ -358,3 +358,5 @@ if __name__ == "__main__":
     ###########################################################################
 
     # FIXME clustermap plot
+
+    print("Done", file=sys.stderr, flush=True)
