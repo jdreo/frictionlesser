@@ -1,7 +1,7 @@
 import sys
 import numpy
-import scanpy
-import pandas as pd
+# import scanpy
+# import pandas as pd
 import anndata as ad
 
 def check(counts, meta, genes):
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # Column names are sample, not cells IDs.
     print("GENE,", ",".join(adata.obs["sample"]), sep="")
-    i = 1
+    i = 0
     for row in counts_full.T:
         print("\r",i, end="", flush=True, file=sys.stderr)
         print(adata.var["id"][i], ",".join(str(x) for x in row))
