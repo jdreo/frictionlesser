@@ -2,8 +2,6 @@
 *.log
 *.txt
 *.dat
-*.tsv
-*.csv
 *.pdf
 *.tar
 build/

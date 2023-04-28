@@ -21,7 +21,7 @@ def load_genome(filenames, filter_size=None):
         with open(filename) as fd:
             lines = fd.readlines()
             for line in lines:
-                #print(line)
+                # print(line)
                 fields = line.strip().split()
                 if len(fields) == 1:
                     fields = line.strip().split(",")
@@ -34,8 +34,10 @@ def load_genome(filenames, filter_size=None):
                     i = 2
                 if filter_size:
                     if len(fields[i:]) != filter_size:
+                        # print(len(fields[i:]), fields[i:])
                         continue
                 genes = frozenset(fields[i:])
+                # print(genes)
                 genome |= genes # Merge genes into all genes.
 
     return genome
