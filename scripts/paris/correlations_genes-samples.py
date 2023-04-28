@@ -173,11 +173,16 @@ if __name__ == "__main__":
         csum = np.sum(scorrs, axis=1, keepdims=True)
 
         # Sum across genes.
-        corr_cellsign[:, corr_cellsign.var["signature"] == signature] = csum
+        sngenes = len([i for i in sgenes if i])
+        if size:
+            assert(sngenes == size)
+        corr_cellsign[:, corr_cellsign.var["signature"] == signature] = csum / sngenes
 
     print("Compute pairwise correlation matrix for signatures...", file=sys.stderr, flush=True)
     # varp is a dictionary holding (var × var) arrays.
     # We want the dot product of all columns.
+    smean = np.mean(corr_cellsign.X, axis=1, keepdims=True)
+    corr_cellsign.layers["zscore"] = (corr_cellsign.X - smean) / np.sqrt(np.sum(np.power(corr_cellsign.X - smean,2), axis=1, keepdims=True))
     corr_cellsign.varp["correlations"] = corr_cellsign.X.T @ corr_cellsign.X
 
     print(corr_cellsign, file=sys.stderr, flush=True)
@@ -202,7 +207,7 @@ if __name__ == "__main__":
     ###########################################################################
 
     print("Plot self-correlations of signatures against scores...", file=sys.stderr, flush=True)
-    selfcorr = np.diag(corr_cellsign.X)
+    selfcorr = np.abs(np.diag(corr_cellsign.varp["correlations"]))
     if __debug__:
         for c in selfcorr:
             assert(-1 <= c <= 1)
