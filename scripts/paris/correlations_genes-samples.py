@@ -149,14 +149,14 @@ if __name__ == "__main__":
         #         │ │                  ┃│              │┃ ╯
         #         │ │                ↓ ┃└──────────────┘┃  ⮧
         #         │ │                  ┗━━━━━━━━━━━━━━━━┛
-        #         │ │                    ⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭    ┌──────────────┐
+        #         │ │                    ⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣    ┌──────────────┐
         #         │ │             smean ┌──────────────┐   │ Ⓝ  Ⓝ ⓃⓃ Ⓝ   Ⓝ│
         #         │ │                   └──────────────┘ ⭢ │ Ⓝ z-scores  Ⓝ│
         #           │              sdev ┌──────────────┐   │ Ⓝ  Ⓝ ⓃⓃ Ⓝ   Ⓝ│
         #      loop │                   └──────────────┘ ⭢ └──────────────┘
-        #      over │                    ⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭
+        #      over │                    ⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣
         #   samples │           sdev!=0  ◌●◌◌●◌●●◌●◌◌◌●           ⭣
-        #           │                    ⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭⭭    ┌──────────────┐ ┌──────────────┐
+        #           │                    ⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣    ┌──────────────┐ ┌──────────────┐
         #         ▲ │           sample_  ◌●◌◌●◌●●◌●◌◌◌●    │ Ⓝ  Ⓝ ⓃⓃ Ⓝ   Ⓝ│ │              │
         #         │ │           uplifted ◌●◌◌●◌●●◌●◌◌◌● ⭠  │ Ⓝ z-scores  Ⓝ│∨│     zeros    │
         #         │ │             _genes ◌●◌◌●◌●●◌●◌◌◌●    │ Ⓝ  Ⓝ ⓃⓃ Ⓝ   Ⓝ│ │              │
@@ -435,23 +435,23 @@ if __name__ == "__main__":
 
     print("Compute pairwise correlation matrix for signatures...", file=sys.stderr, flush=True)
 
-    for s0 in unique_signatures:
-        s0_genes = genes_of(s0)
-        s0_size = len(s0)
-        c0_sum = np.sum(cells_sgenes.varp["correlations"][s0_genes,:], axis=0)
-        is0 = cells_signs.var["signature"] == s0
-        for s1 in unique_signatures:
-            s1_genes = genes_of(s1)
-            s1_size = len(s1)
-            c_sum = np.sum(c0_sum[s1_genes]) # on axis=1
-            is1 = cells_signs.var["signature"] == s0
-            size2 = s0_size * s1_size
-            corr = c_sum / size2
-            assert(-1-epsilon <= corr <= 1+epsilon)
-            cells_signs.varp["av.correlations"][is1,is0] = corr
-            cells_signs.varp["av.correlations"][is0,is1] = corr
+    # for s0 in unique_signatures:
+    #     s0_genes = genes_of(s0)
+    #     s0_size = len(s0)
+    #     c0_sum = np.sum(cells_sgenes.varp["correlations"][s0_genes,:], axis=0)
+    #     is0 = cells_signs.var["signature"] == s0
+    #     for s1 in unique_signatures:
+    #         s1_genes = genes_of(s1)
+    #         s1_size = len(s1)
+    #         c_sum = np.sum(c0_sum[s1_genes]) # on axis=1
+    #         is1 = cells_signs.var["signature"] == s0
+    #         size2 = s0_size * s1_size
+    #         corr = c_sum / size2
+    #         assert(-1-epsilon <= corr <= 1+epsilon)
+    #         cells_signs.varp["av.correlations"][is1,is0] = corr
+    #         cells_signs.varp["av.correlations"][is0,is1] = corr
 
-    assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["av.correlations"])))
+    # assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["av.correlations"])))
 
 
     for signature in unique_signatures:
@@ -470,17 +470,12 @@ if __name__ == "__main__":
         sngenes = np.sum(sgenes)
         if size:
             assert(sngenes == size)
-        cells_signs[:, cells_signs.var["signature"] == signature] = zsum / sngenes
-        # cells_signs[:, cells_signs.var["signature"] == signature] = zsum / np.sqrt(sngenes) # HERE
+        cells_signs[:, cells_signs.var["signature"] == signature] = zsum / sngenes # Squared nb of genes at the end.
 
-    # # varp is a dictionary holding (var × var) arrays.
-    # # We want the dot product of all columns.
-    # # smean = np.mean(cells_signs.X, axis=1, keepdims=True)
-    # # cells_signs.layers["zscore"] = (cells_signs.X - smean) / np.sqrt(np.sum(np.power(cells_signs.X - smean, 2), axis=1, keepdims=True))
-    # # Average of z-scores is already standardized.
-    # # cells_signs.varp["correlations"] = np.clip(cells_signs.X.T @ cells_signs.X, -1,1)
+    # varp is a dictionary holding (var × var) arrays.
+    # We want the dot product of all columns.
+    # Average of z-scores is already standardized.
     cells_signs.varp["correlations"] = cells_signs.X.T @ cells_signs.X
-    # # assert(all(-1 <= c <= 1 for c in np.nditer(cells_signs.varp["correlations"])))
     assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["correlations"])))
 
     print(cells_signs, file=sys.stderr, flush=True)
@@ -521,6 +516,12 @@ if __name__ == "__main__":
              title="Relationship between\nobjective function and self-correlation of genes, for signatures in\n{}".format(fsignatures))
     fig = plot.get_figure()
     fig.savefig(fplot_selfcorr, dpi=600)
+
+    # plot = seaborn.scatterplot(x=objf, y=np.abs(np.diag(cells_signs.varp["av.correlations"])), s=5)
+    # plot.set(xlabel="objective function", ylabel="self-correlation",
+    #          title="Relationship between\nobjective function and self-correlation of genes, for signatures in\n{}".format(fsignatures))
+    # fig = plot.get_figure()
+    # fig.savefig(fplot_selfcorr+"_2.png", dpi=600)
 
     # FIXME compute linear correlation coefficient and assert
 
