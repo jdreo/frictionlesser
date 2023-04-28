@@ -73,6 +73,8 @@ if __name__ == "__main__":
     nsamples = len(samples)
     assert(len(samples) > 0)
 
+    # FIXME genes frequency distribution
+
     ###########################################################################
     # GENES CORRELATIONS
     ###########################################################################
@@ -82,6 +84,26 @@ if __name__ == "__main__":
         np.zeros((ncells,len(genome))),
         adata.obs, {"gene":np.asarray(genome)},
         dtype=adata.layers["ranks"].dtype )
+
+    # corr_cellgene structure:
+    #
+    #   ←   genes   →
+    # ┌───────────────┐
+    # │ var:"gene"    │
+    # └───────────────┘
+    # ┏━━━━━━━━━━━━━━━┓  ┌────────────────┐
+    # ┃ X: z-score    ┃  │ obs:           │  ↑
+    # ┃               ┃  │ "sample"       │ cells
+    # ┃               ┃  │                │  ↓
+    # ┗━━━━━━━━━━━━━━━┛  └────────────────┘
+    # ┌───────────────┐
+    # │ varp:         │
+    # │ "correlations"│  ↑
+    # │               │ genes
+    # │               │  ↓
+    # └───────────────┘
+    #   ←   genes   →
+    #
 
     ranks = adata.layers["ranks"]
     # print(ranks.shape, file=sys.stderr, flush=True)
@@ -135,7 +157,7 @@ if __name__ == "__main__":
     # PLOT
     ###########################################################################
 
-
+    # FIXME clustermap plot
 
     ###########################################################################
     # SIGNATURES CORRELATIONS
@@ -157,6 +179,29 @@ if __name__ == "__main__":
         adata.obs,
         var,
         dtype=corr_cellgene.X.dtype )
+
+    # corr_cellsign structure:
+    #
+    #   ← signatures →
+    # ┌────────────────┐
+    # │ var:"signature"│
+    # │     "origin"   │
+    # └────────────────┘
+    # ┏━━━━━━━━━━━━━━━━┓  ┌────────────────┐
+    # ┃ X:             ┃  │ obs:           │  ↑
+    # ┃ av.corr./genes ┃┓ │ "sample"       │ cells
+    # ┃                ┃┃ │                │  ↓
+    # ┗━━━━━━━━━━━━━━━━┛┃ └────────────────┘
+    #  ┃layers["zscore"]┃
+    #  ┗━━━━━━━━━━━━━━━━┛
+    # ┌────────────────┐
+    # │ varp:          │
+    # │ "correlations" │  ↑
+    # │                │ signatures
+    # │                │  ↓
+    # └────────────────┘
+    #   ← signatures →
+    #
 
     for signature in unique_signatures:
         # FIXME annotate with origin file
@@ -224,4 +269,8 @@ if __name__ == "__main__":
     fig = plot.get_figure()
     fig.savefig(fplot_selfcorr, dpi=600)
 
+    # FIXME compute linear correlation coefficient and assert
+
     print("Done", file=sys.stderr, flush=True)
+
+    # FIXME move qc plot in a separate task?
