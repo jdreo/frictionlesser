@@ -44,14 +44,15 @@ if __name__ == "__main__":
                 break
 
     # Data transformation.
-    # data = numpy.log10(numpy.abs(correlations)+1)
-    data = numpy.abs(correlations)
+    # data = -1 * numpy.log10(numpy.abs(correlations)+1)
+    # data = numpy.abs(correlations)
+    data = -1 * numpy.log10(numpy.abs(pvalues)+1e-20)
 
     print("Compute the clustering...", file=sys.stderr, flush=True)
     linkage = scipy.cluster.hierarchy.complete(data)
     membership="distance"
-    # memberships = scipy.cluster.hierarchy.fcluster(linkage, criterion='maxclust', t = 10 )
-    memberships = scipy.cluster.hierarchy.fcluster(linkage, criterion=membership, t = tthresh)
+    memberships = scipy.cluster.hierarchy.fcluster(linkage, criterion='maxclust', t = 10 )
+    # memberships = scipy.cluster.hierarchy.fcluster(linkage, criterion=membership, t = tthresh)
 
     print("Save cluster membership...", file=sys.stderr, flush=True)
     # numpy.save(fout, membership)
@@ -71,17 +72,17 @@ if __name__ == "__main__":
     # First, plot the regular clustermap.
     linkage="complete"
     cmap = "viridis"
-    fig = seaborn.clustermap(data, method=linkage, row_colors=[origins, memberships_colors], col_colors=[origins,memberships_colors], cmap=cmap, vmin=0, vmax=1)#vmax=numpy.log10(1+1))
+    fig = seaborn.clustermap(data, method=linkage, row_colors=[origins, memberships_colors], col_colors=[origins,memberships_colors], cmap=cmap)#, vmin=0, vmax=5)#, vmin=0, vmax=1)#vmax=numpy.log10(1+1))
 
-    # Then, apply mask based on p-values.
-    pmask = pvalues > pthresh
-    trimask = numpy.tril(numpy.ones(data.shape))
-    mask = pmask
-    values = fig.ax_heatmap.collections[0].get_array().reshape(data.shape)
-    masked_values = numpy.ma.array(values, mask = mask)
-    fig.ax_heatmap.collections[0].set_array(masked_values)
-    # Color of masked values.
-    fig.ax_heatmap.set_facecolor("white")
+    # # Then, apply mask based on p-values.
+    # pmask = pvalues > pthresh
+    # trimask = numpy.tril(numpy.ones(data.shape))
+    # mask = pmask
+    # values = fig.ax_heatmap.collections[0].get_array().reshape(data.shape)
+    # masked_values = numpy.ma.array(values, mask = mask)
+    # fig.ax_heatmap.collections[0].set_array(masked_values)
+    # # Color of masked values.
+    # fig.ax_heatmap.set_facecolor("white")
 
     # Origins legend.
     handles = [Patch(facecolor=color) for color in palette_origins]
