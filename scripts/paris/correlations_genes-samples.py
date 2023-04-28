@@ -2,19 +2,21 @@ import sys
 import numpy as np
 import anndata as ad
 from sortedcollections import OrderedSet
+import seaborn
 
 import signatures
 
 if __name__ == "__main__":
 
-    assert(len(sys.argv) >= 5)
+    assert(len(sys.argv) >= 6)
     franks = sys.argv[1]
     size = int(sys.argv[2])
     if size == 0:
         size = None
     fout_gcorr = sys.argv[3]
     fout_scorr = sys.argv[4]
-    fsignatures = sys.argv[5:]
+    fplot = sys.argv[5]
+    fsignatures = sys.argv[6:]
 
     print("Load annotated ranks data from: ", franks, file=sys.stderr, flush=True)
     adata = ad.read(franks)
@@ -30,16 +32,24 @@ if __name__ == "__main__":
     print("Found",ngenes,"unique genes in signatures of size",size, file=sys.stderr, flush=True)
     assert(len(genome) > 0)
 
-    all_signatures = {}
+    loaded_signatures = {}
     genomes = {}
     breaks = {}
     unique_signatures = OrderedSet()
+    loaded_scores = {}
+    unique_scores = {}
     for fsign in fsignatures:
-        s,g,b = signatures.load([fsign], size)
-        all_signatures[fsign] = s
+        s,g,b,S = signatures.load([fsign], size, with_scores=True)
+        loaded_signatures[fsign] = s
         genomes[fsign] = g
         breaks[fsign] = b
+        loaded_scores[fsign] = S
         unique_signatures |= s
+        for sk in S:
+            if __debug__:
+                if sk in unique_scores:
+                    assert(unique_scores[sk] == S[sk])
+            unique_scores[sk] = S[sk]
     nsignatures = len(unique_signatures)
     print("Found",nsignatures,"unique signatures", file=sys.stderr, flush=True)
 
@@ -109,10 +119,31 @@ if __name__ == "__main__":
     print(corr_cellsign.varp["correlations"], file=sys.stderr, flush=True)
 
     print("Save signatures correlations...", file=sys.stderr, flush=True)
-    # AnnData cannot implicitely convert signature's OrderedSet to strings.
+    # AnnData cannot implicitely convert signature's OrderedSet to strings,
+    # so we do it manually.
     ssigns = []
     for oset in corr_cellsign.var["signature"]:
-        ssigns.append(" ".join(oset))
+        ssigns.append(" ".join(oset)) # Space-separated.
     corr_cellsign.var["signature"] = ssigns
     print(corr_cellsign, file=sys.stderr, flush=True)
     corr_cellsign.write(fout_scorr, compression = "gzip")
+
+    print("Plot self-correlations of signatures against scores...", file=sys.stderr, flush=True)
+    selfcorr = np.diag(corr_cellsign.X)
+    if __debug__:
+        for c in selfcorr:
+            assert(-1 <= c <= 1)
+
+    objf = [unique_scores[frozenset(s.split())] for s in corr_cellsign.var["signature"]]
+    if __debug__:
+        for s in objf:
+            assert(s is not None)
+            assert(s > 0)
+
+    plot = seaborn.scatterplot(x=objf, y=selfcorr, s=5)
+    plot.set(xlabel="objective function", ylabel="self-correlation",
+             title="Relationship between\nobjective function and self-correlation of genes, for signatures in\n{}".format(fsignatures))
+    fig = plot.get_figure()
+    fig.savefig(fplot, dpi=600)
+
+    print("Done", file=sys.stderr, flush=True)

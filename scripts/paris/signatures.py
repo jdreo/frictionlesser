@@ -43,7 +43,7 @@ def load_genome(filenames, filter_size=None):
     return genome
 
 
-def load(filenames, filter_size=None):
+def load(filenames, filter_size=None, with_scores=False):
     if filter_size == 0:
         filter_size = None
     assert(len(filenames) > 0)
@@ -51,7 +51,7 @@ def load(filenames, filter_size=None):
     genesets = OrderedSet()
     # current_id = 0
     genome = OrderedSet()
-    #genesets_scores = {}
+    genesets_scores = {}
     breaks = []
 
     for filename in filenames:
@@ -65,6 +65,7 @@ def load(filenames, filter_size=None):
                 if len(fields) == 1:
                     fields = line.strip().split(",")
                 assert(len(fields)>1)
+                score = None
                 i = 0
                 if fields[1].isdigit():
                     # Johann’ format: <score> <ngenes> <genes>…
@@ -76,6 +77,8 @@ def load(filenames, filter_size=None):
                         continue
                 kept_lines += 1
                 genes = frozenset(fields[i:])
+                if with_scores:
+                    genesets_scores[genes] = score
                 #genesets_scores[genes] = score
                 #assert(len(genes) == n)
                 genome |= genes # Merge genes into all genes.
@@ -96,7 +99,10 @@ def load(filenames, filter_size=None):
 
         genesets |= file_genesets
 
-    return genesets,genome,breaks
+    if with_scores:
+        return genesets,genome,breaks,genesets_scores
+    else:
+        return genesets,genome,breaks
 
 
 def genesets_to_signatures(genesets,genome):
