@@ -4,23 +4,22 @@ import numpy as np
 import anndata as ad
 import pandas as pd
 from sortedcollections import OrderedSet
-import seaborn
 
 import signatures
 
 if __name__ == "__main__":
 
-    assert(len(sys.argv) >= 9)
+    assert(len(sys.argv) >= 5)
     franks = sys.argv[1]
     size = int(sys.argv[2])
     if size == 0:
         size = None
     fout_gccorr = sys.argv[3]
-    fout_sccorr = sys.argv[4]
-    fout_sgcorr = sys.argv[5]
-    fplot_gcorr = sys.argv[6]
-    fplot_selfcorr = sys.argv[7]
-    fsignatures = sys.argv[8:]
+    # fout_sccorr = sys.argv[4]
+    # fout_sgcorr = sys.argv[5]
+    # fplot_gcorr = sys.argv[4]
+    # fplot_selfcorr = sys.argv[7]
+    fsignatures = sys.argv[4:]
 
     # Precision for floating-point computation asserts.
     epsilon = 1e-6
@@ -56,34 +55,9 @@ if __name__ == "__main__":
     print("Loaded", ncells,"cells and", ngenes_all,"genes", file=sys.stderr, flush=True)
 
     print("Load signatures from: ", fsignatures, file=sys.stderr, flush=True)
-    # genome is the genes actually used in at least one signature.
-    genome = signatures.load_genome(fsignatures, filter_size = size)
-    ngenes = len(genome)
-    print("Found",ngenes,"unique genes in signatures of size",size, file=sys.stderr, flush=True)
-    assert(len(genome) > 0)
-
-    loaded_signatures = {}
-    genomes = {}
-    breaks = {}
-    unique_signatures = OrderedSet()
-    loaded_scores = {}
-    unique_scores = {}
-    origins = {}
-    for fsign in fsignatures:
-        s,g,b,S = signatures.load([fsign], size, with_scores=True)
-        loaded_signatures[fsign] = s
-        genomes[fsign] = g
-        breaks[fsign] = b
-        loaded_scores[fsign] = S
-        for sign in s:
-            origins.setdefault(sign,set()).add(fsign)
-            unique_signatures |= s
-        for sk in S:
-            if __debug__:
-               if sk in unique_scores:
-                    assert(unique_scores[sk] == S[sk])
-            unique_scores[sk] = S[sk]
+    unique_signatures, unique_scores, origins = signatures.load_unique_signatures(fsignatures, size)
     nsignatures = len(unique_signatures)
+    genome = signatures.load_genome(fsignatures, filter_size = size)
     print("Found",nsignatures,"unique signatures", file=sys.stderr, flush=True)
 
     print("Gather samples...", file=sys.stderr, flush=True)
@@ -156,7 +130,7 @@ if __name__ == "__main__":
         #      loop │                   └──────────────┘ ⭢ └──────────────┘
         #      over │                    ⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣
         #   samples │           sdev!=0  ◌●◌◌●◌●●◌●◌◌◌●           ⭣
-        #           │                    ⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣    ┌──────────────┐ ┌──────────────┐
+        #           │                    ⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣⭣     ┌──────────────┐ ┌──────────────┐
         #         ▲ │           sample_  ◌●◌◌●◌●●◌●◌◌◌●    │ Ⓝ  Ⓝ ⓃⓃ Ⓝ   Ⓝ│ │              │
         #         │ │           uplifted ◌●◌◌●◌●●◌●◌◌◌● ⭠  │ Ⓝ z-scores  Ⓝ│∨│     zeros    │
         #         │ │             _genes ◌●◌◌●◌●●◌●◌◌◌●    │ Ⓝ  Ⓝ ⓃⓃ Ⓝ   Ⓝ│ │              │
@@ -302,6 +276,10 @@ if __name__ == "__main__":
     #             print(i,c, file=sys.stderr, flush=True)
     #             assert(1-np.abs(c) <= epsilon)
 
+    print("Update genes-cells z-score into",franks, file=sys.stderr, flush=True)
+    cells_allgenes.write(franks, compression="gzip")
+    print(cells_allgenes, file=sys.stderr, flush=True)
+
     # FIXME genes frequency distribution
 
 
@@ -380,203 +358,3 @@ if __name__ == "__main__":
     ###########################################################################
 
     # FIXME clustermap plot
-
-    ###########################################################################
-    # SIGNATURES CORRELATIONS
-    # (Average correlation across genes in each signatures)
-    ###########################################################################
-
-    # for s in unique_signatures:
-    #     print("Uniq Sign:",s)
-    # for k in origins:
-    #     print("Origin:",k,"=>",origins[k])
-    var = {"signature":np.asarray([frozenset(s) for s in unique_signatures])}
-    aorig = []
-    for s in var["signature"]:
-        aorig.append(origins[s])
-    var["origin"] = np.asarray(aorig)
-
-    print("Compute cell-signatures average correlations over samples...", file=sys.stderr, flush=True)
-    cells_signs = ad.AnnData(
-        np.zeros((ncells,nsignatures)),
-        cells_allgenes.obs,
-        var,
-        dtype=cells_allgenes.X.dtype )
-    cells_signs.varp["av.correlations"] = np.zeros((nsignatures,nsignatures))
-
-    # cells_signs structure:
-    #
-    #   ← signatures →
-    # ┌─────────────────┐
-    # │ var:"signature" │
-    # │     "origin"    │
-    # └─────────────────┘
-    # ┏━━━━━━━━━━━━━━━━━┓  ┌────────────────┐
-    # ┃ X:              ┃  │ obs:           │  ↑
-    # ┃sum.zscore/ngenes┃  │ "sample"       │ cells
-    # ┃                 ┃  │                │  ↓
-    # ┗━━━━━━━━━━━━━━━━━┛  └────────────────┘
-    # ┌─────────────────┐
-    # │ varp:           │
-    # │ "correlations"  │  ↑
-    # │                 │ signatures
-    # │                 │  ↓
-    # │                 │
-    # └─────────────────┘
-    #   ← signatures →
-    #
-
-    def genes_of(s):
-        s_genes = np.zeros(ngenes, dtype=bool)
-        for g in s:
-            # Logical "and" on locations of each genes.
-            s_genes |= (cells_sgenes.var["id"] == g)
-        return s_genes
-
-    print("Compute pairwise correlation matrix for signatures...", file=sys.stderr, flush=True)
-
-    # for s0 in unique_signatures:
-    #     s0_genes = genes_of(s0)
-    #     s0_size = len(s0)
-    #     c0_sum = np.sum(cells_sgenes.varp["correlations"][s0_genes,:], axis=0)
-    #     is0 = cells_signs.var["signature"] == s0
-    #     for s1 in unique_signatures:
-    #         s1_genes = genes_of(s1)
-    #         s1_size = len(s1)
-    #         c_sum = np.sum(c0_sum[s1_genes]) # on axis=1
-    #         is1 = cells_signs.var["signature"] == s0
-    #         size2 = s0_size * s1_size
-    #         corr = c_sum / size2
-    #         assert(-1-epsilon <= corr <= 1+epsilon)
-    #         cells_signs.varp["av.correlations"][is1,is0] = corr
-    #         cells_signs.varp["av.correlations"][is0,is1] = corr
-
-    # assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["av.correlations"])))
-
-
-    for signature in unique_signatures:
-        sgenes = genes_of(signature)
-
-        # Correlations for those genes.
-        # Use the data array to avoid useless filtering.
-        # zscores = cells_sgenes.X[:, sgenes]
-        zscores = cells_sgenes.layers["zscore"][:, sgenes]
-
-        # Keepdims avoid collapsing dimension.
-        zsum = np.sum(zscores, axis=1, keepdims=True)
-        assert(zsum.shape == (ncells,1))
-
-        # Average z-score.
-        sngenes = np.sum(sgenes)
-        if size:
-            assert(sngenes == size)
-        cells_signs[:, cells_signs.var["signature"] == signature] = zsum / sngenes # Squared nb of genes at the end.
-
-    # varp is a dictionary holding (var × var) arrays.
-    # We want the dot product of all columns.
-    # Average of z-scores is already standardized.
-    cells_signs.varp["correlations"] = cells_signs.X.T @ cells_signs.X
-    assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(cells_signs.varp["correlations"])))
-
-    print(cells_signs, file=sys.stderr, flush=True)
-    # print(cells_signs.varp["correlations"], file=sys.stderr, flush=True)
-
-    print("Save cell-signatures correlations...", file=sys.stderr, flush=True)
-    # AnnData cannot implicitely convert signature's OrderedSet to strings,
-    # so we do it manually.
-    ssigns = []
-    for oset in cells_signs.var["signature"]:
-        ssigns.append(" ".join(oset)) # Space-separated.
-    cells_signs.var["signature"] = ssigns
-    origs = []
-    for orig in cells_signs.var["origin"]:
-        origs.append(" ".join(orig))
-    cells_signs.var["origin"] = origs
-    print(cells_signs, file=sys.stderr, flush=True)
-    cells_signs.write(fout_sccorr, compression = "gzip")
-
-    ###########################################################################
-    # PLOT
-    ###########################################################################
-
-    print("Plot self-correlations of signatures against scores...", file=sys.stderr, flush=True)
-    selfcorr = np.abs(np.diag(cells_signs.varp["correlations"]))
-    if __debug__:
-        for c in selfcorr:
-            assert(-1 <= c <= 1)
-
-    objf = [unique_scores[frozenset(s.split())] for s in cells_signs.var["signature"]]
-    if __debug__:
-        for s in objf:
-            assert(s is not None)
-            assert(s > 0)
-
-    plot = seaborn.scatterplot(x=objf, y=selfcorr, s=5)
-    plot.set(xlabel="objective function", ylabel="self-correlation",
-             title="Relationship between\nobjective function and self-correlation of genes, for signatures in\n{}".format(fsignatures))
-    fig = plot.get_figure()
-    fig.savefig(fplot_selfcorr, dpi=600)
-
-    # plot = seaborn.scatterplot(x=objf, y=np.abs(np.diag(cells_signs.varp["av.correlations"])), s=5)
-    # plot.set(xlabel="objective function", ylabel="self-correlation",
-    #          title="Relationship between\nobjective function and self-correlation of genes, for signatures in\n{}".format(fsignatures))
-    # fig = plot.get_figure()
-    # fig.savefig(fplot_selfcorr+"_2.png", dpi=600)
-
-    # FIXME compute linear correlation coefficient and assert
-
-    print("Done", file=sys.stderr, flush=True)
-
-    # FIXME move qc plot in a separate task?
-
-    ###########################################################################
-    # SIGNATURES-GENES CORRELATIONS
-    ###########################################################################
-
-    print("Compute signatures-genes correlations...", file=sys.stderr, flush=True)
-
-    print("Standardization...", file=sys.stderr, flush=True)
-    # "keepdims" option not suported by sparse matrices, but is still the default behavior.
-    # rmean = np.mean(cells_allgenes.X, axis=1) #, keepdims=True)
-    # FIXME move the zscore layer computation in the cells_allgenes section and save.
-    # cells_allgenes.layers["zscore"] = (cells_allgenes.X - rmean) / np.sqrt(np.sum(np.power(cells_allgenes.X - rmean, 2), axis=1)) #, keepdims=True))
-
-    print("Big matrix multiplication...", file=sys.stderr, flush=True)
-    signs_allgenes = ad.AnnData(
-        # Correlation between signatures z-scores vector (i.e. standardized average ranks vector),
-        # and genes z-scores vector (i.e. standardized ranks vector).
-        #                 (sign × cells) @ (cells × genes) = (sign × genes)
-        cells_signs.X.T @ cells_allgenes.layers["zscore"], #np.zeros((nsignatures,ngenes_all)),
-        cells_signs.var, # Metadata about signatures
-        cells_allgenes.var,         # Metadata about all genes
-        dtype=cells_signs.X.dtype )
-
-    assert(all(-1-epsilon <= c <= 1+epsilon for c in np.nditer(signs_allgenes.X)))
-
-    # signs_allgenes structure:
-    #
-    #   ← all genes  →
-    # ┌───────────────┐
-    # │ var:"id", […] │
-    # └───────────────┘
-    # ┏━━━━━━━━━━━━━━━┓  ┌────────────────┐
-    # ┃ X:            ┃  │ obs:           │  ↑
-    # ┃ correlations  ┃  │ "signature",   │ signatures
-    # ┃               ┃  │ "origin"       │  ↓
-    # ┗━━━━━━━━━━━━━━━┛  └────────────────┘
-    #   ← all genes  →
-
-    print("Save signatures-genes correlations...", file=sys.stderr, flush=True)
-    signs_allgenes.write(fout_sgcorr, compression="gzip")
-    print(signs_allgenes, file=sys.stderr, flush=True)
-
-    print("Export signatures-genes correlations to CSV...", file=sys.stderr, flush=True)
-    # Set names.
-    signs_allgenes.obs_names = signs_allgenes.obs["signature"]
-    signs_allgenes.var_names = signs_allgenes.var["id"]
-    # Re-use the h5an output filename, but remove extensions.
-    fname = pathlib.Path(fout_sgcorr)
-    while fname.suffix:
-        fname = fname.with_suffix("")
-    # Convert and write.
-    signs_allgenes.to_df().to_csv(fname.with_suffix(".csv"))

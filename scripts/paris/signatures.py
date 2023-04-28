@@ -11,6 +11,37 @@ from fastcluster import linkage
 # signature = dictionary of all seen genes ("genome"), with value being true if the gene is in the signature.
 # e.g. {"A":1, "B":1, "C": 0, "D":0}
 
+def load_unique_signatures(filenames, size):
+    # genome is the genes actually used in at least one signature.
+    genome = load_genome(filenames, filter_size = size)
+    ngenes = len(genome)
+    print("Found",ngenes,"unique genes in signatures of size",size, file=sys.stderr, flush=True)
+    assert(len(genome) > 0)
+
+    loaded_signatures = {}
+    genomes = {}
+    breaks = {}
+    unique_signatures = OrderedSet()
+    loaded_scores = {}
+    unique_scores = {}
+    origins = {}
+    for fsign in filenames:
+        s,g,b,S = load([fsign], size, with_scores=True)
+        loaded_signatures[fsign] = s
+        genomes[fsign] = g
+        breaks[fsign] = b
+        loaded_scores[fsign] = S
+        for sign in s:
+            origins.setdefault(sign,set()).add(fsign)
+            unique_signatures |= s
+        for sk in S:
+            if __debug__:
+               if sk in unique_scores:
+                    assert(unique_scores[sk] == S[sk])
+            unique_scores[sk] = S[sk]
+    return unique_signatures, unique_scores, origins
+
+
 def load_genome(filenames, filter_size=None):
     """Return the set of genes encountered in all the given signature files."""
     assert(len(filenames) > 0)
