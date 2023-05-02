@@ -309,52 +309,7 @@ if __name__ == "__main__":
     assert("zscore" in cells_allgenes.layers)
     assert("correlations" in cells_allgenes.varp)
 
-    # cells_sgenes = ad.AnnData(
-    #     np.zeros((ncells,ngenes)),
-    #     cells_allgenes.obs, {"gene":np.asarray(genome)},
-    #     dtype=cells_allgenes.layers["ranks"].dtype )
-
-    # cells_sgenes structure:
-    #
-    #  ← genes in sign →
-    # ┌────────────────┐
-    # │ var:"gene"     │
-    # └────────────────┘
-    # ┏━━━━━━━━━━━━━━━━┓  ┌────────────────┐
-    # ┃ X: z-score     ┃  │ obs:           │  ↑
-    # ┃                ┃  │ "sample"       │ cells
-    # ┃                ┃  │                │  ↓
-    # ┗━━━━━━━━━━━━━━━━┛  └────────────────┘
-    # ┌────────────────┐
-    # │ varp:          │
-    # │ "correlations" │  ↑
-    # │                │ genes in sign
-    # │                │  ↓
-    # │                │
-    # └────────────────┘
-    #  ← genes in sign →
-    #
-
-    # # FIXME just extract this from the matrix with all genes.
-    # genome_ids = np.zeros(len(cells_allgenes.var["id"]), dtype=bool)
-    # for g in genome:
-    #     genome_ids |= (cells_allgenes.var["id"] == g)
-    # # cells_sgenes = cells_allgenes[ :, genome_ids ]
-    # cells_sgenes.X = cells_allgenes.layers["zscore"][ :, genome_ids ]
-    # assert(np.sum(genome_ids) == len(genome))
-
-    # print("Compute pairwise average correlation matrix for signatures' genes over samples...", file=sys.stderr, flush=True)
-    # # Correlation is the average of the sum of the product of z-scores.
-    # # We already prepared for the division by the number of samples, hence only the sum of products remains.
-    # # cells_sgenes.varp["correlations"] = np.clip(cells_sgenes.X.T @ cells_sgenes.X, -1,1)
-    # cells_sgenes.varp["correlations"] = cells_sgenes.X.T @ cells_sgenes.X
-    # if __debug__:
-    #     for i in range(cells_sgenes.varp["correlations"].shape[0]):
-    #         for j in range(cells_sgenes.varp["correlations"].shape[1]):
-    #             # if not (-1 <= cells_sgenes.varp["correlations"][i,j] <= 1):
-    #                 # print(i,j,cells_sgenes.varp["correlations"][i,j], file=sys.stderr, flush=True)
-    #             assert(np.abs(cells_sgenes.varp["correlations"][i,j]) <= 1+epsilon)
-
+    # cells_sgenes structure is the same than the previous cells_allgenes.
 
     print("Save cell-gene z-score and gene correlations...", file=sys.stderr, flush=True)
     print(cells_sgenes, file=sys.stderr, flush=True)
