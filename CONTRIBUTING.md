@@ -16,6 +16,22 @@ You can then open the `<build_dir>/doc/html/index.html` in your Web browser
 to easily browse all the classes and functions detailled documentation.
 
 
+Debugging tools
+===============
+
+The build chain allows to select `CMAKE_BUILD_TYPE=Debug` to enable:
+- the use of debug symbols in the binary (for using a debugger),
+- the display of more logs (those below the "Progress" log level),
+- internal checks with the *assert* function.
+
+The application allows to finely configure what is displayed
+as log messages, see `frictionlesser --help`, in the "Logging" section.
+For example, to enable all possible logs:
+```
+frictionlesser --verbose=XDebug --log-file=".*" --log-func=".*" --log-depth=9999 --max-errors=9999
+```
+
+
 Architecture
 ============
 
@@ -107,7 +123,7 @@ The entry points are:
 
 These two classes heavily rely on the `FriedmanScore` class (`score.h`),
 which computes the main statistic, and computes the data cache that allows
-the partial evaluation.
+the partial evaluation (see `src/eval.cpp`).
 
 The `FriedmanScore` itself relies on a `Transcriptome` (`transcriptome.h`),
 which holds the input RNA expression data, along with various accessors onto it.
@@ -152,6 +168,13 @@ All the details related to the cache system are in `cache.h`:
 - `CacheTranscriptome`, for Friedman score's intermediate results that are tied to a given *transcriptome*,
 - `CacheSize`, for results that are tied to a given *signature size*,
 - `CacheSwap`, for results involved in *swaping two genes*.
+
+The current design is to attach the swap cache to the neighbor operator
+(see the next section). This avoid having a cache attached to the signatures
+themselves and saves some space and copy time.
+However, this require to swap caches when moving from one signature to another.
+The current design also maintains a swap cache attached to the FriedmanScore
+data structure, which may not be optimal.
 
 
 Neighborhood
