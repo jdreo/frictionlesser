@@ -3,6 +3,19 @@ Frictionlesser being a small project, any contribution are welcomed in any form.
 Just be bold and either post an issue, a pull request or just send a message to <johann.dreo@pasteur.fr>.
 
 
+Documentation
+=============
+
+If your build chain works, you can build an HTML documentation by enabling
+the CMake `BUILD_DOCS` option:
+```
+cmake -DBUILD_DOCS=YES
+```
+
+You can then open the `<build_dir>/doc/html/index.html` in your Web browser
+to easily browse all the classes and functions detailled documentation.
+
+
 Architecture
 ============
 
@@ -165,6 +178,9 @@ It actually generates *neighbors* and not *solutions*.
 Other
 -----
 
+The `parser.h` shows several classes that may load different ways to represent
+the expression tables (i.e. Neftel's convention or Zakiev's convention).
+
 Frictionlesser uses the [clutchlog project](https://nojhan.github.io/clutchlog/)
 for having nice, colored, logs that shows the log location.
 Its configuration is set in `log.cpp`.
@@ -177,11 +193,11 @@ The `frictionless.h` file holds some convenience functions.
 The `src/pgamma.cpp` file is borrowed from the [R project](https://www.r-project.org).
 
 
-
 Licensing
 =========
 
-TL;DR: *Frictionlesser is available under the AGPL v3*.
+TL;DR: *Frictionlesser is available under the
+[AGPL](https://www.gnu.org/licenses/agpl-3.0.en.html)* license.
 
 Frictionlesser itself is distributed under the GNU Affero Public General License v3.0 license (AGPL).
 It's source code is (so far) fully copyrighted to the Institut Pasteur,
