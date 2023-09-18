@@ -16,6 +16,7 @@
 
 namespace frictionless {
 
+// FIXME move the code in the src/ dir.
 struct ScoreDetails
 {
     using ValueType = double;

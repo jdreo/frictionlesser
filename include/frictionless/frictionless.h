@@ -15,6 +15,7 @@
 
 namespace frictionless {
 
+//! Simplified declaration of possible exceptions.
 EXCEPTION(Exception, DataError);
     EXCEPTION(DataError, DataInconsistent);
     EXCEPTION(DataError, DataRowFormat);

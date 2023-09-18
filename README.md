@@ -19,6 +19,9 @@ It uses partial evaluation for the stable neighborhood
 The search algorithm is implemented using the
 [ParadisEO](https://github.com/nojhan/paradiseo) framework.
 
+For more information on the global architecture,
+see the [CONTRIBUTING](CONTRIBUTING.md) file.
+
 
 Build
 =====
@@ -35,6 +38,7 @@ file to see how to build locally.
 NOTE: when building in Debug mode, a lot more checks are performed.
 It would thus be a good idea to perform at least one run with a binary built in Debug mode,
 to double check that the input data are consistent.
+You can use the `datatester` binary for that.
 
 
 Usage
