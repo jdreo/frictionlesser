@@ -2,7 +2,7 @@
 
 # Run experiment from scratch on Pasteur's maestro.
 
-tag="v0.2_PARIS_expe_2"
+# tag="v0.2_PARIS_expe_2"
 
 if [[ -z ${1-} || $1 == --help || $1 == -h ]]; then
     printf 'Usage: %s input_data_prefix
@@ -59,7 +59,11 @@ cmake -DBUILD_DOCS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DUSE_LOCA
 make
 
 printf "Install scipy and scanpy...\n"
-pip3 install scipy scanpy sortedcollections fastcluster
+module load Python/3.8.1
+module load snakemake/7.16.1
+module load hdf5/1.10.6
+pip3 install --user Cython
+pip3 install --user scipy scanpy sortedcollections fastcluster
 
 printf "Copy input data in working directory...\n"
 cd ../../

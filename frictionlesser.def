@@ -1,7 +1,8 @@
 Bootstrap: library
-From: ubuntu:20.04
+From: ubuntu:22.04
 %post
-    BUILD_REQUIREMENTS="git build-essential clang-9 cmake"
+    # BUILD_REQUIREMENTS="git build-essential clang-15 cmake snakemake python3-pip"
+    BUILD_REQUIREMENTS="git build-essential clang-15 cmake"
 
     mkdir -p /usr/local/bin
     mkdir /usr/local/pasteur
@@ -17,23 +18,25 @@ From: ubuntu:20.04
     apt -y dist-upgrade
 
     # Install dependencies for your project.
+    # apt -y install dialog
     apt -y install $BUILD_REQUIREMENTS
+    #pip3 install scanpy
 
-    # BUild ParadisEO.
-    git clone --branch master --single-branch --recurse-submodules https://github.com/nojhan/paradiseo
+    # Build ParadisEO.
+    git clone --branch master --single-branch --recurse-submodules https://gitlab.pasteur.fr/jdreo/paradiseo.git
     cd paradiseo
     mkdir build
     cd build
-    cmake -DCMAKE_BUILD_TYPE=Release ..
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON ..
     make
     cd ../..
 
     # Build frictionlesser.
-    git clone --branch main --single-branch --recurse-submodules https://github.com/jdreo/frictionlesser
+    git clone --branch main --single-branch --recurse-submodules https://gitlab.pasteur.fr/jdreo/frictionlesser.git
     cd frictionlesser
     mkdir build
     cd build
-    cmake -DBUILD_DOCS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DPARADISEO_ROOT=../../paradiseo -DPARADISEO_BUILD=../../paradiseo/build ..
+    cmake -DBUILD_DOCS=OFF -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release -DPARADISEO_ROOT=../../paradiseo -DPARADISEO_BUILD=../../paradiseo/build -DUSE_LOCAL_PARADISEO=ON -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON ..
     make
     # Install.
     cp app/frictionlesser /usr/local/bin/
