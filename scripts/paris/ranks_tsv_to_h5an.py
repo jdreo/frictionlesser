@@ -7,7 +7,7 @@ if __name__ == "__main__":
     assert(len(sys.argv) == 4)
 
     ranks = signatures.load_ranks_csv(sys.argv[1])
-    adata = ad.read(sys.argv[2])
+    adata = ad.read_csv(sys.argv[2], delimiter='\t')
     adata.layers["ranks"] = ranks.T
     adata.write(sys.argv[3], compression="gzip")
 

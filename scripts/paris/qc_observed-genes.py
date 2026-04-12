@@ -57,7 +57,7 @@ if __name__ == "__main__":
                 totalgenes=len(all_genome),
                 files=fsignatures))
     plot.tick_params(axis='x', rotation=45, labelsize=3)
-    fig.savefig(fplot, dpi=600)
+    fig.savefig(fplot+".png", dpi=600)
 
 
     nth_firsts = 300

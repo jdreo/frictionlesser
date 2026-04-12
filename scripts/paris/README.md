@@ -63,7 +63,7 @@ Filtering
 
 The filtering pipepline uses the scanpy module.
 
-0. Starting from the `counts.npz` matrix (cells ×_genes),
+0. Starting from the `counts.npz` matrix (cells × genes),
    and using `features.csv` meta-data about genes and
    `meta.csv` meta-data about cells.
 1. Filter out non-cancer cells.
@@ -91,7 +91,7 @@ frictionlesser executable, with different random seeds.
 
 Because it exceed the forking capacity of SnakeMake, it is handled by a simple
 shell script: `submit-expe_10.sh <first_seed> <nb_of_runs>`.
-Seeds starts fro_`first_seed` and are then incremented by one until `nb_of_runs`
+Seeds starts from `first_seed` and are then incremented by one until `nb_of_runs`
 are submitted.
 
 This script submits `expe_run.sh` on a SLURM cluster
@@ -100,7 +100,7 @@ This script submits `expe_run.sh` on a SLURM cluster
 The main output is 10 000 files, each one being one signature of the form:
 `<global_score> <nb_of_samples> <score_sample_0> … <score_sample_n> <nb_of_genes> <gene_0> … <gene_m>`.
 `gene` is the actual gene label, as used in the input data.
-Those files are in `data/output/signatures of_XX-genes` with XX the size of the signatures.
+Those files are in `data/output/signatures_of_XX-genes` with XX the size of the signatures.
 
 
 Post-processing & validation
@@ -222,3 +222,4 @@ Signatures-samples scores
 
 This step is a simple recollection of the data within signatures files,
 in a single matrix, as a CSV file: `data/output/scores_signatures-samples.csv`
+

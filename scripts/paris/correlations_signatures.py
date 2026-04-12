@@ -25,13 +25,13 @@ if __name__ == "__main__":
     print("Found",nsignatures,"unique signatures", file=sys.stderr, flush=True)
 
     print("Load annotated ranks data from: ", franks, file=sys.stderr, flush=True)
-    cells_allgenes = ad.read(franks)
+    cells_allgenes = ad.read_h5ad(franks)
     print(cells_allgenes, file=sys.stderr, flush=True)
     ncells = cells_allgenes.shape[0]
     ngenes_all = cells_allgenes.shape[1]
 
     print("Load z-scores of genes in signatures: ", fgccorr, file=sys.stderr, flush=True)
-    cells_sgenes = ad.read(fgccorr)
+    cells_sgenes = ad.read_h5ad(fgccorr)
     print(cells_sgenes, file=sys.stderr, flush=True)
     ngenes = cells_sgenes.shape[1]
 

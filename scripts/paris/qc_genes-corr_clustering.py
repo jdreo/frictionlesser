@@ -15,7 +15,7 @@ if __name__ == "__main__":
     fout = sys.argv[3]
 
     print("Load annotated genes correlations data from: ", fgccorr, file=sys.stderr, flush=True)
-    cells_sgenes = ad.read(fgccorr)
+    cells_sgenes = ad.read_h5ad(fgccorr)
     print(cells_sgenes, file=sys.stderr, flush=True)
 
     # Data transformation.

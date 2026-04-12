@@ -30,7 +30,7 @@ if __name__ == "__main__":
     ###########################################################################
 
     print("Load annotated ranks data from: ", franks, file=sys.stderr, flush=True)
-    cells_allgenes = ad.read(franks)
+    cells_allgenes = ad.read_hd5an(franks)
     print(cells_allgenes, file=sys.stderr, flush=True)
     ncells = cells_allgenes.shape[0]
     ngenes_all = cells_allgenes.shape[1]

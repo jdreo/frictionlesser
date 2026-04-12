@@ -20,12 +20,12 @@ if __name__ == "__main__":
     epsilon = 1e-6
 
     print("Load annotated cells-signatures data from: ", fsccorr, file=sys.stderr, flush=True)
-    cells_signs = ad.read(fsccorr)
+    cells_signs = ad.read_h5ad(fsccorr)
     print(cells_signs, file=sys.stderr, flush=True)
     ncells = cells_signs.shape[0]
 
     print("Load annotated ranks data from: ", franks, file=sys.stderr, flush=True)
-    cells_allgenes = ad.read(franks)
+    cells_allgenes = ad.read_h5ad(franks)
     print(cells_allgenes, file=sys.stderr, flush=True)
     ncells = cells_allgenes.shape[0]
     ngenes_all = cells_allgenes.shape[1]

@@ -16,7 +16,7 @@ if __name__ == "__main__":
     fsignatures = sys.argv[4:]
 
     print("Load annotated cells-signatures data from: ", fsccorr, file=sys.stderr, flush=True)
-    cells_signs = ad.read(fsccorr)
+    cells_signs = ad.read_h5ad(fsccorr)
     print(cells_signs, file=sys.stderr, flush=True)
     ncells = cells_signs.shape[0]
     # ngenes = cells_signs.shape[1]
